@@ -1,11 +1,6 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
-	"github.com/gorilla/sessions"
-	"log"
-	"net/http"
 	"strings"
 )
 
@@ -64,37 +59,4 @@ func preprocessBookmarks(bookmarks string) []*BookmarkColumn {
 	}
 
 	return result
-}
-
-func bookmarksMinePage(w http.ResponseWriter, r *http.Request) {
-	type Data struct {
-		*CoreData
-		Columns []*BookmarkColumn
-	}
-
-	queries := r.Context().Value(ContextValues("queries")).(*Queries)
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	userRef, _ := session.Values["UserRef"].(string)
-
-	bookmarks, err := queries.GetBookmarksForUser(r.Context(), userRef)
-	if err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-		default:
-			log.Printf("error getBookmarksForUser: %s", err)
-			http.Error(w, "ERROR", 500)
-			return
-		}
-	}
-
-	data := Data{
-		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-		Columns:  preprocessBookmarks(bookmarks.List.String),
-	}
-
-	if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "bookmarksMinePage.gohtml", data); err != nil {
-		log.Printf("Template Error: %s", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 }

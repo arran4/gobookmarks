@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -58,12 +59,13 @@ func main() {
 	r.Handle("/", http.HandlerFunc(taskDoneAutoRefreshPage)).Methods("POST")
 
 	bmr := r.PathPrefix("/bookmarks").Subrouter()
-	bmr.HandleFunc("", bookmarksPage).Methods("GET").MatcherFunc(RequiresAnAccount())
-	bmr.HandleFunc("/mine", bookmarksMinePage).Methods("GET").MatcherFunc(RequiresAnAccount())
-	bmr.HandleFunc("/edit", bookmarksEditPage).Methods("GET").MatcherFunc(RequiresAnAccount())
+	bmr.HandleFunc("", bookmarksPage).Methods("GET")
+	bmr.HandleFunc("/mine", runTemplate("bookmarksMinePage.gohtml")).Methods("GET", "POST")
+	bmr.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	bmr.HandleFunc("/edit", runTemplate("bookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	bmr.HandleFunc("/edit", bookmarksEditSaveActionPage).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	bmr.HandleFunc("/edit", bookmarksEditCreateActionPage).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
-	bmr.HandleFunc("/edit", taskDoneAutoRefreshPage).Methods("POST").MatcherFunc(RequiresAnAccount())
+	bmr.HandleFunc("/edit", taskDoneAutoRefreshPage).Methods("POST")
 
 	r.HandleFunc("/logout", userLogoutPage).Methods("GET")
 	r.HandleFunc("/oauth2Callback", oauth2CallbackPage).Methods("GET")
@@ -194,6 +196,19 @@ func CreatePEMFiles() {
 	}
 	if err := pem.Encode(keyFile, &pem.Block{Type: "EC PRIVATE KEY", Bytes: privBytes}); err != nil {
 		log.Fatalf("Failed to write data to key.pem: %v", err)
+	}
+}
+
+func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		for _, each := range chain {
+			switch each := each.(type) {
+			case http.Handler:
+				each.ServeHTTP(w, r)
+			case http.HandlerFunc:
+				each(w, r)
+			}
+		}
 	}
 }
 
