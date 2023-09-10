@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func userLogoutPage(w http.ResponseWriter, r *http.Request) {
+func userLogoutAction(w http.ResponseWriter, r *http.Request) {
 	type Data struct {
 		*CoreData
 	}
@@ -30,12 +30,6 @@ func userLogoutPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.CoreData.UserRef = ""
-
-	if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "userLogoutPage.gohtml", data); err != nil {
-		log.Printf("Template Error: %s", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 }
 
 func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
@@ -143,8 +137,6 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }
 
 func UserAdderMiddleware(next http.Handler) http.Handler {

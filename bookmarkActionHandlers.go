@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func bookmarksEditSaveActionPage(w http.ResponseWriter, r *http.Request) {
+func bookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
 	text := r.PostFormValue("text")
 	queries := r.Context().Value(ContextValues("queries")).(*Queries)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -22,12 +22,9 @@ func bookmarksEditSaveActionPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "?error="+err.Error(), http.StatusTemporaryRedirect)
 		return
 	}
-
-	http.Redirect(w, r, "/bookmarks/mine", http.StatusTemporaryRedirect)
-
 }
 
-func bookmarksEditCreateActionPage(w http.ResponseWriter, r *http.Request) {
+func bookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) {
 	text := r.PostFormValue("text")
 	queries := r.Context().Value(ContextValues("queries")).(*Queries)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -43,7 +40,4 @@ func bookmarksEditCreateActionPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "?error="+err.Error(), http.StatusTemporaryRedirect)
 		return
 	}
-
-	http.Redirect(w, r, "/bookmarks/mine", http.StatusTemporaryRedirect)
-
 }

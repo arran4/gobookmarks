@@ -59,16 +59,16 @@ func main() {
 	r.Handle("/", http.HandlerFunc(taskDoneAutoRefreshPage)).Methods("POST")
 
 	bmr := r.PathPrefix("/bookmarks").Subrouter()
-	bmr.HandleFunc("", bookmarksPage).Methods("GET")
+	bmr.HandleFunc("", runTemplate("bookmarksPage.gohtml")).Methods("GET")
 	bmr.HandleFunc("/mine", runTemplate("bookmarksMinePage.gohtml")).Methods("GET", "POST")
 	bmr.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	bmr.HandleFunc("/edit", runTemplate("bookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
-	bmr.HandleFunc("/edit", bookmarksEditSaveActionPage).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
-	bmr.HandleFunc("/edit", bookmarksEditCreateActionPage).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	bmr.HandleFunc("/edit", runHandlerChain(bookmarksEditSaveAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
+	bmr.HandleFunc("/edit", runHandlerChain(bookmarksEditCreateAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	bmr.HandleFunc("/edit", taskDoneAutoRefreshPage).Methods("POST")
 
-	r.HandleFunc("/logout", userLogoutPage).Methods("GET")
-	r.HandleFunc("/oauth2Callback", oauth2CallbackPage).Methods("GET")
+	r.HandleFunc("/logout", runHandlerChain(userLogoutAction, runTemplate("userLogoutPage.gohtml"))).Methods("GET")
+	r.HandleFunc("/oauth2Callback", runHandlerChain(oauth2CallbackPage, redirectToHandler("/bookmarks/mine"))).Methods("GET")
 
 	http.Handle("/", r)
 
@@ -227,6 +227,12 @@ func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+	})
+}
+
+func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, toUrl, http.StatusTemporaryRedirect)
 	})
 }
 
