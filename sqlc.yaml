@@ -1,0 +1,13 @@
+version: 2
+sql:
+    - engine: "mysql"
+      schema: "schema.mysql.sql"
+      queries:
+        - "queries-bookmarks.sql"
+      gen:
+          go:
+              package: "main"
+              out: "."
+              emit_result_struct_pointers: true
+              emit_enum_valid_method: true
+              emit_all_enum_values: true

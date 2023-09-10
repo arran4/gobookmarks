@@ -1,0 +1,6 @@
+{{ template "head" $ }}
+    <form method=post action="">
+        <textarea name="text" cols=60 rows=20>{{.BookmarkContent}}</textarea><br>
+        <input type=submit name="task" value="{{if .Bid}}Save{{else}}Create{{end}}">
+    </form>
+{{ template "tail" $ }}

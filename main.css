@@ -1,0 +1,90 @@
+body {
+	background-color: #FFFBF0;
+	color: #800000;
+}
+a {
+	background-color: transparent;
+	color: #808000;
+}
+a:visited {
+	background-color: transparent;
+	color: #808000;
+}
+a:hover {
+	background-color: transparent;
+	color: #FF0000;
+}
+h1 {
+	font-family: tahoma, arial, helvetica, sans-serif;
+	text-align: center;
+	color: #800000;
+	background-color: transparent;
+}
+div.index {
+	text-align: center;
+}
+div.index table {
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+div.navigation {
+	text-align: center;
+}
+div.navigation table {
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+div.photograph {
+	text-align: center;
+}
+div.photograph table {
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+td.thumbcell {
+	width: 100px;
+}
+div.title {
+	font-weight: bold;
+	font-family: tahoma, arial, helvetica, sans-serif;
+	text-align: right;
+	font-size: 0.8em;
+	color: #800000;
+	background-color: transparent;
+}
+.caption {
+	font-family: tahoma, arial, helvetica, sans-serif;
+	text-align: center;
+	font-size: 0.8em;
+	color: #800000;
+	background-color: transparent;
+}
+.footnote {
+	font-size: 0.6em;
+	text-align: right;
+	font-family: tahoma, arial, helvetica, sans-serif;
+}
+.textleft {
+	text-align: left;
+	font-family: tahoma, arial, helvetica, sans-serif;
+	font-size: 0.8em;
+	color: #800000;
+	background-color: transparent;
+}
+.textright {
+	text-align: right;
+	font-family: tahoma, arial, helvetica, sans-serif;
+	font-size: 0.8em;
+	color: #800000;
+	background-color: transparent;
+}
+.textcenter {
+	text-align: center;
+	font-family: tahoma, arial, helvetica, sans-serif;
+	font-size: 0.8em;
+	color: #800000;
+	background-color: transparent;
+}
