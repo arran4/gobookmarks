@@ -6,7 +6,7 @@ sql:
         - "queries-bookmarks.sql"
       gen:
           go:
-              package: "main"
+              package: "a4webbm"
               out: "."
               emit_result_struct_pointers: true
               emit_enum_valid_method: true
