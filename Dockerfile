@@ -1,5 +1,4 @@
 FROM scratch
-ENTRYPOINT ["/a4webbmws"]
 VOLUME /data
 ENV DB_CONNECTION_PROVIDER=sqlite3
 ENV DB_CONNECTION_STRING="file:/data/a4webbookmarks.db?_loc=auto"
@@ -8,6 +7,8 @@ ENV DB_CONNECTION_STRING="file:/data/a4webbookmarks.db?_loc=auto"
 ENV EXTERNAL_URL=http://localhost:8080
 ENV OAUTH2_CLIENT_ID=""
 ENV OAUTH2_SECRET=""
-COPY a4webbmws /
 EXPOSE 8080
 EXPOSE 8443
+COPY a4webbmws /bin/a4webbmws
+ENV PATH=/bin
+ENTRYPOINT ["a4webbmws"]
