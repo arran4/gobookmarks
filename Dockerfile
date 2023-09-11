@@ -12,6 +12,7 @@ EXPOSE 8443
 COPY a4webbmws /bin/a4webbmws
 RUN apt-get update && apt-get install -y \
   libsqlite3-0 \
-  && rm -rf /var/lib/apt/lists/*
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/* && update-ca-certificates
 ENV PATH=/bin
 ENTRYPOINT ["a4webbmws"]
