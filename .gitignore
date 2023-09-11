@@ -21,3 +21,4 @@
 go.work
 /a4webbookmarks.db
 *.pem
+dist/
