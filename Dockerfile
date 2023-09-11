@@ -1,4 +1,4 @@
-FROM scratch
+FROM debian
 VOLUME /data
 ENV DB_CONNECTION_PROVIDER=sqlite3
 ENV DB_CONNECTION_STRING="file:/data/a4webbookmarks.db?_loc=auto"
