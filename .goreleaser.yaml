@@ -1,3 +1,4 @@
+project_name: a4webbm
 builds:
   - env:
       - CGO_ENABLED=1
@@ -29,6 +30,10 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+dockers:
+  - image_templates:
+      - "gcr.io/arran4/goa4webbookmarks:{{ .Tag }}"
+      - "gcr.io/arran4/goa4webbookmarks:latest"
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
