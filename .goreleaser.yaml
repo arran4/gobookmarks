@@ -7,6 +7,10 @@ builds:
 #      - windows
 #      - darwin
     main: ./cmd/a4webbmws
+    goarch:
+      - amd64
+#      - arm
+#      - arm64
 
 archives:
   - format: tar.gz
