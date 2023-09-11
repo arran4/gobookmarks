@@ -8,6 +8,6 @@ ENV DB_CONNECTION_STRING="file:/data/a4webbookmarks.db?_loc=auto"
 ENV EXTERNAL_URL=http://localhost:8080
 ENV OAUTH2_CLIENT_ID=""
 ENV OAUTH2_SECRET=""
-COPY a4webbm /
+COPY a4webbmws /
 EXPOSE 8080
 EXPOSE 8443
