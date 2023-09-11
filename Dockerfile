@@ -10,5 +10,8 @@ ENV OAUTH2_SECRET=""
 EXPOSE 8080
 EXPOSE 8443
 COPY a4webbmws /bin/a4webbmws
+RUN apt-get update && apt-get install -y \
+  libsqlite3-0 \
+  && rm -rf /var/lib/apt/lists/*
 ENV PATH=/bin
 ENTRYPOINT ["a4webbmws"]
