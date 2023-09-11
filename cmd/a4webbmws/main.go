@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	. "github.com/arran4/goa4web-bookmarks"
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -25,23 +26,23 @@ import (
 )
 
 var (
-	clientID                    = os.Getenv("OAUTH2_CLIENT_ID")
-	clientSecret                = os.Getenv("OAUTH2_SECRET")
-	externalUrl                 = os.Getenv("EXTERNAL_URL")
-	redirectUrl                 = fmt.Sprintf("%s/oauth2Callback", externalUrl)
-	sessionName                 = "a4webbookmarks"
-	store                       = sessions.NewCookieStore([]byte("random-key"))
-	oauth2Config *oauth2.Config = &oauth2.Config{
+	clientID     = os.Getenv("OAUTH2_CLIENT_ID")
+	clientSecret = os.Getenv("OAUTH2_SECRET")
+	externalUrl  = os.Getenv("EXTERNAL_URL")
+	redirectUrl  = fmt.Sprintf("%s/oauth2Callback", externalUrl)
+)
+
+func init() {
+	log.SetFlags(log.Flags() | log.Lshortfile)
+	SessionName = "a4webbookmarks"
+	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
+	Oauth2Config = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectUrl,
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 		Endpoint:     endpoints.Google,
 	}
-)
-
-func init() {
-	log.SetFlags(log.Flags() | log.Lshortfile)
 }
 
 func main() {
@@ -52,24 +53,24 @@ func main() {
 	r.Use(CoreAdderMiddleware)
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
-		_, _ = writer.Write(getMainCSSData())
+		_, _ = writer.Write(GetMainCSSData())
 	}).Methods("GET")
 
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("indexPage.gohtml"))).Methods("GET")
-	r.Handle("/", http.HandlerFunc(taskDoneAutoRefreshPage)).Methods("POST")
+	r.Handle("/", http.HandlerFunc(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	bmr := r.PathPrefix("/bookmarks").Subrouter()
 	bmr.HandleFunc("", runTemplate("bookmarksPage.gohtml")).Methods("GET")
 	bmr.HandleFunc("/mine", runTemplate("bookmarksMinePage.gohtml")).Methods("GET", "POST")
 	bmr.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	bmr.HandleFunc("/edit", runTemplate("bookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
-	bmr.HandleFunc("/edit", runHandlerChain(bookmarksEditSaveAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
-	bmr.HandleFunc("/edit", runHandlerChain(bookmarksEditCreateAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
-	bmr.HandleFunc("/edit", taskDoneAutoRefreshPage).Methods("POST")
+	bmr.HandleFunc("/edit", runTemplate("BookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
+	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	bmr.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
 
-	r.HandleFunc("/logout", runHandlerChain(userLogoutAction, runTemplate("userLogoutPage.gohtml"))).Methods("GET")
-	r.HandleFunc("/oauth2Callback", runHandlerChain(oauth2CallbackPage, redirectToHandler("/bookmarks/mine"))).Methods("GET")
+	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("userLogoutPage.gohtml"))).Methods("GET")
+	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/bookmarks/mine"))).Methods("GET")
 
 	http.Handle("/", r)
 
@@ -227,7 +228,7 @@ func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		}
 
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, template, data); err != nil {
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, template, data); err != nil {
 			log.Printf("Template Error: %s", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -247,7 +248,7 @@ func RequiresAnAccount() mux.MatcherFunc {
 		sessioni := request.Context().Value(ContextValues("session"))
 		if sessioni == nil {
 			var err error
-			session, err = store.Get(request, sessionName)
+			session, err = SessionStore.Get(request, SessionName)
 			if err != nil {
 				return false
 			}

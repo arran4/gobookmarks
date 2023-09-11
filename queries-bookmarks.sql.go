@@ -3,7 +3,7 @@
 //   sqlc v1.21.0
 // source: queries-bookmarks.sql
 
-package main
+package a4webbm
 
 import (
 	"context"

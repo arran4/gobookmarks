@@ -1,4 +1,4 @@
-package main
+package a4webbm
 
 import (
 	"database/sql"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func bookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
+func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
 	text := r.PostFormValue("text")
 	queries := r.Context().Value(ContextValues("queries")).(*Queries)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -24,7 +24,7 @@ func bookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func bookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) {
+func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) {
 	text := r.PostFormValue("text")
 	queries := r.Context().Value(ContextValues("queries")).(*Queries)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)

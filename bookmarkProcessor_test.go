@@ -1,4 +1,4 @@
-package main
+package a4webbm
 
 import (
 	"github.com/google/go-cmp/cmp"

@@ -1,15 +1,16 @@
-package main
+package a4webbm
 
 import (
 	"context"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"strings"
 )
 
-func userLogoutAction(w http.ResponseWriter, r *http.Request) {
+func UserLogoutAction(w http.ResponseWriter, r *http.Request) {
 	type Data struct {
 		*CoreData
 	}
@@ -32,17 +33,23 @@ func userLogoutAction(w http.ResponseWriter, r *http.Request) {
 	data.CoreData.UserRef = ""
 }
 
-func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
+var (
+	Oauth2Config *oauth2.Config
+	SessionStore sessions.Store
+	SessionName  string
+)
+
+func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 
 	type ErrorData struct {
 		*CoreData
 		Error string
 	}
 
-	token, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
+	token, err := Oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
 		log.Printf("Exchange error: %s", err)
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
@@ -52,10 +59,10 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := store.Get(r, sessionName)
+	session, err := SessionStore.Get(r, SessionName)
 	if err != nil {
 		log.Printf("Session error: %s", err)
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
@@ -68,7 +75,7 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 	provider, err := oidc.NewProvider(r.Context(), "https://accounts.google.com")
 	if err != nil {
 		log.Printf("oidc new provider error: %s", err)
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
@@ -78,12 +85,12 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var verifier = provider.Verifier(&oidc.Config{ClientID: clientID})
+	var verifier = provider.Verifier(&oidc.Config{ClientID: Oauth2Config.ClientID})
 
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
 		log.Printf("id_otken missing")
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    "id token missing",
 		}); err != nil {
@@ -96,7 +103,7 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 	idToken, err := verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		log.Printf("Id token failed to verify error: %s", err)
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
@@ -112,7 +119,7 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := idToken.Claims(&claims); err != nil {
 		log.Printf("IdToken claims error: %s", err)
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
@@ -128,7 +135,7 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 
 	if err := session.Save(r, w); err != nil {
 		log.Printf("Exchange error: %s", err)
-		if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
@@ -142,7 +149,7 @@ func oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 func UserAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		// Get the session.
-		session, err := store.Get(request, sessionName)
+		session, err := SessionStore.Get(request, SessionName)
 		if err != nil {
 			http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
 			return

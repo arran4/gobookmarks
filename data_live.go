@@ -1,18 +1,18 @@
 //go:build live
 // +build live
 
-package main
+package a4webbm
 
 import (
 	"html/template"
 	"os"
 )
 
-func getCompiledTemplates(funcs template.FuncMap) *template.Template {
+func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 	return template.Must(template.New("").Funcs(funcs).ParseFS(os.DirFS("./templates"), "*.gohtml"))
 }
 
-func getMainCSSData() []byte {
+func GetMainCSSData() []byte {
 	b, err := os.ReadFile("main.css")
 	if err != nil {
 		panic(err)

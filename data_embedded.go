@@ -1,7 +1,7 @@
 //go:build !live
 // +build !live
 
-package main
+package a4webbm
 
 import (
 	"embed"
@@ -15,10 +15,10 @@ var (
 	mainCSSData []byte
 )
 
-func getCompiledTemplates(funcs template.FuncMap) *template.Template {
+func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 	return template.Must(template.New("").Funcs(funcs).ParseFS(templateFS, "templates/*.gohtml"))
 }
 
-func getMainCSSData() []byte {
+func GetMainCSSData() []byte {
 	return mainCSSData
 }

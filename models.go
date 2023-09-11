@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.21.0
 
-package main
+package a4webbm
 
 import (
 	"database/sql"

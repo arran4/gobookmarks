@@ -1,11 +1,11 @@
-package main
+package a4webbm
 
 import (
 	"log"
 	"net/http"
 )
 
-func taskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) {
+func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) {
 	type Data struct {
 		*CoreData
 	}
@@ -16,7 +16,7 @@ func taskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) {
 
 	data.AutoRefresh = true
 
-	if err := getCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "taskDoneAutoRefreshPage.gohtml", data); err != nil {
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "TaskDoneAutoRefreshPage.gohtml", data); err != nil {
 		log.Printf("Template Error: %s", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

@@ -1,4 +1,4 @@
-package main
+package a4webbm
 
 import (
 	"database/sql"
@@ -28,7 +28,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return s[:l]
 		},
 		"OAuth2URL": func() string {
-			return oauth2Config.AuthCodeURL("")
+			return Oauth2Config.AuthCodeURL("")
 		},
 		"bookmarks": func() (string, error) {
 			queries := r.Context().Value(ContextValues("queries")).(*Queries)
