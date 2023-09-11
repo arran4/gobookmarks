@@ -30,6 +30,9 @@ var (
 	clientSecret = os.Getenv("OAUTH2_SECRET")
 	externalUrl  = os.Getenv("EXTERNAL_URL")
 	redirectUrl  = fmt.Sprintf("%s/oauth2Callback", externalUrl)
+	version      = "dev"
+	commit       = "none"
+	date         = "unknown"
 )
 
 func init() {
@@ -78,6 +81,8 @@ func main() {
 		CreatePEMFiles()
 	}
 
+	log.Printf("A4webbmws: %s, commit %s, built at %s", version, commit, date)
+	log.Printf("Redirect URL configured to: %s", redirectUrl)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
