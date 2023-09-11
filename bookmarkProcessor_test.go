@@ -44,12 +44,44 @@ func Test_preprocessBookmarks(t *testing.T) {
 					},
 				}}},
 		},
+		{
+			name:      "Test",
+			bookmarks: "Category: Search\nhttp://www.google.com.au Google\nColumn\nCategory: Wikies\nhttp://en.wikipedia.org/wiki/Main_Page Wikipedia\n",
+			want: []*BookmarkColumn{
+				{
+					Categories: []*BookmarkCategory{
+						{
+							Name: "Search",
+							Entries: []*BookmarkEntry{
+								{
+									Url:  "http://www.google.com.au",
+									Name: "Google",
+								},
+							},
+						},
+					},
+				},
+				{
+					Categories: []*BookmarkCategory{
+						{
+							Name: "Wikies",
+							Entries: []*BookmarkEntry{
+								{
+									Url:  "http://en.wikipedia.org/wiki/Main_Page",
+									Name: "Wikipedia",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := preprocessBookmarks(tt.bookmarks)
+			got := PreprocessBookmarks(tt.bookmarks)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("preprocessBookmarks() = diff\n%s", diff)
+				t.Errorf("PreprocessBookmarks() = diff\n%s", diff)
 			}
 		})
 	}

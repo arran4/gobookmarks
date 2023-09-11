@@ -18,7 +18,7 @@ type BookmarkColumn struct {
 	Categories []*BookmarkCategory
 }
 
-func preprocessBookmarks(bookmarks string) []*BookmarkColumn {
+func PreprocessBookmarks(bookmarks string) []*BookmarkColumn {
 	lines := strings.Split(bookmarks, "\n")
 	var result = []*BookmarkColumn{{}}
 	var currentCategory *BookmarkCategory
@@ -26,6 +26,10 @@ func preprocessBookmarks(bookmarks string) []*BookmarkColumn {
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.EqualFold(line, "column") {
+			if currentCategory != nil {
+				result[len(result)-1].Categories = append(result[len(result)-1].Categories, currentCategory)
+				currentCategory = nil
+			}
 			result = append(result, &BookmarkColumn{})
 			continue
 		}

@@ -62,7 +62,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmarkString = bookmarks.List.String
 			}
-			return preprocessBookmarks(bookmarkString), nil
+			return PreprocessBookmarks(bookmarkString), nil
 		},
 	}
 }
