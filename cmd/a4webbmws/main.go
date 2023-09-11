@@ -67,7 +67,7 @@ func main() {
 	bmr.HandleFunc("", runTemplate("bookmarksPage.gohtml")).Methods("GET")
 	bmr.HandleFunc("/mine", runTemplate("bookmarksMinePage.gohtml")).Methods("GET", "POST")
 	bmr.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	bmr.HandleFunc("/edit", runTemplate("BookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	bmr.HandleFunc("/edit", runTemplate("bookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	bmr.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
