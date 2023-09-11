@@ -31,6 +31,9 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Env setup
+        run: |
+          sudo apt-get install build-essential
       - name: Test
         run: go test ./...
       - name: Run GoReleaser
