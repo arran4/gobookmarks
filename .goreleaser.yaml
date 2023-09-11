@@ -36,8 +36,8 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-      - "gcr.io/arran4/goa4webbookmarks:{{ .Tag }}"
-      - "gcr.io/arran4/goa4webbookmarks:latest"
+      - "gcr.io/arran4/goa4web-bookmarks:{{ .Tag }}"
+      - "gcr.io/arran4/goa4web-bookmarks:latest"
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
