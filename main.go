@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -207,6 +208,10 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 				each.ServeHTTP(w, r)
 			case http.HandlerFunc:
 				each(w, r)
+			case func(http.ResponseWriter, *http.Request):
+				each(w, r)
+			default:
+				log.Panicf("unknown input: %s", reflect.TypeOf(each))
 			}
 		}
 	}
