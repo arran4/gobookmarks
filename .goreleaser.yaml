@@ -4,8 +4,8 @@ builds:
       - CGO_ENABLED=1
     goos:
       - linux
-      - windows
-      - darwin
+#      - windows
+#      - darwin
     main: ./cmd/a4webbmws
 
 archives:
