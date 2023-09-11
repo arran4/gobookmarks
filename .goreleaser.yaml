@@ -7,6 +7,8 @@ builds:
 #      - windows
 #      - darwin
     main: ./cmd/a4webbmws
+    id: "a4webbmws"
+    binary: a4webbmws
     goarch:
       - amd64
 #      - arm
