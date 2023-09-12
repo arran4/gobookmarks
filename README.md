@@ -22,7 +22,7 @@ It allowed you to provide a list of categorized links as such:
 
 It supported columns and categories in a simplistic way:
 
-![img_3.png](media%2Fimg_3.png)
+![img_3.png](media/img_3.png)
 
 You require a category for any links. So in the language (new errors could exist b/c chatgpt did the conversion:) 
 ```
@@ -52,7 +52,7 @@ http://www.google.com.au Google
 
 A video of use:
 
-![](media%2Fvideo1.mp4)
+![](media/video1.mp4)
 
 # Tech
 
