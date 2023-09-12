@@ -52,7 +52,7 @@ http://www.google.com.au Google
 
 A video of use:
 
-[](media%2Fvideo1.mp4)
+![](media%2Fvideo1.mp4)
 
 # Tech
 
