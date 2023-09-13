@@ -76,3 +76,6 @@ The docker container is available in ghcr.io:
 You can get the binaries directly from the release tag:
 * https://github.com/arran4/goa4web-bookmarks/releases/tag/v1.0.0
 
+# Motivation:
+
+See: https://open.substack.com/pub/arranubels/p/quicklinks?r=1ner06&utm_campaign=post&utm_medium=web
