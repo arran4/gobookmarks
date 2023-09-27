@@ -59,7 +59,7 @@ func main() {
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
 	}).Methods("GET")
-	r.HandleFunc("/favicon.png", func(writer http.ResponseWriter, request *http.Request) {
+	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetFavicon())
 	}).Methods("GET")
 
