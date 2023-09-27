@@ -37,21 +37,20 @@ var (
 
 func init() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
-	SessionName = "a4webbookmarks"
+	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
 	Oauth2Config = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectUrl,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
-		Endpoint:     endpoints.Google,
+		Scopes:       []string{"repo", "read:user"},
+		Endpoint:     endpoints.GitHub,
 	}
 }
 
 func main() {
 	r := mux.NewRouter()
 
-	r.Use(DBAdderMiddleware)
 	r.Use(UserAdderMiddleware)
 	r.Use(CoreAdderMiddleware)
 
@@ -67,12 +66,12 @@ func main() {
 	bmr.HandleFunc("", runTemplate("bookmarksPage.gohtml")).Methods("GET")
 	bmr.HandleFunc("/mine", runTemplate("bookmarksMinePage.gohtml")).Methods("GET", "POST")
 	bmr.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	bmr.HandleFunc("/edit", runTemplate("bookmarksEditPage.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	bmr.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	bmr.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
 
-	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("userLogoutPage.gohtml"))).Methods("GET")
+	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/bookmarks/mine"))).Methods("GET")
 
 	http.Handle("/", r)
@@ -81,7 +80,7 @@ func main() {
 		CreatePEMFiles()
 	}
 
-	log.Printf("A4webbmws: %s, commit %s, built at %s", version, commit, date)
+	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	log.Printf("Redirect URL configured to: %s", redirectUrl)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")

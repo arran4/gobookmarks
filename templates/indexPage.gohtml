@@ -1,2 +1,25 @@
 {{ template "head" $ }}
+    {{ if not loggedIn }}
+        You will need to login to see this page:
+        <a href="{{ OAuth2URL }}">Login</a><br>
+    {{else}}
+        <table>
+            <tr valign="top">
+                {{- range bookmarkColumns }}
+                    <td>
+                        {{- range .Categories }}
+                            <ul>
+                                <h2>{{ .Name }}</h2>
+                                {{- range .Entries }}
+                                <li><a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
+                                    {{- end }}
+                            </ul>
+                        {{- end }}
+                    </td>
+                {{- end }}
+            </tr>
+        </table>
+        <hr><a href="/edit">EDIT</a><br>
+        <hr><a href="/logout">Logout</a><br>
+    {{end}}
 {{ template "tail" $ }}

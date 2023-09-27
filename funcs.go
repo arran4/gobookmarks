@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 	"html/template"
 	"net/http"
 	"strings"
@@ -30,12 +31,17 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"OAuth2URL": func() string {
 			return Oauth2Config.AuthCodeURL("")
 		},
-		"bookmarks": func() (string, error) {
-			queries := r.Context().Value(ContextValues("queries")).(*Queries)
+		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			userRef, _ := session.Values["UserRef"].(string)
+			return userRef != "", nil
+		},
+		"bookmarks": func() (string, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(string)
+			token, _ := session.Values["Token"].(*oauth2.Token)
 
-			bookmarks, err := queries.GetBookmarksForUser(r.Context(), userRef)
+			bookmarks, err := GetBookmarksForUser(r.Context(), githubUser, "", token)
 			if err != nil {
 				switch {
 				case errors.Is(err, sql.ErrNoRows):
@@ -44,14 +50,14 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					return "", err
 				}
 			}
-			return bookmarks.List.String, nil
+			return bookmarks, nil
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
-			queries := r.Context().Value(ContextValues("queries")).(*Queries)
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			userRef, _ := session.Values["UserRef"].(string)
+			githubUser, _ := session.Values["GithubUser"].(string)
+			token, _ := session.Values["Token"].(*oauth2.Token)
 
-			bookmarks, err := queries.GetBookmarksForUser(r.Context(), userRef)
+			bookmarks, err := GetBookmarksForUser(r.Context(), githubUser, "", token)
 			var bookmarkString = defaultBookmarks
 			if err != nil {
 				switch {
@@ -60,7 +66,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					return nil, err
 				}
 			} else {
-				bookmarkString = bookmarks.List.String
+				bookmarkString = bookmarks
 			}
 			return PreprocessBookmarks(bookmarkString), nil
 		},

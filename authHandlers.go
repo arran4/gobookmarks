@@ -72,7 +72,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider, err := oidc.NewProvider(r.Context(), "https://accounts.google.com")
+	provider, err := oidc.NewProvider(r.Context(), "https://token.actions.githubusercontent.com")
 	if err != nil {
 		log.Printf("oidc new provider error: %s", err)
 		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{

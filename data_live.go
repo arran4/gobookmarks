@@ -5,8 +5,13 @@ package a4webbm
 
 import (
 	"html/template"
+	"log"
 	"os"
 )
+
+func init() {
+	log.Printf("Live data mode")
+}
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 	return template.Must(template.New("").Funcs(funcs).ParseFS(os.DirFS("./templates"), "*.gohtml"))

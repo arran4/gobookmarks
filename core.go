@@ -3,10 +3,7 @@ package a4webbm
 import (
 	"bufio"
 	"context"
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
 	"os"
@@ -76,29 +73,3 @@ func (c *Configuration) readConfiguration(filename string) {
 }
 
 type ContextValues string
-
-var (
-	DbConnectionString   = os.Getenv("DB_CONNECTION_STRING")
-	DbConnectionProvider = os.Getenv("DB_CONNECTION_PROVIDER")
-)
-
-func DBAdderMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		db, err := sql.Open(DbConnectionProvider, DbConnectionString)
-		if err != nil {
-			log.Printf("error sql init: %s", err)
-			http.Error(writer, "ERROR", 500)
-			return
-		}
-		defer func(db *sql.DB) {
-			err := db.Close()
-			if err != nil {
-				log.Printf("Error closing db: %s", err)
-			}
-		}(db)
-		ctx := request.Context()
-		ctx = context.WithValue(ctx, ContextValues("sql.DB"), db)
-		ctx = context.WithValue(ctx, ContextValues("queries"), New(db))
-		next.ServeHTTP(writer, request.WithContext(ctx))
-	})
-}

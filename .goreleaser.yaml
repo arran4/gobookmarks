@@ -1,18 +1,18 @@
-project_name: a4webbm
+project_name: gobookmarks
 builds:
   - env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     goos:
       - linux
-#      - windows
-#      - darwin
-    main: ./cmd/a4webbmws
-    id: "a4webbmws"
-    binary: a4webbmws
+      - windows
+      - darwin
+    main: ./cmd/gobookmarks
+    id: "gobookmarks"
+    binary: gobookmarks
     goarch:
       - amd64
-#      - arm
-#      - arm64
+      - arm
+      - arm64
 
 archives:
   - format: tar.gz
@@ -38,8 +38,8 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-      - "ghcr.io/arran4/goa4web-bookmarks:{{ .Tag }}"
-      - "ghcr.io/arran4/goa4web-bookmarks:latest"
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
+      - "ghcr.io/arran4/gobookmarks:latest"
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
