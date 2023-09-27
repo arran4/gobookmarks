@@ -11,7 +11,7 @@
                             <ul>
                                 <h2>{{ .Name }}</h2>
                                 {{- range .Entries }}
-                                    <li><a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
+                                    <li><a href="{{ .Url }}">{{ .Name }}</a>
                                 {{- end }}
                             </ul>
                         {{- end }}
@@ -19,7 +19,5 @@
                 {{- end }}
             </tr>
         </table>
-        <hr>
-        {{if ref}}<a href="/edit?ref={{ref}}">edit</a>{{else}}<a href="/edit">edit</a>{{end}}; <a href="/history">History</a>; <a href="/logout">Logout</a>
     {{end}}
 {{ template "tail" $ }}

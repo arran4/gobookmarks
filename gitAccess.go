@@ -1,4 +1,4 @@
-package a4webbm
+package gobookmarks
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package a4webbm
+package gobookmarks
 
 import (
 	"fmt"
@@ -14,13 +14,14 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	githubUser, _ := session.Values["GithubUser"].(*github.User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
+	ref := r.PostFormValue("ref")
 
 	login := ""
 	if githubUser != nil && githubUser.Login != nil {
 		login = *githubUser.Login
 	}
 
-	if err := UpdateBookmarks(r.Context(), login, token, branch, text); err != nil {
+	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil

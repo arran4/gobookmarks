@@ -19,8 +19,9 @@
 				<td width=200px>
 					<a href="/">Home</a><br>
 					{{ if $.UserRef }}
-						<a href="/logout">Logout</a><br>
-						<a href="/edit">Edit</a><br>
+						<a href="/logout">Logout</a><br/>
+						<a href="/history">History</a><br/>
+						{{if ref}}<a href="/edit?ref={{ref}}">Edit</a>{{else}}<a href="/edit">Edit</a>{{end}}<br/>
 					{{ else }}
 						<a href="{{ OAuth2URL }}">Login</a><br>
 					{{ end }}

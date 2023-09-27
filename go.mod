@@ -1,4 +1,4 @@
-module github.com/arran4/goa4web-bookmarks
+module github.com/arran4/gobookmarks
 
 go 1.18
 

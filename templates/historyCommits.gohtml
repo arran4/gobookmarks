@@ -10,7 +10,7 @@
         <tbody>
             {{- range commits }}
                 <tr>
-                    <td><a href="/?ref={{ .SHA }}" target="_blank">{{ .SHA }}</a></td>
+                    <td><a href="/?ref={{ .SHA }}">{{ .SHA }}</a></td>
                     <td>{{ .Commit.Message }}</td>
                     <td>{{ .Commit.Committer.Date }}</td>
                     <td>{{ .Commit.Committer.Name }} / {{ .Commit.Committer.Email }}</td>

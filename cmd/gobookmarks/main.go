@@ -9,7 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	. "github.com/arran4/goa4web-bookmarks"
+	. "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/mux"
@@ -19,6 +19,7 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"reflect"
@@ -58,6 +59,9 @@ func main() {
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
 	}).Methods("GET")
+	r.HandleFunc("/favicon.png", func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write(GetFavicon())
+	}).Methods("GET")
 
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("indexPage.gohtml"))).Methods("GET")
@@ -66,8 +70,8 @@ func main() {
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
@@ -265,6 +269,16 @@ func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
 func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, toUrl, http.StatusTemporaryRedirect)
+	})
+}
+
+func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, _ := url.Parse(toUrl)
+		qs := u.Query()
+		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
+		u.RawQuery = qs.Encode()
+		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
 	})
 }
 

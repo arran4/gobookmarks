@@ -1,4 +1,4 @@
-package a4webbm
+package gobookmarks
 
 import (
 	"fmt"
@@ -135,13 +135,14 @@ func Bookmarks(r *http.Request) (string, error) {
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*github.User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
+	ref := r.URL.Query().Get("ref")
 
 	login := ""
 	if githubUser != nil && githubUser.Login != nil {
 		login = *githubUser.Login
 	}
 
-	bookmarks, err := GetBookmarks(r.Context(), login, "", token)
+	bookmarks, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		return "", fmt.Errorf("bookmarks: %w", err)
 	}
