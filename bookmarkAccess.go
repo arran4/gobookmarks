@@ -2,22 +2,30 @@ package a4webbm
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/google/go-github/v55/github"
 	"golang.org/x/oauth2"
 )
 
-func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, text string) error {
+var (
+	commitAuthor = &github.CommitAuthor{
+		Name:  SP("Gobookmarks"),
+		Email: SP("Gobookmarks@arran.net.au"),
+	}
+)
+
+func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, branch, text string) error {
+	if branch == "" {
+		branch = "main"
+	}
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
 	_, _, err := client.Repositories.UpdateFile(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentFileOptions{
-		Message: SP("Auto change from web"),
-		Content: []byte(text),
-		Branch:  SP("main"),
-		Author: &github.CommitAuthor{
-			Name:  SP("Gobookmarks"),
-			Email: SP("Gobookmarks@arran.net.au"),
-		},
-		Committer: nil,
+		Message:   SP("Auto change from web"),
+		Content:   []byte(base64.StdEncoding.EncodeToString([]byte(text))),
+		Branch:    SP("main"),
+		Author:    commitAuthor,
+		Committer: commitAuthor,
 	})
 	if err != nil {
 		return fmt.Errorf("CreateBookmarks: %w", err)
@@ -29,17 +37,17 @@ func SP(s string) *string {
 	return &s
 }
 
-func CreateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, text string) error {
+func CreateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, branch, text string) error {
+	if branch == "" {
+		branch = "main"
+	}
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
 	_, _, err := client.Repositories.CreateFile(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentFileOptions{
-		Message: SP("Auto change from web"),
-		Content: []byte(text),
-		Branch:  SP("main"),
-		Author: &github.CommitAuthor{
-			Name:  SP("Gobookmarks"),
-			Email: SP("Gobookmarks@arran.net.au"),
-		},
-		Committer: nil,
+		Message:   SP("Auto change from web"),
+		Content:   []byte(base64.StdEncoding.EncodeToString([]byte(text))),
+		Branch:    &branch,
+		Author:    commitAuthor,
+		Committer: commitAuthor,
 	})
 	if err != nil {
 		return fmt.Errorf("CreateBookmarks: %w", err)
@@ -47,16 +55,21 @@ func CreateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.T
 	return nil
 }
 
-func GetBookmarksForUser(ctx context.Context, githubUser string, ref string, userToken *oauth2.Token) (string, error) {
+func GetBookmarks(ctx context.Context, githubUser string, ref string, userToken *oauth2.Token) (string, error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
 	contents, _, _, err := client.Repositories.GetContents(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentGetOptions{
 		Ref: ref,
 	})
 	if err != nil {
-		return "", fmt.Errorf("GetBookmarksForUser: %w", err)
+		return "", fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if contents.Content == nil {
 		return "", nil
 	}
-	return *contents.Content, nil
+	s, err := base64.StdEncoding.DecodeString(*contents.Content)
+	if err != nil {
+		return "", fmt.Errorf("StdEncoding.DecodeString: %w", err)
+	}
+
+	return string(s), nil
 }

@@ -18,7 +18,7 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
 		login = *githubUser.Login
 	}
 
-	if err := UpdateBookmarks(r.Context(), login, token, text); err != nil {
+	if err := UpdateBookmarks(r.Context(), login, token, "", text); err != nil {
 		http.Redirect(w, r, "?error="+err.Error(), http.StatusTemporaryRedirect)
 		return
 	}
@@ -35,7 +35,7 @@ func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) {
 		login = *githubUser.Login
 	}
 
-	if err := CreateBookmarks(r.Context(), login, token, text); err != nil {
+	if err := CreateBookmarks(r.Context(), login, token, "", text); err != nil {
 		http.Redirect(w, r, "?error="+err.Error(), http.StatusTemporaryRedirect)
 		return
 	}

@@ -1,7 +1,6 @@
 package a4webbm
 
 import (
-	"encoding/base64"
 	"fmt"
 	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
@@ -56,16 +55,15 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				login = *githubUser.Login
 			}
 
-			bookmarks, err := GetBookmarksForUser(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmarkString = defaultBookmarks
+			bookmarks, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			var bookmark = defaultBookmarks
 			if err != nil {
+				// TODO check for error type and if it's not exist, fall through
 				return nil, fmt.Errorf("bookmarkColumns: %w", err)
-			} else if s, err := base64.StdEncoding.DecodeString(bookmarks); err == nil {
-				bookmarkString = string(s)
 			} else {
-				return nil, fmt.Errorf("StdEncoding.DecodeString: %w", err)
+				bookmark = bookmarks
 			}
-			return PreprocessBookmarks(bookmarkString), nil
+			return PreprocessBookmarks(bookmark), nil
 		},
 	}
 }
@@ -80,13 +78,9 @@ func Bookmarks(r *http.Request) (string, error) {
 		login = *githubUser.Login
 	}
 
-	bookmarks, err := GetBookmarksForUser(r.Context(), login, "", token)
+	bookmarks, err := GetBookmarks(r.Context(), login, "", token)
 	if err != nil {
 		return "", fmt.Errorf("bookmarks: %w", err)
 	}
-	s, err := base64.StdEncoding.DecodeString(bookmarks)
-	if err != nil {
-		return "", fmt.Errorf("StdEncoding.DecodeString: %w", err)
-	}
-	return string(s), nil
+	return bookmarks, nil
 }
