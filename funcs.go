@@ -1,8 +1,8 @@
 package a4webbm
 
 import (
-	"database/sql"
-	"errors"
+	"encoding/base64"
+	"fmt"
 	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -38,25 +38,13 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return ok && githubUser != nil, nil
 		},
 		"bookmarks": func() (string, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*github.User)
-			token, _ := session.Values["Token"].(*oauth2.Token)
-
-			login := ""
-			if githubUser != nil && githubUser.Login != nil {
-				login = *githubUser.Login
+			return Bookmarks(r)
+		},
+		"bookmarksOrEditBookmarks": func() (string, error) {
+			if r.PostFormValue("text") != "" {
+				return r.PostFormValue("text"), nil
 			}
-
-			bookmarks, err := GetBookmarksForUser(r.Context(), login, "", token)
-			if err != nil {
-				switch {
-				case errors.Is(err, sql.ErrNoRows):
-					return defaultBookmarks, nil
-				default:
-					return "", err
-				}
-			}
-			return bookmarks, nil
+			return Bookmarks(r)
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -68,18 +56,37 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				login = *githubUser.Login
 			}
 
-			bookmarks, err := GetBookmarksForUser(r.Context(), login, "", token)
+			bookmarks, err := GetBookmarksForUser(r.Context(), login, r.URL.Query().Get("ref"), token)
 			var bookmarkString = defaultBookmarks
 			if err != nil {
-				switch {
-				case errors.Is(err, sql.ErrNoRows):
-				default:
-					return nil, err
-				}
+				return nil, fmt.Errorf("bookmarkColumns: %w", err)
+			} else if s, err := base64.StdEncoding.DecodeString(bookmarks); err == nil {
+				bookmarkString = string(s)
 			} else {
-				bookmarkString = bookmarks
+				return nil, fmt.Errorf("StdEncoding.DecodeString: %w", err)
 			}
 			return PreprocessBookmarks(bookmarkString), nil
 		},
 	}
+}
+
+func Bookmarks(r *http.Request) (string, error) {
+	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	token, _ := session.Values["Token"].(*oauth2.Token)
+
+	login := ""
+	if githubUser != nil && githubUser.Login != nil {
+		login = *githubUser.Login
+	}
+
+	bookmarks, err := GetBookmarksForUser(r.Context(), login, "", token)
+	if err != nil {
+		return "", fmt.Errorf("bookmarks: %w", err)
+	}
+	s, err := base64.StdEncoding.DecodeString(bookmarks)
+	if err != nil {
+		return "", fmt.Errorf("StdEncoding.DecodeString: %w", err)
+	}
+	return string(s), nil
 }

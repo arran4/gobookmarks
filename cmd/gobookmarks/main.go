@@ -65,6 +65,7 @@ func main() {
 
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
@@ -224,10 +225,12 @@ func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
 			*CoreData
+			Error string
 		}
 
 		data := Data{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			Error:    r.URL.Query().Get("error"),
 		}
 
 		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, template, data); err != nil {
@@ -269,6 +272,12 @@ func RequiresAnAccount() mux.MatcherFunc {
 func TaskMatcher(taskName string) mux.MatcherFunc {
 	return func(request *http.Request, match *mux.RouteMatch) bool {
 		return request.PostFormValue("task") == taskName
+	}
+}
+
+func HasError() mux.MatcherFunc {
+	return func(request *http.Request, match *mux.RouteMatch) bool {
+		return request.URL.Query().Has("error")
 	}
 }
 

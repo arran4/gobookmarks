@@ -8,13 +8,15 @@ import (
 func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) {
 	type Data struct {
 		*CoreData
+		Error string
 	}
 
 	data := Data{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		Error:    r.URL.Query().Get("error"),
 	}
 
-	data.AutoRefresh = true
+	data.AutoRefresh = r.URL.Query().Get("error") == ""
 
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "TaskDoneAutoRefreshPage.gohtml", data); err != nil {
 		log.Printf("Template Error: %s", err)

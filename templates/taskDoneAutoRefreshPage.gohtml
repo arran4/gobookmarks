@@ -1,3 +1,7 @@
 {{ template "head" $ }}
-Done refreshing.
+    {{ if $.Error }}
+        Error: {{$.Error}}
+    {{ else }}
+        Done refreshing.
+    {{ end }}
 {{ template "tail" $ }}

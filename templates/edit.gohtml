@@ -1,12 +1,17 @@
 {{ template "head" $ }}
+    {{ if $.Error }}
+        <p style="color: #FF0000">
+            Error: {{ $.Error }}
+        </p>
+    {{ end }}
     <form method=post action="">
-        <textarea name="text" cols=60 rows=20>{{bookmarks}}</textarea><br>
+        <textarea name="text" rows="30" style="width: 100%; height: 80%;">{{bookmarksOrEditBookmarks}}</textarea><br>
         <input type=submit name="task" value="Save">
     </form>
 
-<b><u>How to use this?</u></b><br>
-Simply. First edit your page using the keywords below then set it as your start page.<br>
-"<URL> <Name> <Newline>" - Will create a link to URL with name, if you need to use a space make it %20 and use that.<br>
-            "Category: <name> <Newline>" - Creates a category named <name>.<br>
-                        "Column <Newline>" - Creates a new column.
+    <b><u>How to use this?</u></b><br>
+    Simply. First edit your page using the keywords below then set it as your start page.<br>
+    "&lt;URL&gt; &lt;Name&gt; &lt;Newline&gt;" - Will create a link to URL with name, if you need to use a space make it %20 and use that.<br>
+    "Category: &lt;name&gt; &lt;Newline&gt;" - Creates a category named  &lt;name&gt;.<br />
+    "Column &lt;Newline&gt;" - Creates a new column.
 {{ template "tail" $ }}
