@@ -1,0 +1,22 @@
+{{ template "head" $ }}
+    <h1>Commits</h1>
+    <table>
+        <thead>
+            <th>SHA</th>
+            <th>Message</th>
+            <th>Date</th>
+            <th>Commiter</th>
+        </thead>
+        <tbody>
+            {{- range commits }}
+                <tr>
+                    <td><a href="/?ref={{ .SHA }}" target="_blank">{{ .SHA }}</a></td>
+                    <td>{{ .Commit.Message }}</td>
+                    <td>{{ .Commit.Committer.Date }}</td>
+                    <td>{{ .Commit.Committer.Name }} / {{ .Commit.Committer.Email }}</td>
+                </tr>
+            {{- end }}
+        </tbody>
+    </table>
+    
+{{ template "tail" $ }}

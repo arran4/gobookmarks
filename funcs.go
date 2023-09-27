@@ -96,6 +96,21 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return branches, nil
 		},
+		"commits": func() ([]*github.RepositoryCommit, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+			commits, err := GetCommits(r.Context(), login, token)
+			if err != nil {
+				return nil, fmt.Errorf("GetCommits: %w", err)
+			}
+			return commits, nil
+		},
 	}
 }
 
