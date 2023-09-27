@@ -11,15 +11,15 @@
                             <ul>
                                 <h2>{{ .Name }}</h2>
                                 {{- range .Entries }}
-                                <li><a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
-                                    {{- end }}
+                                    <li><a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
+                                {{- end }}
                             </ul>
                         {{- end }}
                     </td>
                 {{- end }}
             </tr>
         </table>
-        <hr><a href="/edit">EDIT</a><br>
-        <hr><a href="/logout">Logout</a><br>
+        <hr>
+        <a href="/edit">edit</a>; <a href="/history">History</a>; <a href="/logout">Logout</a>
     {{end}}
 {{ template "tail" $ }}

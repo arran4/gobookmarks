@@ -65,6 +65,37 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return PreprocessBookmarks(bookmark), nil
 		},
+		"tags": func() ([]*github.RepositoryTag, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+
+			tags, err := GetTags(r.Context(), login, token)
+			if err != nil {
+				return nil, fmt.Errorf("GetTags: %w", err)
+			}
+			return tags, nil
+		},
+		"branches": func() ([]*github.Branch, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+			branches, err := GetBranches(r.Context(), login, token)
+			if err != nil {
+				return nil, fmt.Errorf("GetBranches: %w", err)
+			}
+			return branches, nil
+		},
 	}
 }
 

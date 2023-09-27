@@ -1,0 +1,18 @@
+{{ template "head" $ }}
+    <h1>Tags</h1>
+    <ul>
+        {{- range tags }}
+            <li><a href="/?ref=refs/tags/{{ .Name }}" target="_blank">{{ .Name }}</a></li>
+        {{- end }}
+    </ul>
+
+    <h1>Branches</h1>
+    <ul>
+        {{- range branches }}
+            <li><a href="/?ref=refs/heads/{{ .Name }}" target="_blank">{{ .Name }}</a></li>
+        {{- end }}
+    </ul>
+
+    <a href="/history/commits">Commits</a>
+
+{{ template "tail" $ }}

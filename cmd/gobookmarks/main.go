@@ -70,6 +70,9 @@ func main() {
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
+	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
@@ -287,6 +290,12 @@ func RequiresAnAccount() mux.MatcherFunc {
 func TaskMatcher(taskName string) mux.MatcherFunc {
 	return func(request *http.Request, match *mux.RouteMatch) bool {
 		return request.PostFormValue("task") == taskName
+	}
+}
+
+func ModeMatcher(modeName string) mux.MatcherFunc {
+	return func(request *http.Request, match *mux.RouteMatch) bool {
+		return request.URL.Query().Get("mode") == modeName
 	}
 }
 
