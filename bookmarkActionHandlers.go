@@ -1,13 +1,14 @@
 package a4webbm
 
 import (
+	"fmt"
 	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
 )
 
-func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
+func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*github.User)
@@ -19,12 +20,12 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := UpdateBookmarks(r.Context(), login, token, "", text); err != nil {
-		http.Redirect(w, r, "?error="+err.Error(), http.StatusTemporaryRedirect)
-		return
+		return fmt.Errorf("updateBookmark error: %w", err)
 	}
+	return nil
 }
 
-func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) {
+func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*github.User)
@@ -36,7 +37,7 @@ func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := CreateBookmarks(r.Context(), login, token, "", text); err != nil {
-		http.Redirect(w, r, "?error="+err.Error(), http.StatusTemporaryRedirect)
-		return
+		return fmt.Errorf("crateBookmark error: %w", err)
 	}
+	return nil
 }

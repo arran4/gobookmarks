@@ -2,6 +2,7 @@ package a4webbm
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -9,7 +10,7 @@ import (
 	"net/http"
 )
 
-func UserLogoutAction(w http.ResponseWriter, r *http.Request) {
+func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 	type Data struct {
 		*CoreData
 	}
@@ -23,12 +24,12 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) {
 	delete(session.Values, "Token")
 
 	if err := session.Save(r, w); err != nil {
-		log.Printf("session.Save Error: %s", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("session.Save Error: %w", err)
 	}
 
 	data.CoreData.UserRef = ""
+
+	return nil
 }
 
 var (
@@ -37,7 +38,7 @@ var (
 	SessionName  string
 )
 
-func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
+func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
 	type ErrorData struct {
 		*CoreData
@@ -46,42 +47,18 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 
 	token, err := Oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
-		log.Printf("Exchange error: %s", err)
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    err.Error(),
-		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
+		return fmt.Errorf("exchange error: %w", err)
 	}
 
 	session, err := SessionStore.Get(r, SessionName)
 	if err != nil {
-		log.Printf("Session error: %s", err)
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    err.Error(),
-		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
+		return fmt.Errorf("session error: %w", err)
 	}
 
 	client := github.NewClient(oauth2.NewClient(r.Context(), oauth2.StaticTokenSource(token)))
 	user, _, err := client.Users.Get(r.Context(), "")
 	if err != nil {
-		log.Printf("client.Users.Get error: %s", err)
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    err.Error(),
-		}); err != nil {
-			log.Printf("Error client.Users.Get: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
+		return fmt.Errorf("client.Users.Get error: %w", err)
 	}
 
 	session.Values["GithubUser"] = user
@@ -89,15 +66,10 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 
 	if err := session.Save(r, w); err != nil {
 		log.Printf("Exchange error: %s", err)
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    err.Error(),
-		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
+		return fmt.Errorf("exchange error: %w", err)
 	}
+
+	return nil
 }
 
 func UserAdderMiddleware(next http.Handler) http.Handler {

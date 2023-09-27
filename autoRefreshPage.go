@@ -1,11 +1,11 @@
 package a4webbm
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 )
 
-func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) {
+func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) error {
 	type Data struct {
 		*CoreData
 		Error string
@@ -18,11 +18,10 @@ func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) {
 
 	data.AutoRefresh = r.URL.Query().Get("error") == ""
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "TaskDoneAutoRefreshPage.gohtml", data); err != nil {
-		log.Printf("Template Error: %s", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "taskDoneAutoRefreshPage.gohtml", data); err != nil {
+		return fmt.Errorf("template Error: %w", err)
 	}
+	return nil
 }
 
 func taskRedirectWithoutQueryArgs(w http.ResponseWriter, r *http.Request) {

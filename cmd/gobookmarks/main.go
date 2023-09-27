@@ -61,14 +61,14 @@ func main() {
 
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("indexPage.gohtml"))).Methods("GET")
-	r.Handle("/", http.HandlerFunc(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
-	r.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
+	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
@@ -214,6 +214,21 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request):
 				each(w, r)
+			case func(http.ResponseWriter, *http.Request) error:
+				if err := each(w, r); err != nil {
+					type ErrorData struct {
+						*CoreData
+						Error string
+					}
+					if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+						CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+						Error:    err.Error(),
+					}); err != nil {
+						log.Printf("Error Template Error: %s", err)
+						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					}
+					return
+				}
 			default:
 				log.Panicf("unknown input: %s", reflect.TypeOf(each))
 			}

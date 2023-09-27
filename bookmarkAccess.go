@@ -20,15 +20,25 @@ func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.T
 		branch = "main"
 	}
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
-	_, _, err := client.Repositories.UpdateFile(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentFileOptions{
+	contents, _, _, err := client.Repositories.GetContents(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentGetOptions{
+		Ref: fmt.Sprintf("refs/heads/%s", branch),
+	})
+	if err != nil {
+		return fmt.Errorf("UpdateBookmarks: client.Repositories.GetContents: %w", err)
+	}
+	if contents.Content == nil {
+		return nil
+	}
+	_, _, err = client.Repositories.UpdateFile(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto change from web"),
 		Content:   []byte(base64.StdEncoding.EncodeToString([]byte(text))),
 		Branch:    SP("main"),
+		SHA:       contents.SHA,
 		Author:    commitAuthor,
 		Committer: commitAuthor,
 	})
 	if err != nil {
-		return fmt.Errorf("CreateBookmarks: %w", err)
+		return fmt.Errorf("UpdateBookmarks: %w", err)
 	}
 	return nil
 }
@@ -68,8 +78,7 @@ func GetBookmarks(ctx context.Context, githubUser string, ref string, userToken 
 	}
 	s, err := base64.StdEncoding.DecodeString(*contents.Content)
 	if err != nil {
-		return "", fmt.Errorf("StdEncoding.DecodeString: %w", err)
+		return "", fmt.Errorf("GetBookmarks: StdEncoding.DecodeString: %w", err)
 	}
-
 	return string(s), nil
 }
