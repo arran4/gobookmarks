@@ -31,7 +31,7 @@ func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.T
 	}
 	_, _, err = client.Repositories.UpdateFile(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto change from web"),
-		Content:   []byte(base64.StdEncoding.EncodeToString([]byte(text))),
+		Content:   []byte(text),
 		Branch:    SP("main"),
 		SHA:       contents.SHA,
 		Author:    commitAuthor,
@@ -54,7 +54,7 @@ func CreateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.T
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
 	_, _, err := client.Repositories.CreateFile(ctx, githubUser, "MyBookmarks", "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto change from web"),
-		Content:   []byte(base64.StdEncoding.EncodeToString([]byte(text))),
+		Content:   []byte(text),
 		Branch:    &branch,
 		Author:    commitAuthor,
 		Committer: commitAuthor,
