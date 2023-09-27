@@ -20,6 +20,6 @@
             </tr>
         </table>
         <hr>
-        <a href="/edit">edit</a>; <a href="/history">History</a>; <a href="/logout">Logout</a>
+        {{if ref}}<a href="/edit?ref={{ref}}">edit</a>{{else}}<a href="/edit">edit</a>{{end}}; <a href="/history">History</a>; <a href="/logout">Logout</a>
     {{end}}
 {{ template "tail" $ }}

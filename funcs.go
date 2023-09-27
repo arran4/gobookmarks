@@ -31,6 +31,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"OAuth2URL": func() string {
 			return Oauth2Config.AuthCodeURL("")
 		},
+		"ref": func() string {
+			return r.URL.Query().Get("ref")
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, ok := session.Values["GithubUser"].(*github.User)
@@ -44,6 +47,20 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				return r.PostFormValue("text"), nil
 			}
 			return Bookmarks(r)
+		},
+		"branchOrEditBranch": func() (string, error) {
+			if r.PostFormValue("branch") != "" {
+				return r.PostFormValue("branch"), nil
+			}
+			ref := r.URL.Query().Get("ref")
+			if strings.HasPrefix(ref, "refs/heads/") {
+				return strings.TrimPrefix(ref, "refs/heads/"), nil
+			} else if strings.HasPrefix(ref, "refs/tags/") {
+				return "New" + strings.TrimPrefix(ref, "refs/tags/"), nil
+			} else if len(ref) > 0 {
+				return "FromCommit" + ref, nil
+			}
+			return "main", nil
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)

@@ -13,13 +13,14 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*github.User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
+	branch := r.PostFormValue("branch")
 
 	login := ""
 	if githubUser != nil && githubUser.Login != nil {
 		login = *githubUser.Login
 	}
 
-	if err := UpdateBookmarks(r.Context(), login, token, "", text); err != nil {
+	if err := UpdateBookmarks(r.Context(), login, token, branch, text); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil
@@ -30,13 +31,14 @@ func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) error {
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*github.User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
+	branch := r.PostFormValue("branch")
 
 	login := ""
 	if githubUser != nil && githubUser.Login != nil {
 		login = *githubUser.Login
 	}
 
-	if err := CreateBookmarks(r.Context(), login, token, "", text); err != nil {
+	if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
 		return fmt.Errorf("crateBookmark error: %w", err)
 	}
 	return nil
