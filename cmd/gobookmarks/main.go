@@ -11,6 +11,7 @@ import (
 	"fmt"
 	. "github.com/arran4/goa4web-bookmarks"
 	"github.com/arran4/gorillamuxlogic"
+	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -43,7 +44,7 @@ func init() {
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectUrl,
-		Scopes:       []string{"repo", "read:user"},
+		Scopes:       []string{"repo", "read:user", "user:email"},
 		Endpoint:     endpoints.GitHub,
 	}
 }
@@ -62,17 +63,14 @@ func main() {
 	r.Handle("/", http.HandlerFunc(runTemplate("indexPage.gohtml"))).Methods("GET")
 	r.Handle("/", http.HandlerFunc(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	bmr := r.PathPrefix("/bookmarks").Subrouter()
-	bmr.HandleFunc("", runTemplate("bookmarksPage.gohtml")).Methods("GET")
-	bmr.HandleFunc("/mine", runTemplate("bookmarksMinePage.gohtml")).Methods("GET", "POST")
-	bmr.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	bmr.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
-	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
-	bmr.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/bookmarks/mine"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
-	bmr.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
+	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	r.HandleFunc("/edit", TaskDoneAutoRefreshPage).Methods("POST")
 
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
-	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/bookmarks/mine"))).Methods("GET")
+	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
 	http.Handle("/", r)
 
@@ -263,8 +261,8 @@ func RequiresAnAccount() mux.MatcherFunc {
 				return false
 			}
 		}
-		userRef, _ := session.Values["UserRef"].(string)
-		return userRef != ""
+		githubUser, ok := session.Values["GithubUser"].(*github.User)
+		return ok && githubUser != nil
 	}
 }
 

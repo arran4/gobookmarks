@@ -2,12 +2,11 @@ package a4webbm
 
 import (
 	"context"
-	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
-	"strings"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) {
@@ -20,9 +19,8 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	delete(session.Values, "UserRef")
-	delete(session.Values, "AccessToken")
-	delete(session.Values, "RefreshToken")
+	delete(session.Values, "GithubUser")
+	delete(session.Values, "Token")
 
 	if err := session.Save(r, w); err != nil {
 		log.Printf("session.Save Error: %s", err)
@@ -72,66 +70,22 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	provider, err := oidc.NewProvider(r.Context(), "https://token.actions.githubusercontent.com")
+	client := github.NewClient(oauth2.NewClient(r.Context(), oauth2.StaticTokenSource(token)))
+	user, _, err := client.Users.Get(r.Context(), "")
 	if err != nil {
-		log.Printf("oidc new provider error: %s", err)
+		log.Printf("client.Users.Get error: %s", err)
 		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 			Error:    err.Error(),
 		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
+			log.Printf("Error client.Users.Get: %s", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	var verifier = provider.Verifier(&oidc.Config{ClientID: Oauth2Config.ClientID})
-
-	rawIDToken, ok := token.Extra("id_token").(string)
-	if !ok {
-		log.Printf("id_otken missing")
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    "id token missing",
-		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	idToken, err := verifier.Verify(r.Context(), rawIDToken)
-	if err != nil {
-		log.Printf("Id token failed to verify error: %s", err)
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    err.Error(),
-		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	var claims struct {
-		Email    string `json:"email"`
-		Verified bool   `json:"email_verified"`
-	}
-	if err := idToken.Claims(&claims); err != nil {
-		log.Printf("IdToken claims error: %s", err)
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-			Error:    err.Error(),
-		}); err != nil {
-			log.Printf("Error Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	session.Values["UserRef"] = strings.ToLower(claims.Email)
-	session.Values["AccessToken"] = token.AccessToken
-	session.Values["RefreshToken"] = token.RefreshToken
+	session.Values["GithubUser"] = user
+	session.Values["Token"] = token
 
 	if err := session.Save(r, w); err != nil {
 		log.Printf("Exchange error: %s", err)

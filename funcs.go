@@ -3,6 +3,7 @@ package a4webbm
 import (
 	"database/sql"
 	"errors"
+	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"html/template"
@@ -33,15 +34,20 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			userRef, _ := session.Values["UserRef"].(string)
-			return userRef != "", nil
+			githubUser, ok := session.Values["GithubUser"].(*github.User)
+			return ok && githubUser != nil, nil
 		},
 		"bookmarks": func() (string, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(string)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
-			bookmarks, err := GetBookmarksForUser(r.Context(), githubUser, "", token)
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+
+			bookmarks, err := GetBookmarksForUser(r.Context(), login, "", token)
 			if err != nil {
 				switch {
 				case errors.Is(err, sql.ErrNoRows):
@@ -54,10 +60,15 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(string)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
-			bookmarks, err := GetBookmarksForUser(r.Context(), githubUser, "", token)
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+
+			bookmarks, err := GetBookmarksForUser(r.Context(), login, "", token)
 			var bookmarkString = defaultBookmarks
 			if err != nil {
 				switch {
