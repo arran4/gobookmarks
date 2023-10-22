@@ -9,7 +9,7 @@ import (
 
 func GetTags(ctx context.Context, githubUser string, userToken *oauth2.Token) ([]*github.RepositoryTag, error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
-	tags, _, err := client.Repositories.ListTags(ctx, githubUser, "MyBookmarks", &github.ListOptions{})
+	tags, _, err := client.Repositories.ListTags(ctx, githubUser, RepoName, &github.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("ListTags: %w", err)
 	}
@@ -18,7 +18,7 @@ func GetTags(ctx context.Context, githubUser string, userToken *oauth2.Token) ([
 
 func GetBranches(ctx context.Context, githubUser string, userToken *oauth2.Token) ([]*github.Branch, error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
-	branches, _, err := client.Repositories.ListBranches(ctx, githubUser, "MyBookmarks", &github.BranchListOptions{})
+	branches, _, err := client.Repositories.ListBranches(ctx, githubUser, RepoName, &github.BranchListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("ListBranches: %w", err)
 	}
@@ -26,7 +26,7 @@ func GetBranches(ctx context.Context, githubUser string, userToken *oauth2.Token
 }
 func GetCommits(ctx context.Context, githubUser string, userToken *oauth2.Token) ([]*github.RepositoryCommit, error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
-	commits, _, err := client.Repositories.ListCommits(ctx, githubUser, "MyBookmarks", &github.CommitsListOptions{})
+	commits, _, err := client.Repositories.ListCommits(ctx, githubUser, RepoName, &github.CommitsListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("ListCommits: %w", err)
 	}
