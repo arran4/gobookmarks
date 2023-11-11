@@ -62,9 +62,14 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Proxy the favicon request
-	faviconContent, err := proxyFavicon(faviconURL)
+	faviconContent, err := downloadUrl(faviconURL)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error proxying favicon: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	if len(faviconContent) > 1*1024*1024 {
+		http.Error(w, fmt.Sprintf("Error proxying favicon: %s", "favicon too large"), http.StatusInternalServerError)
 		return
 	}
 
@@ -85,7 +90,7 @@ func fetchURL(urlParam string) ([]byte, error) {
 		_ = Body.Close()
 	}(resp.Body)
 
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, 1*1024*1024+1))
 }
 
 func findFaviconURL(pageContent []byte, baseURL string) (string, error) {
@@ -122,8 +127,8 @@ func findFaviconURL(pageContent []byte, baseURL string) (string, error) {
 	return faviconURL, nil
 }
 
-func proxyFavicon(faviconURL string) ([]byte, error) {
-	resp, err := http.Get(faviconURL)
+func downloadUrl(url string) ([]byte, error) {
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
