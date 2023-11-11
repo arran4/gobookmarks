@@ -146,7 +146,7 @@ func cacheFavicon(urlParam string, content []byte) {
 	defer FaviconCache.Unlock()
 
 	// Delete random keys until the cache is small enough
-	for len(FaviconCache.cache) > 1000 {
+	for len(FaviconCache.cache) > 1000 { // TODO expose as a config option
 		for key := range FaviconCache.cache {
 			delete(FaviconCache.cache, key)
 			break
