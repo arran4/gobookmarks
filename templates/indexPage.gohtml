@@ -11,7 +11,7 @@
                             <ul>
                                 <h2>{{ .Name }}</h2>
                                 {{- range .Entries }}
-                                    <li><a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
+                                    <li style="list-style-image: url('/proxy/favicon?url={{ .Url }}');margin-left: 10px;"><a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
                                 {{- end }}
                             </ul>
                         {{- end }}

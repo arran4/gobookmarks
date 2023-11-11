@@ -83,6 +83,8 @@ func main() {
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
+	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
+
 	http.Handle("/", r)
 
 	if !fileExists("cert.pem") || !fileExists("key.pem") {
