@@ -92,6 +92,7 @@ func main() {
 	}
 
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
+	SetVersion(version, commit, date)
 	log.Printf("Redirect URL configured to: %s", redirectUrl)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
