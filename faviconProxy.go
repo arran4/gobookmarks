@@ -11,10 +11,12 @@ import (
 	"sync"
 )
 
-var FaviconCache = struct {
-	sync.RWMutex
-	cache map[string][]byte
-}{cache: make(map[string][]byte)}
+var (
+	FaviconCache = struct {
+		sync.RWMutex
+		cache map[string][]byte
+	}{cache: make(map[string][]byte)}
+)
 
 func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the URL parameter
