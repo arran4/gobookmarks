@@ -83,6 +83,8 @@ func main() {
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
+	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
+
 	http.Handle("/", r)
 
 	if !fileExists("cert.pem") || !fileExists("key.pem") {
@@ -90,6 +92,7 @@ func main() {
 	}
 
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
+	SetVersion(version, commit, date)
 	log.Printf("Redirect URL configured to: %s", redirectUrl)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")

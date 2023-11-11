@@ -13,11 +13,23 @@ import (
 
 var (
 	defaultBookmarks = "Category: Example 1\nhttp://www.google.com.au Google\nColumn\nCategory: Example 2\nhttp://www.google.com.au Google\nhttp://www.google.com.au Google\n"
+	version          = "dev"
+	commit           = "none"
+	date             = "unknown"
 )
+
+func SetVersion(pVersion, pCommit, pDate string) {
+	version = pVersion
+	commit = pCommit
+	date = pDate
+}
 
 func NewFuncs(r *http.Request) template.FuncMap {
 	return map[string]any{
 		"now": func() time.Time { return time.Now() },
+		"version": func() string {
+			return fmt.Sprintf("%s, commit %s, built at %s", version, commit, date)
+		},
 		"firstline": func(s string) string {
 			return strings.Split(s, "\n")[0]
 		},
