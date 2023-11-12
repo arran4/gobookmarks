@@ -57,12 +57,15 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Find the favicon URL from the root page content
-	faviconURL, err := findFaviconURL(rootPageContent, urlParam)
+	faviconURL, fileType, err := findFaviconURL(rootPageContent, up)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error finding favicon URL: %s", err), http.StatusInternalServerError)
 		return
 	}
 
+	if fileType == "" {
+		fileType = "image/x-icon"
+	}
 	// Proxy the favicon request
 	faviconContent, err := downloadUrl(faviconURL)
 	if err != nil {
@@ -79,7 +82,7 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	cacheFavicon(urlParam, faviconContent)
 
 	// Serve the favicon content
-	w.Header().Set("Content-Type", "image/x-icon")
+	w.Header().Set("Content-Type", fileType)
 	_, _ = w.Write(faviconContent)
 }
 
@@ -95,38 +98,34 @@ func fetchURL(urlParam string) ([]byte, error) {
 	return io.ReadAll(io.LimitReader(resp.Body, 1*1024*1024+1))
 }
 
-func findFaviconURL(pageContent []byte, baseURL string) (string, error) {
+func findFaviconURL(pageContent []byte, baseURL *url.URL) (string, string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(pageContent)))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	var faviconURL string
+	var faviconPath string
+	var fileType string
 
 	// Find the favicon URL from the meta tags
-	doc.Find("link[rel='icon'], link[rel='shortcut icon']").Each(func(i int, s *goquery.Selection) {
+	doc.Find("link[rel='icon'], link[rel='shortcut icon'], link[rel='alternate icon']").Each(func(i int, s *goquery.Selection) {
 		if href, exists := s.Attr("href"); exists {
-			faviconURL = href
+			faviconPath = href
+			fileType, _ = s.Attr("type")
 			return
 		}
 	})
 
-	if faviconURL == "" {
-		faviconURL = baseURL + "favicon.ico"
+	if faviconPath == "" {
+		faviconPath = "/favicon.ico"
 	}
 
-	// Convert relative URLs to absolute URLs
-	u, err := url.Parse(faviconURL)
+	p, err := baseURL.Parse(faviconPath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return "", err
-	}
-	faviconURL = base.ResolveReference(u).String()
 
-	return faviconURL, nil
+	return p.String(), fileType, nil
 }
 
 func downloadUrl(url string) ([]byte, error) {
