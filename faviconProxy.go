@@ -11,11 +11,16 @@ import (
 	"sync"
 )
 
+type FavIcon struct {
+	Data        []byte
+	ContentType string
+}
+
 var (
 	FaviconCache = struct {
 		sync.RWMutex
-		cache map[string][]byte
-	}{cache: make(map[string][]byte)}
+		cache map[string]*FavIcon
+	}{cache: make(map[string]*FavIcon)}
 )
 
 func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +49,8 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	cacheValue := getCacheFavicon(urlParam)
 	if cacheValue != nil {
-		w.Header().Set("Content-Type", "image/x-icon")
-		_, _ = w.Write(cacheValue)
+		w.Header().Set("Content-Type", cacheValue.ContentType)
+		_, _ = w.Write(cacheValue.Data)
 		return
 	}
 
@@ -79,7 +84,7 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Cache the favicon content
-	cacheFavicon(urlParam, faviconContent)
+	cacheFavicon(urlParam, faviconContent, fileType)
 
 	// Serve the favicon content
 	w.Header().Set("Content-Type", fileType)
@@ -140,7 +145,7 @@ func downloadUrl(url string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func cacheFavicon(urlParam string, content []byte) {
+func cacheFavicon(urlParam string, content []byte, contentType string) {
 	FaviconCache.Lock()
 	defer FaviconCache.Unlock()
 
@@ -152,10 +157,13 @@ func cacheFavicon(urlParam string, content []byte) {
 		}
 	}
 
-	FaviconCache.cache[urlParam] = content
+	FaviconCache.cache[urlParam] = &FavIcon{
+		Data:        content,
+		ContentType: contentType,
+	}
 }
 
-func getCacheFavicon(urlParam string) (content []byte) {
+func getCacheFavicon(urlParam string) *FavIcon {
 	FaviconCache.Lock()
 	defer FaviconCache.Unlock()
 
