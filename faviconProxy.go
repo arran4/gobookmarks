@@ -113,7 +113,7 @@ func findFaviconURL(pageContent []byte, baseURL *url.URL) (string, string, error
 	var fileType string
 
 	// Find the favicon URL from the meta tags
-	doc.Find("link[rel='icon'], link[rel='shortcut icon'], link[rel='alternate icon']").Each(func(i int, s *goquery.Selection) {
+	doc.Find("link[rel='icon'], link[rel='shortcut icon'], link[rel='alternate icon'], link[id='favicon']").Each(func(i int, s *goquery.Selection) {
 		if href, exists := s.Attr("href"); exists {
 			faviconPath = href
 			fileType, _ = s.Attr("type")
