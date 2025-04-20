@@ -1,6 +1,8 @@
 module github.com/arran4/gobookmarks
 
-go 1.18
+go 1.23.0
+
+toolchain go1.23.8
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
