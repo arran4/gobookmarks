@@ -74,7 +74,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return "main", nil
 		},
-		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
+		"bookmarkPages": func() ([]*BookmarkPage, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*github.User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -88,7 +88,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			var bookmark = defaultBookmarks
 			if err != nil {
 				// TODO check for error type and if it's not exist, fall through
-				return nil, fmt.Errorf("bookmarkColumns: %w", err)
+				return nil, fmt.Errorf("bookmarkPages: %w", err)
 			} else {
 				bookmark = bookmarks
 			}

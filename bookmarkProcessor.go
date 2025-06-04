@@ -18,19 +18,33 @@ type BookmarkColumn struct {
 	Categories []*BookmarkCategory
 }
 
-func PreprocessBookmarks(bookmarks string) []*BookmarkColumn {
+type BookmarkPage struct {
+	Columns []*BookmarkColumn
+}
+
+func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 	lines := strings.Split(bookmarks, "\n")
-	var result = []*BookmarkColumn{{}}
+	var result = []*BookmarkPage{{Columns: []*BookmarkColumn{{}}}}
 	var currentCategory *BookmarkCategory
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if strings.EqualFold(line, "column") {
+		if strings.EqualFold(line, "Page") || line == "--" {
 			if currentCategory != nil {
-				result[len(result)-1].Categories = append(result[len(result)-1].Categories, currentCategory)
+				lastColumn := result[len(result)-1].Columns[len(result[len(result)-1].Columns)-1]
+				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
 				currentCategory = nil
 			}
-			result = append(result, &BookmarkColumn{})
+			result = append(result, &BookmarkPage{Columns: []*BookmarkColumn{{}}})
+			continue
+		}
+		if strings.EqualFold(line, "column") {
+			if currentCategory != nil {
+				lastColumn := result[len(result)-1].Columns[len(result[len(result)-1].Columns)-1]
+				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
+				currentCategory = nil
+			}
+			result[len(result)-1].Columns = append(result[len(result)-1].Columns, &BookmarkColumn{})
 			continue
 		}
 		parts := strings.Fields(line)
@@ -42,7 +56,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkColumn {
 			if currentCategory == nil {
 				currentCategory = &BookmarkCategory{Name: categoryName}
 			} else if currentCategory.Name != "" {
-				result[len(result)-1].Categories = append(result[len(result)-1].Categories, currentCategory)
+				lastColumn := result[len(result)-1].Columns[len(result[len(result)-1].Columns)-1]
+				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
 				currentCategory = &BookmarkCategory{Name: categoryName}
 			} else {
 				currentCategory.Name = categoryName
@@ -59,7 +74,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkColumn {
 	}
 
 	if currentCategory != nil && currentCategory.Name != "" {
-		result[len(result)-1].Categories = append(result[len(result)-1].Categories, currentCategory)
+		lastColumn := result[len(result)-1].Columns[len(result[len(result)-1].Columns)-1]
+		lastColumn.Categories = append(lastColumn.Categories, currentCategory)
 	}
 
 	return result
