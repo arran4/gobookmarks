@@ -41,9 +41,8 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `<Link>`               | Will create a link to `<Link>` with the display name `<Link>` |
 | `<Link> <Name>`        | Will create a link to `<Link>` with the display name `<Name>` |
 | `Column`               | Will create a column                                         |
-| `Page` or `--`         | Creates a new page |
-
-The older delimiter `--` is still supported for compatibility and will create a full-screen page break.
+| `Page`                 | Creates a new page |
+| `--`                   | Inserts a horizontal rule and resets columns |
 
 ![img.png](media/img.png)
 

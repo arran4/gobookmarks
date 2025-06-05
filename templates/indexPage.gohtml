@@ -5,6 +5,10 @@
     {{else}}
         {{- range bookmarkPages }}
         <div class="bookmarkPage">
+            {{- range .Blocks }}
+            {{- if .HR }}
+            <hr class="bookmarkHr" />
+            {{- else }}
             <table>
                 <tr valign="top">
                     {{- range .Columns }}
@@ -24,6 +28,8 @@
                     {{- end }}
                 </tr>
             </table>
+            {{- end }}
+            {{- end }}
         </div>
         {{- end }}
     {{end}}

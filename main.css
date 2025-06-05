@@ -92,3 +92,9 @@ div.title {
 .bookmarkPage {
         height: 100vh;
 }
+
+.bookmarkHr {
+        margin: 1em 0;
+        border: none;
+        border-top: 1px solid #800000;
+}

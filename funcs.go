@@ -115,7 +115,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			pages := PreprocessBookmarks(bookmark)
 			var columns []*BookmarkColumn
 			for _, p := range pages {
-				columns = append(columns, p.Columns...)
+				for _, b := range p.Blocks {
+					if b.HR {
+						continue
+					}
+					columns = append(columns, b.Columns...)
+				}
 			}
 			return columns, nil
 		},
