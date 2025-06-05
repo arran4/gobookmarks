@@ -1,15 +1,18 @@
 {{define "tail"}}
-		</table>
-		<div id="bottom"></div>
-		<hr>
-		<center>
-			Date and time is now: {{now}}<br>
-			<i>
-				Arran4© 2004-2005, 2023; All works on this page copyrighted to their respective authors.
-				<a href="https://github.com/arran4/gobookmarks">https://github.com/arran4/gobookmarks</a>
-				{{ version }}
-			</i>
-		</center>
-	</body>
+                 </table>
+                 <div id="bottom"></div>
+                 <hr>
+                 <footer class="footnote">
+                        <div>Date and time is now: {{ now.Format "2006-01-02 15:04:05 MST" }}</div>
+                        <div>
+                                <i>
+                                        Arran4© 2004-2005, 2023; All works on this page copyrighted to their respective authors.<br>
+                                        <a href="https://github.com/arran4/gobookmarks">gobookmarks</a> v{{ version }}<br>
+                                        commit {{ commitShort }}<br>
+                                        built at {{ buildDate }}
+                                </i>
+                        </div>
+                 </footer>
+                 </body>
 </html>
 {{end}}

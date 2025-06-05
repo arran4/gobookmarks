@@ -63,9 +63,10 @@ div.title {
 	background-color: transparent;
 }
 .footnote {
-	font-size: 0.6em;
-	text-align: right;
-	font-family: tahoma, arial, helvetica, sans-serif;
+        font-size: 0.6em;
+        text-align: center;
+        font-family: tahoma, arial, helvetica, sans-serif;
+        margin-top: 1em;
 }
 .textleft {
 	text-align: left;

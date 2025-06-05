@@ -28,7 +28,17 @@ func NewFuncs(r *http.Request) template.FuncMap {
 	return map[string]any{
 		"now": func() time.Time { return time.Now() },
 		"version": func() string {
-			return fmt.Sprintf("%s, commit %s, built at %s", version, commit, date)
+			return version
+		},
+		"commitShort": func() string {
+			short := commit
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			return short
+		},
+		"buildDate": func() string {
+			return date
 		},
 		"firstline": func(s string) string {
 			return strings.Split(s, "\n")[0]
