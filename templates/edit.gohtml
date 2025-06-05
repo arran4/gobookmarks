@@ -4,9 +4,9 @@
             Error: {{ $.Error }}
         </p>
     {{ end }}
-    <form method=post action="?">
-        <label for="code">Code</label>:<br/>
-        <textarea id="code" name="text" rows="30" style="width: 90vw; height: 80vh;">{{bookmarksOrEditBookmarks}}</textarea><br>
+    <form method=post action="?" class="edit-form">
+        <label for="code">Code</label><br/>
+        <textarea id="code" name="text" rows="30">{{bookmarksOrEditBookmarks}}</textarea><br>
         <label for="branch">Branch</label>: <input id="branch" type="text" name="branch" value="{{ branchOrEditBranch }}" /><br>
         <input type=submit name="task" value="Save" /><br>
         <input type=hidden name="ref" value="{{ref}}" />

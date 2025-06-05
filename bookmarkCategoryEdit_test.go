@@ -20,6 +20,17 @@ func TestExtractCategoryByIndex(t *testing.T) {
 	}
 }
 
+func TestExtractCategoryByIndexFirst(t *testing.T) {
+	got, err := ExtractCategoryByIndex(testBookmarkText, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := "Category: A\nhttp://a.com a"
+	if got != expected {
+		t.Fatalf("expected %q got %q", expected, got)
+	}
+}
+
 func TestExtractCategoryByIndexError(t *testing.T) {
 	if _, err := ExtractCategoryByIndex(testBookmarkText, 5); err == nil {
 		t.Fatalf("expected error")
@@ -33,6 +44,18 @@ func TestReplaceCategoryByIndex(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	expected := "Category: A\nhttp://a.com a\nColumn\n" + newSection
+	if updated != expected {
+		t.Fatalf("expected %q got %q", expected, updated)
+	}
+}
+
+func TestReplaceCategoryByIndexFirst(t *testing.T) {
+	newSection := "Category: A\nhttp://changed.com x"
+	updated, err := ReplaceCategoryByIndex(testBookmarkText, 0, newSection)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := newSection + "\nColumn\nCategory: B\nhttp://b.com b\n"
 	if updated != expected {
 		t.Fatalf("expected %q got %q", expected, updated)
 	}
