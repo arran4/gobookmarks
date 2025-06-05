@@ -63,9 +63,10 @@ div.title {
 	background-color: transparent;
 }
 .footnote {
-	font-size: 0.6em;
-	text-align: right;
-	font-family: tahoma, arial, helvetica, sans-serif;
+        font-size: 0.6em;
+        text-align: center;
+        font-family: tahoma, arial, helvetica, sans-serif;
+        margin-top: 1em;
 }
 .textleft {
 	text-align: left;
@@ -82,9 +83,50 @@ div.title {
 	background-color: transparent;
 }
 .textcenter {
-	text-align: center;
-	font-family: tahoma, arial, helvetica, sans-serif;
-	font-size: 0.8em;
-	color: #800000;
-	background-color: transparent;
+        text-align: center;
+        font-family: tahoma, arial, helvetica, sans-serif;
+        font-size: 0.8em;
+        color: #800000;
+        background-color: transparent;
+}
+
+.bookmarkPage {
+        min-height: 100vh;
+}
+
+.bookmarkHr {
+        margin: 1em 0;
+        border: none;
+        border-top: 1px solid #800000;
+}
+
+.edit-link {
+        font-size: small;
+        margin-left: 0.3em;
+        text-decoration: none;
+}
+
+.edit-form textarea {
+        width: 90vw;
+        height: 80vh;
+        font-family: monospace;
+}
+
+.category-form textarea {
+        height: 30vh;
+}
+
+.cssColumns .bookmarkColumns {
+        column-width: 18em;
+        column-gap: 1em;
+}
+
+.cssColumns .columnBreak {
+        break-before: column;
+}
+
+.cssColumns .categoryBlock {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        -webkit-column-break-inside: avoid;
 }

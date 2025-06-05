@@ -7,6 +7,7 @@ ENV GBM_PROVIDER=github
 ENV GBM_GITLAB_BASE_URL="https://gitlab.com/api/v4"
 ENV GBM_NAMESPACE=""
 ENV GBM_COMMIT_EMAIL=""
+ENV GBM_CSS_COLUMNS=""
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks

@@ -25,10 +25,16 @@ func SetVersion(pVersion, pCommit, pDate string) {
 
 func NewFuncs(r *http.Request) template.FuncMap {
 	return map[string]any{
-		"now": func() time.Time { return time.Now() },
-		"version": func() string {
-			return fmt.Sprintf("%s, commit %s, built at %s", version, commit, date)
+		"now":     func() time.Time { return time.Now() },
+		"version": func() string { return version },
+		"commitShort": func() string {
+			short := commit
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			return short
 		},
+		"buildDate": func() string { return date },
 		"firstline": func(s string) string {
 			return strings.Split(s, "\n")[0]
 		},
@@ -45,6 +51,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"ref": func() string {
 			return r.URL.Query().Get("ref")
 		},
+		"useCssColumns": func() bool {
+			return UseCssColumns
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			login, ok := session.Values["UserLogin"].(string)
@@ -58,6 +67,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				return r.PostFormValue("text"), nil
 			}
 			return Bookmarks(r)
+		},
+		"bookmarksSHA": func() (string, error) {
+			// SHA tracking not supported with current provider API
+			return "", nil
 		},
 		"branchOrEditBranch": func() (string, error) {
 			if r.PostFormValue("branch") != "" {
@@ -73,6 +86,21 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return "main", nil
 		},
+		"bookmarkPages": func() ([]*BookmarkPage, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			login, _ := session.Values["UserLogin"].(string)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			bookmarks, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			var bookmark = defaultBookmarks
+			if err != nil {
+				// TODO check for error type and if it's not exist, fall through
+				return nil, fmt.Errorf("bookmarkPages: %w", err)
+			} else {
+				bookmark = bookmarks
+			}
+			return PreprocessBookmarks(bookmark), nil
+		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			login, _ := session.Values["UserLogin"].(string)
@@ -86,7 +114,17 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			return PreprocessBookmarks(bookmark), nil
+			pages := PreprocessBookmarks(bookmark)
+			var columns []*BookmarkColumn
+			for _, p := range pages {
+				for _, b := range p.Blocks {
+					if b.HR {
+						continue
+					}
+					columns = append(columns, b.Columns...)
+				}
+			}
+			return columns, nil
 		},
 		"tags": func() ([]*RepositoryTag, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)

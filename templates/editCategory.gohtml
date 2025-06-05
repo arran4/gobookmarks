@@ -1,17 +1,14 @@
 {{ template "head" $ }}
     {{ if $.Error }}
-        <p style="color: #FF0000">
-            Error: {{ $.Error }}
-        </p>
+        <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
-    <form method=post action="?" class="edit-form">
-        <label for="code">Code</label><br/>
-        <textarea id="code" name="text" rows="30">{{bookmarksOrEditBookmarks}}</textarea><br>
+    <form method=post action="?index={{$.Index}}" class="edit-form category-form">
+        <label for="code">Category</label><br/>
+        <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
         <label for="branch">Branch</label>: <input id="branch" type="text" name="branch" value="{{ branchOrEditBranch }}" /><br>
         <input type=submit name="task" value="Save" /><br>
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
     </form>
-
     {{ template "editNotes" $ }}
 {{ template "tail" $ }}
