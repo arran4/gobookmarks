@@ -8,8 +8,7 @@
             {{- range .Blocks }}
             {{- if .HR }}
             <hr class="bookmarkHr" />
-            {{- else }}
-            {{- if useCssColumns }}
+            {{- else if useCssColumns }}
             <div class="bookmarkColumns">
                 {{- $first := true }}
                 {{- range .Columns }}
