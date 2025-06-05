@@ -26,7 +26,7 @@ func GetBookmarksRepoName() string {
 	return "MyBookmarks"
 }
 
-func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, sourceRef, branch, text string) error {
+func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
 	defaultBranch, created, err := GetDefaultBranch(ctx, githubUser, client, branch)
 	if err != nil {
@@ -62,13 +62,15 @@ func UpdateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.T
 			return fmt.Errorf("CreateRepo: %w", err)
 		}
 		return CreateBookmarks(ctx, githubUser, userToken, branch, text)
-		err = nil
 	}
 	if err != nil {
 		return fmt.Errorf("UpdateBookmarks: client.Repositories.GetContents: %w", err)
 	}
 	if contents == nil || contents.Content == nil {
 		return nil
+	}
+	if expectSHA != "" && contents.SHA != nil && *contents.SHA != expectSHA {
+		return fmt.Errorf("bookmarks modified concurrently")
 	}
 	_, _, err = client.Repositories.UpdateFile(ctx, githubUser, RepoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message: SP("Auto change from web"),
@@ -182,24 +184,28 @@ func CreateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.T
 	return nil
 }
 
-func GetBookmarks(ctx context.Context, githubUser string, ref string, userToken *oauth2.Token) (string, error) {
+func GetBookmarks(ctx context.Context, githubUser string, ref string, userToken *oauth2.Token) (string, string, error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(userToken)))
 	contents, _, resp, err := client.Repositories.GetContents(ctx, githubUser, RepoName, "bookmarks.txt", &github.RepositoryContentGetOptions{
 		Ref: ref,
 	})
 	switch resp.StatusCode {
 	case http.StatusNotFound:
-		return "", nil
+		return "", "", nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("GetBookmarks: %w", err)
+		return "", "", fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if contents.Content == nil {
-		return "", nil
+		return "", "", nil
 	}
 	s, err := base64.StdEncoding.DecodeString(*contents.Content)
 	if err != nil {
-		return "", fmt.Errorf("GetBookmarks: StdEncoding.DecodeString: %w", err)
+		return "", "", fmt.Errorf("GetBookmarks: StdEncoding.DecodeString: %w", err)
 	}
-	return string(s), nil
+	sha := ""
+	if contents.SHA != nil {
+		sha = *contents.SHA
+	}
+	return string(s), sha, nil
 }

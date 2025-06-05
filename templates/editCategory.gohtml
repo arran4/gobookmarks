@@ -1,0 +1,13 @@
+{{ template "head" $ }}
+    {{ if $.Error }}
+        <p style="color: #FF0000">Error: {{ $.Error }}</p>
+    {{ end }}
+    <form method=post action="?index={{$.Index}}">
+        <label for="code">Category</label><br/>
+        <textarea id="code" name="text" rows="10" style="width: 90vw; height: 30vh;">{{$.Text}}</textarea><br>
+        <label for="branch">Branch</label>: <input id="branch" type="text" name="branch" value="{{ branchOrEditBranch }}" /><br>
+        <input type=submit name="task" value="Save" /><br>
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+    </form>
+{{ template "tail" $ }}
