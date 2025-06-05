@@ -1,9 +1,158 @@
 package gobookmarks
 
 import (
+	"html/template"
+	"io"
+	"os"
 	"testing"
+	"time"
+
+	"github.com/google/go-github/v55/github"
 )
 
 func TestCompileGoHTML(t *testing.T) {
-	// TODO adapt: template.Must(template.New("").Funcs(NewFuncs(r)).ParseFS(os.DirFS("./templates"), "*.gohtml"))
+	tpl, err := template.New("").Funcs(NewFuncs(nil)).ParseFS(os.DirFS("./templates"), "*.gohtml")
+	if err != nil {
+		t.Fatalf("template parse error: %v", err)
+	}
+
+	files := []string{
+		"edit.gohtml",
+		"editCategory.gohtml",
+		"editNotes.gohtml",
+		"error.gohtml",
+		"head.gohtml",
+		"history.gohtml",
+		"historyCommits.gohtml",
+		"indexPage.gohtml",
+		"loginPage.gohtml",
+		"logoutPage.gohtml",
+		"tail.gohtml",
+		"taskDoneAutoRefreshPage.gohtml",
+	}
+
+	for _, name := range files {
+		if tpl.Lookup(name) == nil {
+			t.Errorf("template %s not found", name)
+		}
+	}
+}
+
+func testFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"now":           func() time.Time { return time.Unix(0, 0) },
+		"version":       func() string { return "test" },
+		"OAuth2URL":     func() string { return "https://example.com" },
+		"ref":           func() string { return "refs/heads/main" },
+		"useCssColumns": func() bool { return false },
+		"loggedIn":      func() (bool, error) { return true, nil },
+		"commitShort": func() string {
+			short := commit
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			return short
+		},
+		"buildDate": func() string {
+			return date
+		},
+		"bookmarkPages": func() ([]*BookmarkPage, error) {
+			return []*BookmarkPage{
+				{
+					Blocks: []*BookmarkBlock{
+						{
+							Columns: []*BookmarkColumn{
+								{
+									Categories: []*BookmarkCategory{
+										{
+											Name:  "Demo",
+											Index: 0,
+											Entries: []*BookmarkEntry{
+												{Name: "Home", Url: "https://example.com"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		},
+		"bookmarksOrEditBookmarks": func() (string, error) { return "Category: Demo\nhttps://example.com Home", nil },
+		"bookmarksSHA":             func() (string, error) { return "sha", nil },
+		"branchOrEditBranch":       func() (string, error) { return "main", nil },
+		"tags": func() ([]*github.RepositoryTag, error) {
+			return []*github.RepositoryTag{{Name: github.String("v1")}}, nil
+		},
+		"branches": func() ([]*github.Branch, error) {
+			return []*github.Branch{{Name: github.String("main")}}, nil
+		},
+		"commits": func() ([]*github.RepositoryCommit, error) {
+			return []*github.RepositoryCommit{{
+				SHA: github.String("abc"),
+				Commit: &github.Commit{
+					Message: github.String("msg"),
+					Committer: &github.CommitAuthor{
+						Name:  github.String("dev"),
+						Email: github.String("dev@example.com"),
+						Date:  &github.Timestamp{Time: time.Unix(0, 0)},
+					},
+				},
+			}}, nil
+		},
+	}
+}
+
+func TestExecuteTemplates(t *testing.T) {
+	tpl, err := template.New("").Funcs(testFuncMap()).ParseFS(os.DirFS("./templates"), "*.gohtml")
+	if err != nil {
+		t.Fatalf("template parse error: %v", err)
+	}
+	baseData := struct {
+		*CoreData
+		Error string
+	}{
+		CoreData: &CoreData{Title: "Test", UserRef: "user"},
+	}
+
+	catData := struct {
+		*CoreData
+		Error string
+		Index int
+		Text  string
+		Sha   string
+	}{
+		CoreData: baseData.CoreData,
+		Index:    0,
+		Text:     "Category: Demo",
+		Sha:      "sha",
+	}
+
+	pages := []struct {
+		name string
+		tmpl string
+		data any
+	}{
+		{"index", "indexPage.gohtml", baseData},
+		{"login", "loginPage.gohtml", baseData},
+		{"logout", "logoutPage.gohtml", baseData},
+		{"edit", "edit.gohtml", baseData},
+		{"editCategory", "editCategory.gohtml", catData},
+		{"history", "history.gohtml", baseData},
+		{"historyCommits", "historyCommits.gohtml", baseData},
+		{"taskDone", "taskDoneAutoRefreshPage.gohtml", baseData},
+		{"error", "error.gohtml", struct {
+			*CoreData
+			Error string
+		}{baseData.CoreData, "boom"}},
+	}
+
+	for _, tt := range pages {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tpl.ExecuteTemplate(io.Discard, tt.tmpl, tt.data); err != nil {
+				t.Errorf("execute %s: %v", tt.tmpl, err)
+			}
+		})
+	}
 }
