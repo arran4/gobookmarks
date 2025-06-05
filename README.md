@@ -71,6 +71,7 @@ You will require 3 environment arguments:
 | `OAUTH2_CLIENT_ID` | The Client ID generated from setting up Oauth2 on github: https://github.com/settings/developers |
 | `OAUTH2_SECRET` | Secret ID  generated from setting up Oauth2 on github: https://github.com/settings/developers |
 | `EXTERNAL_URL` | The fully qualified URL that it is to accept connections from. Ie `http://localhost:8080`        |
+| `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
 
 ## Oauth2 setup
 

@@ -3,6 +3,7 @@ VOLUME /data
 ENV EXTERNAL_URL=http://localhost:8080
 ENV OAUTH2_CLIENT_ID=""
 ENV OAUTH2_SECRET=""
+ENV GBM_CSS_COLUMNS=""
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks

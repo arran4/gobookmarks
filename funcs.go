@@ -46,6 +46,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"ref": func() string {
 			return r.URL.Query().Get("ref")
 		},
+		"useCssColumns": func() bool {
+			return UseCssColumns
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, ok := session.Values["GithubUser"].(*github.User)
