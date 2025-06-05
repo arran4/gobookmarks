@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/gob"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"log"
@@ -14,19 +13,13 @@ import (
 )
 
 func init() {
-	gob.Register(&github.User{})
 	gob.Register(&oauth2.Token{})
 }
 
 func CoreAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		session := request.Context().Value(ContextValues("session")).(*sessions.Session)
-		githubUser, _ := session.Values["GithubUser"].(*github.User)
-
-		login := ""
-		if githubUser != nil && githubUser.Login != nil {
-			login = *githubUser.Login
-		}
+		login, _ := session.Values["UserLogin"].(string)
 
 		ctx := context.WithValue(request.Context(), ContextValues("coreData"), &CoreData{
 			UserRef: login,

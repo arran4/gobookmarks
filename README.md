@@ -57,18 +57,48 @@ You will require 3 environment arguments:
 
 | Arg | Value                                                                                            |
 | --- |--------------------------------------------------------------------------------------------------|
-| `OAUTH2_CLIENT_ID` | The Client ID generated from setting up Oauth2 on github: https://github.com/settings/developers |
-| `OAUTH2_SECRET` | Secret ID  generated from setting up Oauth2 on github: https://github.com/settings/developers |
+| `OAUTH2_CLIENT_ID` | The Client ID from registering an OAuth application with your provider |
+| `OAUTH2_SECRET` | Secret value from the same OAuth application |
 | `EXTERNAL_URL` | The fully qualified URL that it is to accept connections from. Ie `http://localhost:8080`        |
+| `GBM_PROVIDER` | Either `github` or `gitlab` to select the backend. Must be set |
+| `GBM_GITLAB_BASE_URL` | Base API URL for GitLab when using a self-hosted instance |
+| `GBM_NAMESPACE` | Optional suffix used when generating the bookmarks repository name |
+| `GBM_COMMIT_EMAIL` | Email address used for git commits |
 
-## Oauth2 setup
+## OAuth2 setup
 
-Visit: https://github.com/settings/developers
+Create an OAuth application with the provider you intend to use.
 
-Create an application, call it what ever you like. Set the Callback URL what ever you put in `EXTERNAL_URL` and add: 
-`/oauth2Callback` to the end, ie if you entered: `http://localhost:8080` it should be: `http://localhost:8080/oauth2Callback`
+### GitHub
 
-Upload `logo.png` for the logo.
+1. Visit <https://github.com/settings/developers> and choose **New OAuth App**.
+2. Set the callback URL to your `EXTERNAL_URL` followed by `/oauth2Callback` (for
+   example `http://localhost:8080/oauth2Callback`).
+3. Record the generated **Client ID** and **Client Secret** and use them as the
+   `OAUTH2_CLIENT_ID` and `OAUTH2_SECRET` environment variables.
 
-Generate a secret key and use it for the environment variables with the Client Id.
+### GitLab
+
+1. Open `<your gitlab host>/-/profile/applications` (for GitLab.com use
+   <https://gitlab.com/-/profile/applications>).
+2. Enter a name, use the same callback URL as above, and enable the `api` scope.
+3. Save the application and use the Application ID and Secret as
+   `OAUTH2_CLIENT_ID` and `OAUTH2_SECRET`.
+
+When you log in through the web interface gobookmarks uses this application to
+acquire an OAuth2 token. You can also reuse the application to obtain tokens for
+command-line access if needed.
+
+### Selecting the git provider
+
+Select the backend with `GBM_PROVIDER` or the `--provider` flag. Supported
+values are `github` and `gitlab`. If you use a self-hosted GitLab instance,
+set `GBM_GITLAB_BASE_URL` to the base API endpoint
+(e.g. `https://gitlab.example.com/api/v4`).
+
+### Build tags and version
+
+Provider implementations live behind build tags. Use `go build` with
+`-tags exclude_github` or `exclude_gitlab` to omit a backend.
+Run the binary with `-version` to print compiled capabilities and exit.
 

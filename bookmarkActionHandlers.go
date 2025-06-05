@@ -2,7 +2,6 @@ package gobookmarks
 
 import (
 	"fmt"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
@@ -11,15 +10,10 @@ import (
 func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	login, _ := session.Values["UserLogin"].(string)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
-
-	login := ""
-	if githubUser != nil && githubUser.Login != nil {
-		login = *githubUser.Login
-	}
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
@@ -30,14 +24,9 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	login, _ := session.Values["UserLogin"].(string)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
-
-	login := ""
-	if githubUser != nil && githubUser.Login != nil {
-		login = *githubUser.Login
-	}
 
 	if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
 		return fmt.Errorf("crateBookmark error: %w", err)

@@ -8,14 +8,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"flag"
 	"fmt"
 	. "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 	"log"
 	"math/big"
 	"net/http"
@@ -23,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -35,18 +35,42 @@ var (
 	version      = "dev"
 	commit       = "none"
 	date         = "unknown"
+	provider     = flag.String("provider", getenv("GBM_PROVIDER", ""), "git provider: github or gitlab")
+	gitlabBase   = flag.String("gitlab-base", getenv("GBM_GITLAB_BASE_URL", "https://gitlab.com/api/v4"), "gitlab api base url")
+	showVersion  = flag.Bool("version", false, "print version and exit")
 )
 
 func init() {
+	flag.Parse()
+	if *showVersion {
+		fmt.Printf("gobookmarks: %s, commit %s, built at %s\n", version, commit, date)
+		fmt.Printf("providers: %s\n", strings.Join(Capabilities(), ","))
+		os.Exit(0)
+	}
 	log.SetFlags(log.Flags() | log.Lshortfile)
 	SessionName = "gobookmarks"
-	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
+	SessionStore = sessions.NewCookieStore([]byte("random-key"))
+	GitLabBaseURL = *gitlabBase
+	switch strings.ToLower(*provider) {
+	case "github":
+		CurrentProvider = GitHubProvider{}
+	case "gitlab":
+		CurrentProvider = GitLabProvider{}
+	default:
+		log.Fatalf("unknown provider: %s", *provider)
+	}
+	log.Printf("Using provider: %s", strings.ToLower(*provider))
+	if strings.ToLower(*provider) == "gitlab" {
+		log.Printf("GitLab base URL: %s", GitLabBaseURL)
+	}
+	endpoint := CurrentProvider.OAuth2Endpoint()
+	scopes := CurrentProvider.OAuth2Scopes()
 	Oauth2Config = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectUrl,
-		Scopes:       []string{"repo", "read:user", "user:email"},
-		Endpoint:     endpoints.GitHub,
+		Scopes:       scopes,
+		Endpoint:     endpoint,
 	}
 }
 
@@ -94,6 +118,7 @@ func main() {
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	SetVersion(version, commit, date)
 	log.Printf("Redirect URL configured to: %s", redirectUrl)
+	log.Printf("Bookmarks repo name: %s", RepoName)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
@@ -302,8 +327,8 @@ func RequiresAnAccount() mux.MatcherFunc {
 				return false
 			}
 		}
-		githubUser, ok := session.Values["GithubUser"].(*github.User)
-		return ok && githubUser != nil
+		login, ok := session.Values["UserLogin"].(string)
+		return ok && login != ""
 	}
 }
 
@@ -334,4 +359,12 @@ func NoTask() mux.MatcherFunc {
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+func getenv(k, d string) string {
+	v := os.Getenv(k)
+	if v == "" {
+		return d
+	}
+	return v
 }

@@ -1,0 +1,18 @@
+name: test
+on:
+  pull_request:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tags: ['', 'exclude_gitlab', 'exclude_github']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+      - name: Build and Test
+        run: |
+          go vet -tags "${{ matrix.tags }}" ./...
+          go build -tags "${{ matrix.tags }}" ./...
+          go test -tags "${{ matrix.tags }}" ./...
