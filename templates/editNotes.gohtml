@@ -1,0 +1,10 @@
+{{define "editNotes"}}
+    <b><u>How to use this?</u></b><br>
+    Simply edit your page using the keywords below then set it as your start page.<br>
+    "&lt;URL&gt; &lt;Name&gt; &lt;Newline&gt;" - Creates a link to URL with name, if you need spaces use %20.<br>
+    "Category: &lt;name&gt; &lt;Newline&gt;" - Creates a category named &lt;name&gt;.<br/>
+    "Column &lt;Newline&gt;" - Creates a new column.<br/>
+    "Page &lt;Newline&gt;" - Creates a new page.<br/>
+    "--" - Inserts a horizontal rule and resets the columns.<br>
+    <i>Each category heading on the index page has a pencil icon that links to /editCategory for quick edits. Changes are checked against the file SHA to prevent losing updates.</i>
+{{end}}
