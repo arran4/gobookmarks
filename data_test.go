@@ -46,6 +46,13 @@ func testFuncMap() template.FuncMap {
 		"ref":           func() string { return "refs/heads/main" },
 		"useCssColumns": func() bool { return false },
 		"loggedIn":      func() (bool, error) { return true, nil },
+		"commitShort": func() string {
+			short := commit
+			if len(short) > 7 {
+				short = short[:7]
+			}
+			return short
+		},
 		"bookmarkPages": func() ([]*BookmarkPage, error) {
 			return []*BookmarkPage{
 				{
