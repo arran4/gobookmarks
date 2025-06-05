@@ -41,6 +41,8 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `<Link>`               | Will create a link to `<Link>` with the display name `<Link>` |
 | `<Link> <Name>`        | Will create a link to `<Link>` with the display name `<Name>` |
 | `Column`               | Will create a column                                         |
+| `Page`                 | Creates a new page |
+| `--`                   | Inserts a horizontal rule and resets columns |
 
 ![img.png](media/img.png)
 

@@ -5,83 +5,87 @@ import (
 	"testing"
 )
 
+type (
+	Pg  = BookmarkPage
+	Blk = BookmarkBlock
+	Col = BookmarkColumn
+	Cat = BookmarkCategory
+	Ent = BookmarkEntry
+)
+
+func e(u, n string) *Ent               { return &Ent{Url: u, Name: n} }
+func cat(name string, es ...*Ent) *Cat { return &Cat{Name: name, Entries: es} }
+func col(cs ...*Cat) *Col              { return &Col{Categories: cs} }
+func colsBlock(cs ...*Col) *Blk        { return &Blk{Columns: cs} }
+func hrBlock() *Blk                    { return &Blk{HR: true} }
+func page(bs ...*Blk) *Pg              { return &Pg{Blocks: bs} }
+
 func Test_preprocessBookmarks(t *testing.T) {
 	tests := []struct {
-		name      string
-		bookmarks string
-		want      []*BookmarkColumn
+		name  string
+		input string
+		want  []*Pg
 	}{
 		{
-			name:      "Test",
-			bookmarks: "Category: Search\nhttp://www.google.com.au Google\nCategory: Wikies\nhttp://en.wikipedia.org/wiki/Main_Page Wikipedia\nhttp://mathworld.wolfram.com/ Math World\nhttp://gentoo-wiki.com/Main_Page Gentoo-wiki\n",
-			want: []*BookmarkColumn{{
-				Categories: []*BookmarkCategory{
-					{
-						Name: "Search",
-						Entries: []*BookmarkEntry{
-							{
-								Url:  "http://www.google.com.au",
-								Name: "Google",
-							},
-						},
-					},
-					{
-						Name: "Wikies",
-						Entries: []*BookmarkEntry{
-							{
-								Url:  "http://en.wikipedia.org/wiki/Main_Page",
-								Name: "Wikipedia",
-							},
-							{
-								Url:  "http://mathworld.wolfram.com/",
-								Name: "Math World",
-							},
-							{
-								Url:  "http://gentoo-wiki.com/Main_Page",
-								Name: "Gentoo-wiki",
-							},
-						},
-					},
-				}}},
+			name:  "basic",
+			input: "Category: Search\nhttp://g.com G\nCategory: Wikies\nhttp://w.com W\n",
+			want: []*Pg{
+				page(colsBlock(
+					col(cat("Search", e("http://g.com", "G")),
+						cat("Wikies", e("http://w.com", "W"))),
+				)),
+			},
 		},
 		{
-			name:      "Test",
-			bookmarks: "Category: Search\nhttp://www.google.com.au Google\nColumn\nCategory: Wikies\nhttp://en.wikipedia.org/wiki/Main_Page Wikipedia\n",
-			want: []*BookmarkColumn{
-				{
-					Categories: []*BookmarkCategory{
-						{
-							Name: "Search",
-							Entries: []*BookmarkEntry{
-								{
-									Url:  "http://www.google.com.au",
-									Name: "Google",
-								},
-							},
-						},
-					},
-				},
-				{
-					Categories: []*BookmarkCategory{
-						{
-							Name: "Wikies",
-							Entries: []*BookmarkEntry{
-								{
-									Url:  "http://en.wikipedia.org/wiki/Main_Page",
-									Name: "Wikipedia",
-								},
-							},
-						},
-					},
-				},
+			name:  "columns",
+			input: "Category: Search\nhttp://g.com G\nColumn\nCategory: Wikies\nhttp://w.com W\n",
+			want: []*Pg{
+				page(colsBlock(
+					col(cat("Search", e("http://g.com", "G"))),
+					col(cat("Wikies", e("http://w.com", "W"))),
+				)),
+			},
+		},
+		{
+			name:  "pages",
+			input: "Category: A\nhttp://a.com a\nPage\nCategory: B\nhttp://b.com b\n",
+			want: []*Pg{
+				page(colsBlock(col(cat("A", e("http://a.com", "a"))))),
+				page(colsBlock(col(cat("B", e("http://b.com", "b"))))),
+			},
+		},
+		{
+			name:  "pages and columns",
+			input: "Category: A\nhttp://a.com\nColumn\nCategory: B\nhttp://b.com\nPage\nCategory: C\nhttp://c.com\nColumn\nCategory: D\nhttp://d.com\n",
+			want: []*Pg{
+				page(colsBlock(
+					col(cat("A", e("http://a.com", "http://a.com"))),
+					col(cat("B", e("http://b.com", "http://b.com"))),
+				)),
+				page(colsBlock(
+					col(cat("C", e("http://c.com", "http://c.com"))),
+					col(cat("D", e("http://d.com", "http://d.com"))),
+				)),
+			},
+		},
+		{
+			name:  "horizontal rule",
+			input: "Category: One\nhttp://one.com\n--\nCategory: Two\nhttp://two.com\n",
+			want: []*Pg{
+				page(
+					colsBlock(col(cat("One", e("http://one.com", "http://one.com")))),
+					hrBlock(),
+					colsBlock(col(cat("Two", e("http://two.com", "http://two.com")))),
+				),
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := PreprocessBookmarks(tt.bookmarks)
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("PreprocessBookmarks() = diff\n%s", diff)
+			got := PreprocessBookmarks(tt.input)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("diff:\n%s", diff)
 			}
 		})
 	}
