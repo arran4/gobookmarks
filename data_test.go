@@ -53,6 +53,9 @@ func testFuncMap() template.FuncMap {
 			}
 			return short
 		},
+		"buildDate": func() string {
+			return date
+		},
 		"bookmarkPages": func() ([]*BookmarkPage, error) {
 			return []*BookmarkPage{
 				{
