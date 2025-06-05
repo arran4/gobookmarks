@@ -12,6 +12,7 @@ type BookmarkEntry struct {
 type BookmarkCategory struct {
 	Name    string
 	Entries []*BookmarkEntry
+	Index   int
 }
 
 type BookmarkColumn struct {
@@ -31,11 +32,14 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 	lines := strings.Split(bookmarks, "\n")
 	var result = []*BookmarkPage{{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}}
 	var currentCategory *BookmarkCategory
+	idx := 0
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.EqualFold(line, "Page") {
 			if currentCategory != nil {
+				currentCategory.Index = idx
+				idx++
 				lastBlock := result[len(result)-1].Blocks[len(result[len(result)-1].Blocks)-1]
 				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
 				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
@@ -46,6 +50,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 		}
 		if line == "--" {
 			if currentCategory != nil {
+				currentCategory.Index = idx
+				idx++
 				lastBlock := result[len(result)-1].Blocks[len(result[len(result)-1].Blocks)-1]
 				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
 				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
@@ -58,6 +64,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 		}
 		if strings.EqualFold(line, "column") {
 			if currentCategory != nil {
+				currentCategory.Index = idx
+				idx++
 				lastBlock := result[len(result)-1].Blocks[len(result[len(result)-1].Blocks)-1]
 				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
 				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
@@ -76,6 +84,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 			if currentCategory == nil {
 				currentCategory = &BookmarkCategory{Name: categoryName}
 			} else if currentCategory.Name != "" {
+				currentCategory.Index = idx
+				idx++
 				lastBlock := result[len(result)-1].Blocks[len(result[len(result)-1].Blocks)-1]
 				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
 				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
@@ -95,6 +105,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 	}
 
 	if currentCategory != nil && currentCategory.Name != "" {
+		currentCategory.Index = idx
+		idx++
 		lastBlock := result[len(result)-1].Blocks[len(result[len(result)-1].Blocks)-1]
 		lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
 		lastColumn.Categories = append(lastColumn.Categories, currentCategory)

@@ -15,7 +15,7 @@
                     <td>
                         {{- range .Categories }}
                             <ul  style="list-style-type: none;">
-                                <h2>{{ .Name }}</h2>
+                                <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}" title="Edit">&#9998;</a></h2>
                                 {{- range .Entries }}
                                     <li>
                                         <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />

@@ -44,6 +44,15 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `Page`                 | Creates a new page |
 | `--`                   | Inserts a horizontal rule and resets columns |
 
+## Editing
+
+The `/edit` page allows updating the entire bookmark file.
+Each category heading on the index page now includes a small pencil icon
+link that opens `/editCategory`. This page shows only the selected
+category text and saves changes back to your bookmarks without touching
+other sections. Edits check the file's SHA so you'll get an error if it
+changed while you were editing.
+
 ![img.png](media/img.png)
 
 ![img_1.png](media/img_1.png)

@@ -60,6 +60,20 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return Bookmarks(r)
 		},
+		"bookmarksSHA": func() (string, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+			_, sha, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			if err != nil {
+				return "", err
+			}
+			return sha, nil
+		},
 		"branchOrEditBranch": func() (string, error) {
 			if r.PostFormValue("branch") != "" {
 				return r.PostFormValue("branch"), nil
@@ -84,7 +98,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				login = *githubUser.Login
 			}
 
-			bookmarks, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			var bookmark = defaultBookmarks
 			if err != nil {
 				// TODO check for error type and if it's not exist, fall through
@@ -104,7 +118,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				login = *githubUser.Login
 			}
 
-			bookmarks, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			var bookmark = defaultBookmarks
 			if err != nil {
 				// TODO check for error type and if it's not exist, fall through
@@ -184,7 +198,7 @@ func Bookmarks(r *http.Request) (string, error) {
 		login = *githubUser.Login
 	}
 
-	bookmarks, err := GetBookmarks(r.Context(), login, ref, token)
+	bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		return "", fmt.Errorf("bookmarks: %w", err)
 	}

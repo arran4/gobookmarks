@@ -2,6 +2,7 @@ package gobookmarks
 
 import (
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"testing"
 )
 
@@ -81,12 +82,35 @@ func Test_preprocessBookmarks(t *testing.T) {
 		},
 	}
 
+	ignore := cmpopts.IgnoreFields(BookmarkCategory{}, "Index")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := PreprocessBookmarks(tt.input)
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, ignore); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 			}
 		})
+	}
+}
+
+func Test_preprocessBookmarksIndices(t *testing.T) {
+	input := "Category: A\nColumn\nCategory: B\nPage\nCategory: C\n"
+	pages := PreprocessBookmarks(input)
+	var got []int
+	for _, p := range pages {
+		for _, b := range p.Blocks {
+			if b.HR {
+				continue
+			}
+			for _, c := range b.Columns {
+				for _, cat := range c.Categories {
+					got = append(got, cat.Index)
+				}
+			}
+		}
+	}
+	expected := []int{0, 1, 2}
+	if diff := cmp.Diff(expected, got); diff != "" {
+		t.Fatalf("diff:\n%s", diff)
 	}
 }

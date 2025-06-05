@@ -98,3 +98,19 @@ div.title {
         border: none;
         border-top: 1px solid #800000;
 }
+
+.edit-link {
+        font-size: small;
+        margin-left: 0.3em;
+        text-decoration: none;
+}
+
+.edit-form textarea {
+        width: 90vw;
+        height: 80vh;
+        font-family: monospace;
+}
+
+.category-form textarea {
+        height: 30vh;
+}
