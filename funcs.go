@@ -94,6 +94,31 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return PreprocessBookmarks(bookmark), nil
 		},
+		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*github.User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil && githubUser.Login != nil {
+				login = *githubUser.Login
+			}
+
+			bookmarks, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			var bookmark = defaultBookmarks
+			if err != nil {
+				// TODO check for error type and if it's not exist, fall through
+				return nil, fmt.Errorf("bookmarkColumns: %w", err)
+			} else {
+				bookmark = bookmarks
+			}
+			pages := PreprocessBookmarks(bookmark)
+			var columns []*BookmarkColumn
+			for _, p := range pages {
+				columns = append(columns, p.Columns...)
+			}
+			return columns, nil
+		},
 		"tags": func() ([]*github.RepositoryTag, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*github.User)
