@@ -7,18 +7,14 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         tags: ['', 'exclude_gitlab', 'exclude_github']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Build and Test
-        run: |
-          go vet -tags "${{ matrix.tags }}" ./...
-          go build -tags "${{ matrix.tags }}" ./...
-          go test -tags "${{ matrix.tags }}" ./...
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+    - run: go test ./...

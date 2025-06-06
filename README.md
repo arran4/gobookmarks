@@ -88,6 +88,7 @@ Create an OAuth application with the provider you intend to use.
    example `http://localhost:8080/oauth2Callback`).
 3. Record the generated **Client ID** and **Client Secret** and use them as the
    `OAUTH2_CLIENT_ID` and `OAUTH2_SECRET` environment variables.
+| `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
 
 ### GitLab
 

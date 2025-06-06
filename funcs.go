@@ -46,6 +46,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"OAuth2URL":     func() string { return Oauth2Config.AuthCodeURL("") },
 		"ref":           func() string { return r.URL.Query().Get("ref") },
 		"useCssColumns": func() bool { return UseCssColumns },
+		"useCssColumns": func() bool {
+			return UseCssColumns
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			login, ok := session.Values["UserLogin"].(string)

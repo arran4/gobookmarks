@@ -2,6 +2,7 @@ package gobookmarks
 
 import (
 	"fmt"
+	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
@@ -19,6 +20,11 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 
+	login := ""
+	if githubUser != nil && githubUser.Login != nil {
+		login = *githubUser.Login
+	}
+
 	bookmarks, sha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		return fmt.Errorf("GetBookmarks: %w", err)
@@ -27,6 +33,7 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("ExtractCategory: %w", err)
 	}
+
 	data := struct {
 		*CoreData
 		Error string
@@ -40,6 +47,7 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 		Text:     text,
 		Sha:      sha,
 	}
+
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editCategory.gohtml", data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}

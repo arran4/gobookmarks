@@ -25,10 +25,31 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 	return CurrentProvider.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
 }
 
+func GetDefaultBranch(ctx context.Context, githubUser string, client *github.Client, branch string) (string, bool, error) {
+	return CurrentProvider.GetDefaultBranch
+}
+
+func CreateRepo(ctx context.Context, githubUser string, client *github.Client) (*github.Repository, error) {
+	return CurrentProvider.CreateRepo
+}
+
 func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
 	return CurrentProvider.CreateBookmarks(ctx, user, token, branch, text)
 }
 
-func GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, string, error) {
-	return CurrentProvider.GetBookmarks(ctx, user, ref, token)
+func CreateRef(ctx context.Context, githubUser string, client *github.Client, sourceRef string, branchRef string) error {
+	return CurrentProvider.CreateRef
 }
+
+func SP(s string) *string {
+	return &s
+}
+
+func BP(b bool) *bool {
+	return &b
+}
+
+func CreateBookmarks(ctx context.Context, githubUser string, userToken *oauth2.Token, branch, text string) error {
+	return CurrentProvider.CreateBookmarks
+}
+
