@@ -22,12 +22,12 @@ func (GitHubProvider) GetBranches(context.Context, string, *oauth2.Token) ([]*Br
 func (GitHubProvider) GetCommits(context.Context, string, *oauth2.Token) ([]*RepositoryCommit, error) {
 	return nil, fmt.Errorf("github support not built")
 }
-func (GitHubProvider) UpdateBookmarks(context.Context, string, *oauth2.Token, string, string, string) error {
+func (GitHubProvider) UpdateBookmarks(context.Context, string, *oauth2.Token, string, string, string, string) error {
 	return fmt.Errorf("github support not built")
 }
 func (GitHubProvider) CreateBookmarks(context.Context, string, *oauth2.Token, string, string) error {
 	return fmt.Errorf("github support not built")
 }
-func (GitHubProvider) GetBookmarks(context.Context, string, string, *oauth2.Token) (string, error) {
-	return "", fmt.Errorf("github support not built")
+func (GitHubProvider) GetBookmarks(context.Context, string, string, *oauth2.Token) (string, string, error) {
+	return "", "", fmt.Errorf("github support not built")
 }

@@ -15,8 +15,16 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
+	sha := r.PostFormValue("sha")
 
-	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text); err != nil {
+	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
+	if err != nil {
+		return fmt.Errorf("GetBookmarks: %w", err)
+	}
+	if sha != "" && curSha != sha {
+		return fmt.Errorf("bookmark modified concurrently")
+	}
+	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil
@@ -47,17 +55,20 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
+	sha := r.PostFormValue("sha")
 
-	currentBookmarks, err := GetBookmarks(r.Context(), login, ref, token)
+	currentBookmarks, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		return fmt.Errorf("GetBookmarks: %w", err)
+	}
+	if sha != "" && curSha != sha {
+		return fmt.Errorf("bookmark modified concurrently")
 	}
 	updated, err := ReplaceCategoryByIndex(currentBookmarks, idx, text)
 	if err != nil {
 		return fmt.Errorf("ReplaceCategory: %w", err)
 	}
-
-	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated); err != nil {
+	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil

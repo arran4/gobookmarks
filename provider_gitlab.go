@@ -95,7 +95,7 @@ func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2
 	return out, nil
 }
 
-func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text string) error {
+func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	client, err := getGitLabClient(ctx, token)
 	if err != nil {
 		return fmt.Errorf("get client: %w", err)
@@ -117,28 +117,28 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		return fmt.Errorf("ensure branch: %w", err)
 	}
 
-	return writeGitLabBookmarks(client, project, branch, text)
+	return writeGitLabBookmarks(client, project, branch, text, expectSHA)
 }
 
 func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
-	return updateGitLabBookmarks(ctx, user, token, "", branch, text)
+	return updateGitLabBookmarks(ctx, user, token, "", branch, text, "")
 }
 
-func (GitLabProvider) GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, error) {
+func (GitLabProvider) GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, string, error) {
 	client, err := getGitLabClient(ctx, token)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	project := fmt.Sprintf("%s/%s", user, RepoName)
 	file, _, err := client.RepositoryFiles.GetFile(project, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(ref)})
 	if err != nil {
-		return "", nil
+		return "", "", nil
 	}
 	data, err := base64.StdEncoding.DecodeString(file.Content)
 	if err != nil {
-		return "", fmt.Errorf("decode file: %w", err)
+		return "", "", fmt.Errorf("decode file: %w", err)
 	}
-	return string(data), nil
+	return string(data), file.LastCommitID, nil
 }
 
 func getGitLabClient(ctx context.Context, token *oauth2.Token) (*gitlab.Client, error) {
@@ -153,7 +153,7 @@ func getGitLabClient(ctx context.Context, token *oauth2.Token) (*gitlab.Client, 
 	return c, nil
 }
 
-func updateGitLabBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text string) error {
+func updateGitLabBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	client, err := getGitLabClient(ctx, token)
 	if err != nil {
 		return fmt.Errorf("get client: %w", err)
@@ -171,7 +171,7 @@ func updateGitLabBookmarks(ctx context.Context, user string, token *oauth2.Token
 	if err := ensureGitLabBranch(client, project, branch, sourceRef); err != nil {
 		return fmt.Errorf("ensure branch: %w", err)
 	}
-	return writeGitLabBookmarks(client, project, branch, text)
+	return writeGitLabBookmarks(client, project, branch, text, expectSHA)
 }
 
 func ensureGitLabProject(client *gitlab.Client, project string) error {
@@ -204,8 +204,8 @@ func ensureGitLabBranch(client *gitlab.Client, project, branch, sourceRef string
 	return nil
 }
 
-func writeGitLabBookmarks(client *gitlab.Client, project, branch, text string) error {
-	_, _, err := client.RepositoryFiles.GetFile(project, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(branch)})
+func writeGitLabBookmarks(client *gitlab.Client, project, branch, text, expectSHA string) error {
+	file, _, err := client.RepositoryFiles.GetFile(project, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(branch)})
 	if err != nil {
 		_, _, err = client.RepositoryFiles.CreateFile(project, "bookmarks.txt", &gitlab.CreateFileOptions{
 			Branch:        gitlab.Ptr(branch),
@@ -215,12 +215,16 @@ func writeGitLabBookmarks(client *gitlab.Client, project, branch, text string) e
 			AuthorName:    gitlab.Ptr(commitAuthorName),
 		})
 	} else {
+		if expectSHA != "" && file.LastCommitID != "" && file.LastCommitID != expectSHA {
+			return fmt.Errorf("bookmarks modified concurrently")
+		}
 		_, _, err = client.RepositoryFiles.UpdateFile(project, "bookmarks.txt", &gitlab.UpdateFileOptions{
 			Branch:        gitlab.Ptr(branch),
 			Content:       gitlab.Ptr(text),
 			CommitMessage: gitlab.Ptr("Auto change from web"),
 			AuthorEmail:   gitlab.Ptr(commitAuthorEmail),
 			AuthorName:    gitlab.Ptr(commitAuthorName),
+			LastCommitID:  gitlab.Ptr(file.LastCommitID),
 		})
 	}
 	if err != nil {

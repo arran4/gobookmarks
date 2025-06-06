@@ -22,12 +22,12 @@ func (GitLabProvider) GetBranches(context.Context, string, *oauth2.Token) ([]*Br
 func (GitLabProvider) GetCommits(context.Context, string, *oauth2.Token) ([]*RepositoryCommit, error) {
 	return nil, fmt.Errorf("gitlab support not built")
 }
-func (GitLabProvider) UpdateBookmarks(context.Context, string, *oauth2.Token, string, string, string) error {
+func (GitLabProvider) UpdateBookmarks(context.Context, string, *oauth2.Token, string, string, string, string) error {
 	return fmt.Errorf("gitlab support not built")
 }
 func (GitLabProvider) CreateBookmarks(context.Context, string, *oauth2.Token, string, string) error {
 	return fmt.Errorf("gitlab support not built")
 }
-func (GitLabProvider) GetBookmarks(context.Context, string, string, *oauth2.Token) (string, error) {
-	return "", fmt.Errorf("gitlab support not built")
+func (GitLabProvider) GetBookmarks(context.Context, string, string, *oauth2.Token) (string, string, error) {
+	return "", "", fmt.Errorf("gitlab support not built")
 }

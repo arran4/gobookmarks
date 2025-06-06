@@ -13,9 +13,9 @@ type Provider interface {
 	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*RepositoryTag, error)
 	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)
 	GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*RepositoryCommit, error)
-	UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text string) error
+	UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error
 	CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error
-	GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, error)
+	GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, string, error)
 }
 
 // GitHubProvider implements the GitHub backend.

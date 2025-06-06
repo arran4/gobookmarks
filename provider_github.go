@@ -92,7 +92,7 @@ var commitAuthorGitHub = &github.CommitAuthor{
 	Email: SP(commitAuthorEmail),
 }
 
-func (GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text string) error {
+func (GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(token)))
 	defaultBranch, created, err := GetDefaultBranch(ctx, user, client, branch)
 	if err != nil {
@@ -135,6 +135,9 @@ func (GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	if contents == nil || contents.Content == nil {
 		return nil
 	}
+	if expectSHA != "" && contents.SHA != nil && *contents.SHA != expectSHA {
+		return fmt.Errorf("bookmarks modified concurrently")
+	}
 	_, _, err = client.Repositories.UpdateFile(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto change from web"),
 		Content:   []byte(text),
@@ -171,23 +174,27 @@ func (GitHubProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	return nil
 }
 
-func (GitHubProvider) GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, error) {
+func (GitHubProvider) GetBookmarks(ctx context.Context, user string, ref string, token *oauth2.Token) (string, string, error) {
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(token)))
 	contents, _, resp, err := client.Repositories.GetContents(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: ref})
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
-		return "", nil
+		return "", "", nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("GetBookmarks: %w", err)
+		return "", "", fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if contents.Content == nil {
-		return "", nil
+		return "", "", nil
 	}
 	s, err := base64.StdEncoding.DecodeString(*contents.Content)
 	if err != nil {
-		return "", fmt.Errorf("GetBookmarks: StdEncoding.DecodeString: %w", err)
+		return "", "", fmt.Errorf("GetBookmarks: StdEncoding.DecodeString: %w", err)
 	}
-	return string(s), nil
+	sha := ""
+	if contents.SHA != nil {
+		sha = *contents.SHA
+	}
+	return string(s), sha, nil
 }
 
 func GetDefaultBranch(ctx context.Context, githubUser string, client *github.Client, branch string) (string, bool, error) {
