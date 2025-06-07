@@ -49,7 +49,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("exchange error: %w", err)
 	}
 
-	session, err := SessionStore.Get(r, SessionName)
+	session, err := getSession(w, r)
 	if err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
@@ -61,6 +61,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
 	session.Values["GithubUser"] = user
 	session.Values["Token"] = token
+	session.Values["version"] = version
 
 	if err := session.Save(r, w); err != nil {
 		log.Printf("Exchange error: %s", err)
@@ -73,7 +74,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 func UserAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		// Get the session.
-		session, err := SessionStore.Get(request, SessionName)
+		session, err := getSession(writer, request)
 		if err != nil {
 			http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -82,4 +83,24 @@ func UserAdderMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(request.Context(), ContextValues("session"), session)
 		next.ServeHTTP(writer, request.WithContext(ctx))
 	})
+}
+
+func getSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
+	session, err := SessionStore.Get(r, SessionName)
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := session.Values["version"].(string); !ok || v != version {
+		session.Options.MaxAge = -1
+		if err := session.Save(r, w); err != nil {
+			return nil, err
+		}
+		session, err = SessionStore.New(r, SessionName)
+		if err != nil {
+			return nil, err
+		}
+		session.Values = make(map[interface{}]interface{})
+		session.IsNew = true
+	}
+	return session, nil
 }
