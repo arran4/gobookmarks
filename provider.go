@@ -54,10 +54,14 @@ func ProviderNames() []string {
 
 var ActiveProvider Provider
 
-func SetProviderByName(name string) {
+// SetProviderByName activates the named provider.
+// It returns true if the provider exists.
+func SetProviderByName(name string) bool {
 	if p, ok := providers[name]; ok {
 		ActiveProvider = p
+		return true
 	}
+	return false
 }
 
 func init() {
