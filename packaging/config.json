@@ -4,5 +4,6 @@
   "external_url": "http://localhost:8080",
   "css_columns": false,
   "namespace": "",
-  "title": ""
+  "title": "",
+  "git_server": "https://gitlab.com"
 }
