@@ -197,7 +197,8 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	}
 	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
-		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
+		var respErr *gitlab.ErrorResponse
+		if errors.As(err, &respErr) {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return ErrRepoNotFound
 			}
