@@ -64,6 +64,8 @@ changed while you were editing.
 You can run this yourself. There is a docker version available under my github packages. There are also precompiled versions
 under the releases section of this git repo: https://github.com/arran4/StartHere/releases
 
+`GBM_COMMIT_NAME` and `GBM_COMMIT_EMAIL` are optional. Defaults are `Gobookmarks` and `Gobookmarks@arran.net.au` if unset.
+
 Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
 | Arg | Value                                                                                            |
