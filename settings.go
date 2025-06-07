@@ -1,5 +1,6 @@
 package gobookmarks
 
-import "os"
-
-var UseCssColumns = os.Getenv("GBM_CSS_COLUMNS") != ""
+var (
+	UseCssColumns bool
+	Namespace     string
+)

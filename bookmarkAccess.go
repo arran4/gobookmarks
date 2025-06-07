@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-github/v55/github"
 	"golang.org/x/oauth2"
 	"net/http"
-	"os"
 )
 
 var (
@@ -19,9 +18,8 @@ var (
 )
 
 func GetBookmarksRepoName() string {
-	ns := os.Getenv("GBM_NAMESPACE")
-	if ns != "" {
-		return fmt.Sprintf("MyBookmarks-%s", ns)
+	if Namespace != "" {
+		return fmt.Sprintf("MyBookmarks-%s", Namespace)
 	}
 	return "MyBookmarks"
 }
