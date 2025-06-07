@@ -2,7 +2,6 @@ package gobookmarks
 
 import (
 	"fmt"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
@@ -12,15 +11,15 @@ import (
 func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
 
 	login := ""
-	if githubUser != nil && githubUser.Login != nil {
-		login = *githubUser.Login
+	if githubUser != nil {
+		login = githubUser.Login
 	}
 
 	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
@@ -40,13 +39,13 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 
 	login := ""
-	if githubUser != nil && githubUser.Login != nil {
-		login = *githubUser.Login
+	if githubUser != nil {
+		login = githubUser.Login
 	}
 
 	if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
@@ -63,15 +62,15 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("invalid index: %w", err)
 	}
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
 
 	login := ""
-	if githubUser != nil && githubUser.Login != nil {
-		login = *githubUser.Login
+	if githubUser != nil {
+		login = githubUser.Login
 	}
 
 	currentBookmarks, curSha, err := GetBookmarks(r.Context(), login, ref, token)

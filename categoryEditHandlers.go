@@ -2,7 +2,6 @@ package gobookmarks
 
 import (
 	"fmt"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
@@ -16,13 +15,13 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("invalid index: %w", err)
 	}
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*github.User)
+	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 
 	login := ""
-	if githubUser != nil && githubUser.Login != nil {
-		login = *githubUser.Login
+	if githubUser != nil {
+		login = githubUser.Login
 	}
 
 	bookmarks, sha, err := GetBookmarks(r.Context(), login, ref, token)

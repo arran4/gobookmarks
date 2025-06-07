@@ -72,9 +72,21 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `OAUTH2_SECRET` | OAuth2 client secret from <https://github.com/settings/developers> |
 | `EXTERNAL_URL` | Fully qualified URL the service is reachable on, e.g. `http://localhost:8080` |
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
+| `GBM_PROVIDER` | Git provider to use (`github` or `gitlab`). Defaults to `github`. |
+| `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
+| `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
+| `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when run as root. |
 
 You can place these settings in `/etc/gobookmarks/gobookmarks.env` as `KEY=VALUE` pairs and the service will load them automatically if the file exists.
 The release packages do not install this file; create it manually if you want to use environment-based settings.
+
+Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration file is loaded.
+
+The `--provider` command line flag or `GBM_PROVIDER` environment variable selects which git provider to use. By default the binary includes both GitHub and GitLab support. Use build tags `nogithub` or `nogitlab` to exclude either provider when building from source.
+
+Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
+Use `--dump-config` to print the final configuration after merging the environment,
+config file and command line arguments.
 
 ## Oauth2 setup
 
@@ -102,6 +114,12 @@ and both service files run the daemon as `gobookmarks`.
 ### Docker
 
 The Docker image continues to work as before.  Mount `/data` if you need
-persistent storage and pass the same environment variables as listed above or
-mount a compatible `gobookmarks.env` file to `/etc/gobookmarks/gobookmarks.env`.
+persistent storage and pass the same environment variables as listed above.
+You can also mount a config file and env file:
+
+```bash
+docker run -v /my/config.json:/etc/gobookmarks/config.json \
+           -v /my/gobookmarks.env:/etc/gobookmarks/gobookmarks.env \
+           -p 8080:8080 arran4/gobookmarks
+```
 

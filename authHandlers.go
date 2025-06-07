@@ -3,7 +3,6 @@ package gobookmarks
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"log"
@@ -55,10 +54,9 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("session error: %w", err)
 	}
 
-	client := github.NewClient(oauth2.NewClient(r.Context(), oauth2.StaticTokenSource(token)))
-	user, _, err := client.Users.Get(r.Context(), "")
+	user, err := ActiveProvider.CurrentUser(r.Context(), token)
 	if err != nil {
-		return fmt.Errorf("client.Users.Get error: %w", err)
+		return fmt.Errorf("user lookup error: %w", err)
 	}
 
 	session.Values["GithubUser"] = user
