@@ -7,16 +7,14 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"fmt"
 	. "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
-	"github.com/google/go-github/v55/github"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 	"log"
 	"math/big"
 	"net/http"
@@ -24,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -58,26 +57,36 @@ func main() {
 		ExternalURL:    os.Getenv("EXTERNAL_URL"),
 		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
 		Namespace:      os.Getenv("GBM_NAMESPACE"),
+		Provider:       os.Getenv("GBM_PROVIDER"),
 	}
 
-	configPath := os.Getenv("GOBM_CONFIG_FILE")
-	if configPath == "" {
-		configPath = "/etc/gobookmarks/config.json"
-	}
+	configPath := DefaultConfigPath()
 
 	var cfgFlag stringFlag
 	var idFlag stringFlag
 	var secretFlag stringFlag
 	var urlFlag stringFlag
 	var nsFlag stringFlag
+	var providerFlag stringFlag
 	var columnFlag boolFlag
+	var versionFlag bool
+	var dumpConfig bool
 	flag.Var(&cfgFlag, "config", "path to config file")
 	flag.Var(&idFlag, "client-id", "OAuth2 client ID")
 	flag.Var(&secretFlag, "client-secret", "OAuth2 client secret")
 	flag.Var(&urlFlag, "external-url", "external URL")
 	flag.Var(&nsFlag, "namespace", "repository namespace")
+	flag.Var(&providerFlag, "provider", "git provider (github, gitlab)")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
+	flag.BoolVar(&versionFlag, "version", false, "show version")
+	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
 	flag.Parse()
+
+	if versionFlag {
+		fmt.Printf("gobookmarks %s commit %s built %s\n", version, commit, date)
+		fmt.Printf("providers: %s\n", strings.Join(ProviderNames(), ", "))
+		return
+	}
 
 	if cfgFlag.set {
 		configPath = cfgFlag.value
@@ -103,23 +112,29 @@ func main() {
 	if columnFlag.set {
 		cfg.CssColumns = columnFlag.value
 	}
+	if providerFlag.set {
+		cfg.Provider = providerFlag.value
+	}
+
+	if dumpConfig {
+		data, _ := json.MarshalIndent(cfg, "", "  ")
+		fmt.Println(string(data))
+		return
+	}
 
 	UseCssColumns = cfg.CssColumns
 	Namespace = cfg.Namespace
 	clientID = cfg.Oauth2ClientID
 	clientSecret = cfg.Oauth2Secret
 	externalUrl = cfg.ExternalURL
-	redirectUrl = fmt.Sprintf("%s/oauth2Callback", externalUrl)
+
+	if cfg.Provider != "" {
+		SetProviderByName(cfg.Provider)
+	}
 
 	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
-	Oauth2Config = &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectUrl,
-		Scopes:       []string{"repo", "read:user", "user:email"},
-		Endpoint:     endpoints.GitHub,
-	}
+	Oauth2Config = ActiveProvider.OAuth2Config(clientID, clientSecret, redirectUrl)
 
 	r := mux.NewRouter()
 
@@ -156,7 +171,6 @@ func main() {
 	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
-	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
 	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
 
@@ -377,7 +391,7 @@ func RequiresAnAccount() mux.MatcherFunc {
 				return false
 			}
 		}
-		githubUser, ok := session.Values["GithubUser"].(*github.User)
+		githubUser, ok := session.Values["GithubUser"].(*User)
 		return ok && githubUser != nil
 	}
 }

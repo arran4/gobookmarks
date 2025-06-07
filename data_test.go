@@ -6,8 +6,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
-	"github.com/google/go-github/v55/github"
 )
 
 func TestCompileGoHTML(t *testing.T) {
@@ -82,23 +80,19 @@ func testFuncMap() template.FuncMap {
 		"bookmarksOrEditBookmarks": func() (string, error) { return "Category: Demo\nhttps://example.com Home", nil },
 		"bookmarksSHA":             func() (string, error) { return "sha", nil },
 		"branchOrEditBranch":       func() (string, error) { return "main", nil },
-		"tags": func() ([]*github.RepositoryTag, error) {
-			return []*github.RepositoryTag{{Name: github.String("v1")}}, nil
+		"tags": func() ([]*Tag, error) {
+			return []*Tag{{Name: "v1"}}, nil
 		},
-		"branches": func() ([]*github.Branch, error) {
-			return []*github.Branch{{Name: github.String("main")}}, nil
+		"branches": func() ([]*Branch, error) {
+			return []*Branch{{Name: "main"}}, nil
 		},
-		"commits": func() ([]*github.RepositoryCommit, error) {
-			return []*github.RepositoryCommit{{
-				SHA: github.String("abc"),
-				Commit: &github.Commit{
-					Message: github.String("msg"),
-					Committer: &github.CommitAuthor{
-						Name:  github.String("dev"),
-						Email: github.String("dev@example.com"),
-						Date:  &github.Timestamp{Time: time.Unix(0, 0)},
-					},
-				},
+		"commits": func() ([]*Commit, error) {
+			return []*Commit{{
+				SHA:            "abc",
+				Message:        "msg",
+				CommitterName:  "dev",
+				CommitterEmail: "dev@example.com",
+				CommitterDate:  time.Unix(0, 0),
 			}}, nil
 		},
 	}
