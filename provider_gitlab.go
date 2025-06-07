@@ -135,7 +135,7 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	if ref == "" {
 		ref = "HEAD"
 	}
-	f, _, err := c.RepositoryFiles.GetFile(user+"/"+RepoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.String(ref)})
+	f, _, err := c.RepositoryFiles.GetFile(user+"/"+RepoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(ref)})
 	if err != nil {
 		if errors.Is(err, gitlab.ErrNotFound) {
 			return "", "", nil
@@ -188,12 +188,12 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		}
 	}
 	opt := &gitlab.UpdateFileOptions{
-		Branch:        gitlab.String(branch),
-		Content:       gitlab.String(text),
-		AuthorEmail:   gitlab.String("Gobookmarks@arran.net.au"),
-		AuthorName:    gitlab.String("Gobookmarks"),
-		LastCommitID:  gitlab.String(expectSHA),
-		CommitMessage: gitlab.String("Auto change from web"),
+		Branch:        gitlab.Ptr(branch),
+		Content:       gitlab.Ptr(text),
+		AuthorEmail:   gitlab.Ptr("Gobookmarks@arran.net.au"),
+		AuthorName:    gitlab.Ptr("Gobookmarks"),
+		LastCommitID:  gitlab.Ptr(expectSHA),
+		CommitMessage: gitlab.Ptr("Auto change from web"),
 	}
 	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
@@ -228,11 +228,11 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		}
 	}
 	opt := &gitlab.CreateFileOptions{
-		Branch:        gitlab.String(branch),
-		Content:       gitlab.String(text),
-		AuthorEmail:   gitlab.String("Gobookmarks@arran.net.au"),
-		AuthorName:    gitlab.String("Gobookmarks"),
-		CommitMessage: gitlab.String("Auto create from web"),
+		Branch:        gitlab.Ptr(branch),
+		Content:       gitlab.Ptr(text),
+		AuthorEmail:   gitlab.Ptr("Gobookmarks@arran.net.au"),
+		AuthorName:    gitlab.Ptr("Gobookmarks"),
+		CommitMessage: gitlab.Ptr("Auto create from web"),
 	}
 	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
@@ -256,9 +256,9 @@ func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oaut
 	}
 	RepoName = name
 	_, _, err = c.Projects.CreateProject(&gitlab.CreateProjectOptions{
-		Name:                 gitlab.String(RepoName),
-		Description:          gitlab.String("Personal bookmarks"),
-		Visibility:           gitlab.Visibility(gitlab.PrivateVisibility),
+		Name:                 gitlab.Ptr(RepoName),
+		Description:          gitlab.Ptr("Personal bookmarks"),
+		Visibility:           gitlab.Ptr(gitlab.PrivateVisibility),
 		InitializeWithReadme: gitlab.Ptr(true),
 	})
 	return err
