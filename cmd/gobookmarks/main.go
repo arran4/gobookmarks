@@ -397,6 +397,9 @@ func RequiresAnAccount() mux.MatcherFunc {
 				return false
 			}
 		}
+		if v, ok := session.Values["version"].(string); !ok || v != version {
+			return false
+		}
 		githubUser, ok := session.Values["GithubUser"].(*User)
 		return ok && githubUser != nil
 	}
