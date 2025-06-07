@@ -136,6 +136,10 @@ func main() {
 
 	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
+	if ActiveProvider == nil {
+		fmt.Printf("no active provider please set one options: %v\n", ProviderNames())
+		os.Exit(-1)
+	}
 	Oauth2Config = ActiveProvider.OAuth2Config(clientID, clientSecret, redirectUrl)
 
 	r := mux.NewRouter()
