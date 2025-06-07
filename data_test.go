@@ -78,6 +78,7 @@ func testFuncMap() template.FuncMap {
 			}, nil
 		},
 		"bookmarksOrEditBookmarks": func() (string, error) { return "Category: Demo\nhttps://example.com Home", nil },
+		"bookmarksExist":           func() (bool, error) { return true, nil },
 		"bookmarksSHA":             func() (string, error) { return "sha", nil },
 		"branchOrEditBranch":       func() (string, error) { return "main", nil },
 		"tags": func() ([]*Tag, error) {
