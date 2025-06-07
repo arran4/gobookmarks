@@ -36,6 +36,7 @@ type Provider interface {
 	GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error)
 	UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error
 	CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error
+	DefaultServer() string
 }
 
 var providers = map[string]Provider{}
@@ -58,7 +59,14 @@ var ActiveProvider Provider
 // It returns true if the provider exists.
 func SetProviderByName(name string) bool {
 	if p, ok := providers[name]; ok {
+		prevDefault := ""
+		if ActiveProvider != nil {
+			prevDefault = ActiveProvider.DefaultServer()
+		}
 		ActiveProvider = p
+		if GitServer == "" || GitServer == prevDefault {
+			GitServer = p.DefaultServer()
+		}
 		return true
 	}
 	return false
@@ -67,5 +75,8 @@ func SetProviderByName(name string) bool {
 func init() {
 	if p, ok := providers["github"]; ok {
 		ActiveProvider = p
+		if GitServer == "" {
+			GitServer = p.DefaultServer()
+		}
 	}
 }
