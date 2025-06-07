@@ -127,6 +127,7 @@ func main() {
 	clientID = cfg.Oauth2ClientID
 	clientSecret = cfg.Oauth2Secret
 	externalUrl = cfg.ExternalURL
+	redirectUrl = fmt.Sprintf("%s/oauth2Callback", externalUrl)
 
 	if cfg.Provider != "" {
 		if !SetProviderByName(cfg.Provider) {
@@ -177,6 +178,7 @@ func main() {
 	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
+	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
 	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
 
