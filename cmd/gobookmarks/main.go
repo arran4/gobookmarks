@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	. "github.com/arran4/gobookmarks"
@@ -136,6 +137,7 @@ func main() {
 
 	UseCssColumns = cfg.CssColumns
 	Namespace = cfg.Namespace
+	RepoName = GetBookmarksRepoName()
 	SiteTitle = cfg.Title
 	if cfg.GitServer != "" {
 		GitServer = cfg.GitServer
@@ -206,6 +208,7 @@ func main() {
 
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	SetVersion(version, commit, date)
+	RepoName = GetBookmarksRepoName()
 	log.Printf("Redirect URL configured to: %s", redirectUrl)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
@@ -342,6 +345,9 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request) error:
 				if err := each(w, r); err != nil {
+					if errors.Is(err, ErrHandled) {
+						return
+					}
 					type ErrorData struct {
 						*CoreData
 						Error string

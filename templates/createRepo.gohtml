@@ -1,0 +1,24 @@
+{{ template "head" $ }}
+    {{ if $.Error }}
+        <p style="color: #FF0000">Error: {{ $.Error }}</p>
+    {{ end }}
+    <form method="post" action="/edit">
+        <input type="hidden" name="task" value="Save" />
+        <input type="hidden" name="text" value="{{ $.Text }}" />
+        <input type="hidden" name="branch" value="{{ $.Branch }}" />
+        <input type="hidden" name="ref" value="{{ $.Ref }}" />
+        <input type="hidden" name="sha" value="{{ $.Sha }}" />
+        <input type="hidden" name="createRepo" value="1" />
+        Repository Name: <input type="text" name="repoName" value="{{ $.RepoName }}" /><br/>
+        <input type="submit" value="Create Repo and Retry" />
+    </form>
+    <form method="post" action="/edit">
+        <input type="hidden" name="task" value="Save" />
+        <input type="hidden" name="text" value="{{ $.Text }}" />
+        <input type="hidden" name="branch" value="{{ $.Branch }}" />
+        <input type="hidden" name="ref" value="{{ $.Ref }}" />
+        <input type="hidden" name="sha" value="{{ $.Sha }}" />
+        <input type="submit" value="Retry" />
+    </form>
+{{ template "tail" $ }}
+
