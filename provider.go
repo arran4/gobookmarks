@@ -35,8 +35,9 @@ type Provider interface {
 	GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error)
 	GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error)
 	UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error
-	CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error
-	DefaultServer() string
+        CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error
+       CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error
+        DefaultServer() string
 }
 
 var providers = map[string]Provider{}

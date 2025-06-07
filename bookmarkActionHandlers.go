@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -30,7 +31,25 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("bookmark modified concurrently")
 	}
 
+	repoName := RepoName
+	if r.PostFormValue("repoName") != "" {
+		repoName = r.PostFormValue("repoName")
+	}
+	if r.PostFormValue("createRepo") == "1" {
+		if err := ActiveProvider.CreateRepo(r.Context(), login, token, repoName); err != nil {
+			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, err)
+		}
+		RepoName = repoName
+		if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
+			return fmt.Errorf("createBookmark error: %w", err)
+		}
+		return nil
+	}
+
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text, curSha); err != nil {
+		if errors.Is(err, ErrRepoNotFound) {
+			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, nil)
+		}
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil
@@ -89,4 +108,30 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil
+}
+
+func renderCreateRepoPrompt(w http.ResponseWriter, r *http.Request, repoName, text, branch, ref, sha string, err error) error {
+	data := struct {
+		*CoreData
+		RepoName string
+		Text     string
+		Branch   string
+		Ref      string
+		Sha      string
+		Error    string
+	}{
+		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		RepoName: repoName,
+		Text:     text,
+		Branch:   branch,
+		Ref:      ref,
+		Sha:      sha,
+	}
+	if err != nil {
+		data.Error = err.Error()
+	}
+	if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "createRepo.gohtml", data); tplErr != nil {
+		return fmt.Errorf("template: %w", tplErr)
+	}
+	return ErrHandled
 }

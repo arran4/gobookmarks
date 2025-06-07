@@ -167,6 +167,9 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	}
 	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+			return ErrRepoNotFound
+		}
 		log.Printf("gitlab UpdateBookmarks: %v", err)
 		return err
 	}
@@ -188,7 +191,27 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	}
 	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
-		log.Printf("gitlab CreateBookmarks: %v", err)
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+			return ErrRepoNotFound
+		}
+		if err != nil {
+			log.Printf("gitlab CreateBookmarks: %v", err)
+		}
 	}
+	return err
+}
+
+func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
+	c, err := GitLabProvider{}.client(token)
+	if err != nil {
+		return err
+	}
+	RepoName = name
+	_, _, err = c.Projects.CreateProject(&gitlab.CreateProjectOptions{
+		Name:                 gitlab.String(RepoName),
+		Description:          gitlab.String("Personal bookmarks"),
+		Visibility:           gitlab.Visibility(gitlab.PrivateVisibility),
+		InitializeWithReadme: gitlab.Ptr(true),
+	})
 	return err
 }
