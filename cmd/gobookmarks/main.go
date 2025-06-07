@@ -76,7 +76,7 @@ func main() {
 	flag.Var(&secretFlag, "client-secret", "OAuth2 client secret")
 	flag.Var(&urlFlag, "external-url", "external URL")
 	flag.Var(&nsFlag, "namespace", "repository namespace")
-	flag.Var(&providerFlag, "provider", "git provider (github, gitlab)")
+	flag.Var(&providerFlag, "provider", fmt.Sprintf("git provider (%s)", strings.Join(ProviderNames(), ", ")))
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
@@ -129,7 +129,9 @@ func main() {
 	externalUrl = cfg.ExternalURL
 
 	if cfg.Provider != "" {
-		SetProviderByName(cfg.Provider)
+		if !SetProviderByName(cfg.Provider) {
+			log.Fatalf("invalid provider %q. valid options: %s", cfg.Provider, strings.Join(ProviderNames(), ", "))
+		}
 	}
 
 	SessionName = "gobookmarks"

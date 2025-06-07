@@ -82,7 +82,7 @@ The release packages do not install this file; create it manually if you want to
 
 Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration file is loaded.
 
-The `--provider` command line flag or `GBM_PROVIDER` environment variable selects which git provider to use. By default the binary includes both GitHub and GitLab support. Use build tags `nogithub` or `nogitlab` to exclude either provider when building from source.
+The `--provider` command line flag or `GBM_PROVIDER` environment variable selects which git provider to use. By default the binary includes both GitHub and GitLab support. Use build tags `nogithub` or `nogitlab` to exclude either provider when building from source. If you specify an unknown provider the program will exit with an error listing the available options.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
 Use `--dump-config` to print the final configuration after merging the environment,
