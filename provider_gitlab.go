@@ -204,6 +204,9 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 			log.Printf("gitlab UpdateBookmarks update file: %v", err)
 			return err
 		}
+		if err.Error() == "404 Not Found" {
+			return ErrRepoNotFound
+		}
 		log.Printf("gitlab UpdateBookmarks: %v", err)
 		return err
 	}

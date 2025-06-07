@@ -9,7 +9,7 @@
         <input type="hidden" name="ref" value="{{ $.Ref }}" />
         <input type="hidden" name="sha" value="{{ $.Sha }}" />
         <input type="hidden" name="createRepo" value="1" />
-        Repository Name: <input type="text" name="repoName" value="{{ $.RepoName }}" /><br/>
+        Repository Name: <input type="text" name="repoName" readonly value="{{ $.RepoName }}" /><br/>
         <input type="submit" value="Create Repo and Retry" />
     </form>
     <form method="post" action="/edit">
