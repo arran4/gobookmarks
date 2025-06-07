@@ -4,5 +4,5 @@ var (
 	UseCssColumns bool
 	Namespace     string
 	SiteTitle     string
-	GitLabServer  string = "https://gitlab.com"
+	GitServer     string = "https://gitlab.com"
 )

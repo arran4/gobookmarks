@@ -75,7 +75,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GBM_PROVIDER` | Git provider to use (`github` or `gitlab`). Defaults to `github`. |
 | `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
 | `GBM_TITLE` | Overrides the page title shown in the browser. |
-| `GITLAB_SERVER` | Base URL for self-hosted GitLab, e.g. `https://gitlab.example.com` |
+| `GIT_SERVER` | Base URL for a self-hosted git provider, e.g. `https://gitlab.example.com` |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when run as root. |
 
@@ -86,7 +86,7 @@ Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration f
 
 The `--provider` command line flag or `GBM_PROVIDER` environment variable selects which git provider to use. By default the binary includes both GitHub and GitLab support. Use build tags `nogithub` or `nogitlab` to exclude either provider when building from source. If you specify an unknown provider the program will exit with an error listing the available options.
 The `--title` flag or `GBM_TITLE` environment variable sets the browser page title.
-Use `--gitlab-server` or `GITLAB_SERVER` to point the application at a self-hosted GitLab instance.
+Use `--git-server` or `GIT_SERVER` to point the application at a self-hosted git provider.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
 Use `--dump-config` to print the final configuration after merging the environment,

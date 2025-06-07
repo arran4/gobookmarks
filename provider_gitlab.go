@@ -14,7 +14,7 @@ import (
 
 // GitLabProvider implements Provider for GitLab.
 //
-// The GitLab server URL can be overridden using the GitLabServer variable
+// The GitLab server URL can be overridden using the GitServer variable
 // defined in settings.go.
 type GitLabProvider struct{}
 
@@ -23,7 +23,7 @@ func init() { RegisterProvider(GitLabProvider{}) }
 func (GitLabProvider) Name() string { return "gitlab" }
 
 func (GitLabProvider) OAuth2Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
-	server := strings.TrimRight(GitLabServer, "/")
+	server := strings.TrimRight(GitServer, "/")
 	if server == "" {
 		server = "https://gitlab.com"
 	}
@@ -40,7 +40,7 @@ func (GitLabProvider) OAuth2Config(clientID, clientSecret, redirectURL string) *
 }
 
 func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
-	server := GitLabServer
+	server := GitServer
 	if server == "" {
 		server = "https://gitlab.com"
 	}

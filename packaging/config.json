@@ -5,5 +5,5 @@
   "css_columns": false,
   "namespace": "",
   "title": "",
-  "gitlab_server": "https://gitlab.com"
+  "git_server": "https://gitlab.com"
 }
