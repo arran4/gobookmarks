@@ -59,6 +59,7 @@ func main() {
 		Namespace:      os.Getenv("GBM_NAMESPACE"),
 		Title:          os.Getenv("GBM_TITLE"),
 		Provider:       os.Getenv("GBM_PROVIDER"),
+		GitLabServer:   os.Getenv("GITLAB_SERVER"),
 	}
 
 	configPath := DefaultConfigPath()
@@ -70,6 +71,7 @@ func main() {
 	var nsFlag stringFlag
 	var titleFlag stringFlag
 	var providerFlag stringFlag
+	var gitlabServerFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
@@ -80,6 +82,7 @@ func main() {
 	flag.Var(&nsFlag, "namespace", "repository namespace")
 	flag.Var(&titleFlag, "title", "site title")
 	flag.Var(&providerFlag, "provider", fmt.Sprintf("git provider (%s)", strings.Join(ProviderNames(), ", ")))
+	flag.Var(&gitlabServerFlag, "gitlab-server", "GitLab server base URL")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
@@ -118,6 +121,9 @@ func main() {
 	if columnFlag.set {
 		cfg.CssColumns = columnFlag.value
 	}
+	if gitlabServerFlag.set {
+		cfg.GitLabServer = gitlabServerFlag.value
+	}
 	if providerFlag.set {
 		cfg.Provider = providerFlag.value
 	}
@@ -131,6 +137,9 @@ func main() {
 	UseCssColumns = cfg.CssColumns
 	Namespace = cfg.Namespace
 	SiteTitle = cfg.Title
+	if cfg.GitLabServer != "" {
+		GitLabServer = cfg.GitLabServer
+	}
 	clientID = cfg.Oauth2ClientID
 	clientSecret = cfg.Oauth2Secret
 	externalUrl = cfg.ExternalURL

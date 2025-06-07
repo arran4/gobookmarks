@@ -18,6 +18,7 @@ type Config struct {
 	CssColumns     bool   `json:"css_columns"`
 	Namespace      string `json:"namespace"`
 	Title          string `json:"title"`
+	GitLabServer   string `json:"gitlab_server"`
 }
 
 // LoadConfigFile loads configuration from the given path if it exists.
@@ -53,6 +54,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.Title != "" {
 		dst.Title = src.Title
+	}
+	if src.GitLabServer != "" {
+		dst.GitLabServer = src.GitLabServer
 	}
 
 	if src.Provider != "" {

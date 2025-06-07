@@ -6,11 +6,16 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	gitlab "github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
 
+// GitLabProvider implements Provider for GitLab.
+//
+// The GitLab server URL can be overridden using the GitLabServer variable
+// defined in settings.go.
 type GitLabProvider struct{}
 
 func init() { RegisterProvider(GitLabProvider{}) }
@@ -18,20 +23,28 @@ func init() { RegisterProvider(GitLabProvider{}) }
 func (GitLabProvider) Name() string { return "gitlab" }
 
 func (GitLabProvider) OAuth2Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
+	server := strings.TrimRight(GitLabServer, "/")
+	if server == "" {
+		server = "https://gitlab.com"
+	}
 	return &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
 		Scopes:       []string{"api"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://gitlab.com/oauth/authorize",
-			TokenURL: "https://gitlab.com/oauth/token",
+			AuthURL:  server + "/oauth/authorize",
+			TokenURL: server + "/oauth/token",
 		},
 	}
 }
 
 func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
-	return gitlab.NewOAuthClient(token.AccessToken)
+	server := GitLabServer
+	if server == "" {
+		server = "https://gitlab.com"
+	}
+	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
 }
 
 func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
