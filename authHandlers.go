@@ -2,7 +2,9 @@ package gobookmarks
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"log"
@@ -75,8 +77,20 @@ func UserAdderMiddleware(next http.Handler) http.Handler {
 		// Get the session.
 		session, err := SessionStore.Get(request, SessionName)
 		if err != nil {
-			http.Error(writer, "Internal Server Error", http.StatusInternalServerError)
-			return
+			// ignore common decode errors
+			if scErr := new(securecookie.MultiError); !(errors.As(err, scErr) && scErr.IsDecode() && !scErr.IsInternal() && !scErr.IsUsage()) &&
+				!errors.Is(err, securecookie.ErrMacInvalid) {
+				log.Printf("session error: %v", err)
+			}
+			if session != nil {
+				// invalidate the existing cookie
+				session.Options.MaxAge = -1
+				if saveErr := session.Save(request, writer); saveErr != nil {
+					log.Printf("session clear error: %v", saveErr)
+				}
+			}
+			// start with a fresh session so the request still succeeds
+			session, _ = SessionStore.New(request, SessionName)
 		}
 
 		ctx := context.WithValue(request.Context(), ContextValues("session"), session)
