@@ -131,13 +131,16 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 		log.Printf("gitlab GetBookmarks client: %v", err)
 		return "", "", err
 	}
+	if ref == "" {
+		ref = "HEAD"
+	}
 	f, _, err := c.RepositoryFiles.GetFile(user+"/"+RepoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.String(ref)})
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return "", "", nil
 			}
-			log.Printf("gitlab GetBookmarks: %v", err)
+			log.Printf("gitlab GetBookmarks get file: %v", err)
 			return "", "", nil
 		}
 		log.Printf("gitlab GetBookmarks: %v", err)
@@ -151,11 +154,34 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	return string(data), f.LastCommitID, nil
 }
 
+func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
+	p, _, err := client.Projects.GetProject(user+"/"+RepoName, nil)
+	if err != nil {
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+			return "", ErrRepoNotFound
+		}
+		log.Printf("gitlab getDefaultBranch: %v", err)
+		return "", err
+	}
+	if p.DefaultBranch != "" {
+		branch = p.DefaultBranch
+	} else {
+		branch = "main"
+	}
+	return branch, nil
+}
 func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	c, err := GitLabProvider{}.client(token)
 	if err != nil {
 		log.Printf("gitlab UpdateBookmarks client: %v", err)
 		return err
+	}
+	if branch == "" {
+		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+		if err != nil {
+			log.Printf("gitlab UpdateBookmarks default branch: %v", err)
+			return err
+		}
 	}
 	opt := &gitlab.UpdateFileOptions{
 		Branch:        gitlab.String(branch),
@@ -167,8 +193,12 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	}
 	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
-		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
-			return ErrRepoNotFound
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
+			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+				return ErrRepoNotFound
+			}
+			log.Printf("gitlab UpdateBookmarks update file: %v", err)
+			return err
 		}
 		log.Printf("gitlab UpdateBookmarks: %v", err)
 		return err
@@ -182,6 +212,13 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		log.Printf("gitlab CreateBookmarks client: %v", err)
 		return err
 	}
+	if branch == "" {
+		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+		if err != nil {
+			log.Printf("gitlab CreateBookmarks default branch: %v", err)
+			return err
+		}
+	}
 	opt := &gitlab.CreateFileOptions{
 		Branch:        gitlab.String(branch),
 		Content:       gitlab.String(text),
@@ -191,14 +228,17 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	}
 	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+RepoName, "bookmarks.txt", opt)
 	if err != nil {
-		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
-			return ErrRepoNotFound
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
+			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+				return ErrRepoNotFound
+			}
+			log.Printf("gitlab CreateBookmarks create file: %v", err)
+			return err
 		}
-		if err != nil {
-			log.Printf("gitlab CreateBookmarks: %v", err)
-		}
+		log.Printf("gitlab CreateBookmarks: %v", err)
+		return err
 	}
-	return err
+	return nil
 }
 
 func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {

@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -71,6 +72,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				return r.PostFormValue("text"), nil
 			}
 			return Bookmarks(r)
+		},
+		"bookmarksExist": func() (bool, error) {
+			return BookmarksExist(r)
 		},
 		"bookmarksSHA": func() (string, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -215,4 +219,25 @@ func Bookmarks(r *http.Request) (string, error) {
 		return "", fmt.Errorf("bookmarks: %w", err)
 	}
 	return bookmarks, nil
+}
+
+func BookmarksExist(r *http.Request) (bool, error) {
+	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*User)
+	token, _ := session.Values["Token"].(*oauth2.Token)
+	ref := r.URL.Query().Get("ref")
+
+	login := ""
+	if githubUser != nil {
+		login = githubUser.Login
+	}
+
+	bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
+	if err != nil {
+		if errors.Is(err, ErrRepoNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("bookmarks exist: %w", err)
+	}
+	return bookmarks != "", nil
 }
