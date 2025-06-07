@@ -74,6 +74,7 @@ You will require 3 environment arguments:
 | `GBM_PROVIDER` | Either `github` or `gitlab` to select the backend. Must be set |
 | `GBM_GITLAB_BASE_URL` | Base API URL for GitLab when using a self-hosted instance |
 | `GBM_NAMESPACE` | Optional suffix used when generating the bookmarks repository name |
+| `GBM_COMMIT_NAME` | Commit author name used for git commits |
 | `GBM_COMMIT_EMAIL` | Email address used for git commits |
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
 
@@ -88,6 +89,17 @@ Create an OAuth application with the provider you intend to use.
    example `http://localhost:8080/oauth2Callback`).
 3. Record the generated **Client ID** and **Client Secret** and use them as the
    `OAUTH2_CLIENT_ID` and `OAUTH2_SECRET` environment variables.
+### Personal access tokens
+
+If you need a token for command-line testing or automation you can create a
+personal access token with your provider:
+
+- **GitHub**: open <https://github.com/settings/tokens> and generate a token with
+  the `repo` scope.
+- **GitLab**: visit <https://gitlab.com/-/profile/personal_access_tokens> (or the
+  equivalent URL on your self-hosted instance) and create a token with the `api`
+  scope.
+
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
 
 ### GitLab
