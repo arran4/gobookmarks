@@ -5,6 +5,7 @@ package gobookmarks
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -136,6 +137,9 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	}
 	f, _, err := c.RepositoryFiles.GetFile(user+"/"+RepoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.String(ref)})
 	if err != nil {
+		if errors.Is(err, gitlab.ErrNotFound) {
+			return "", "", nil
+		}
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return "", "", nil
