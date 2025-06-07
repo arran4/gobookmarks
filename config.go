@@ -17,6 +17,7 @@ type Config struct {
 	ExternalURL    string `json:"external_url"`
 	CssColumns     bool   `json:"css_columns"`
 	Namespace      string `json:"namespace"`
+	Title          string `json:"title"`
 }
 
 // LoadConfigFile loads configuration from the given path if it exists.
@@ -49,6 +50,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.Namespace != "" {
 		dst.Namespace = src.Namespace
+	}
+	if src.Title != "" {
+		dst.Title = src.Title
 	}
 
 	if src.Provider != "" {

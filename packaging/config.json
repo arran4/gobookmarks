@@ -3,5 +3,6 @@
   "oauth2_secret": "",
   "external_url": "http://localhost:8080",
   "css_columns": false,
-  "namespace": ""
+  "namespace": "",
+  "title": ""
 }
