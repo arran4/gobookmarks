@@ -64,7 +64,7 @@ changed while you were editing.
 You can run this yourself. There is a docker version available under my github packages. There are also precompiled versions
 under the releases section of this git repo: https://github.com/arran4/StartHere/releases
 
-You will require 3 environment arguments:
+Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
 | Arg | Value                                                                                            |
 | --- |--------------------------------------------------------------------------------------------------|
@@ -76,7 +76,15 @@ You will require 3 environment arguments:
 | `GBM_NAMESPACE` | Optional suffix used when generating the bookmarks repository name |
 | `GBM_COMMIT_NAME` | Commit author name used for git commits |
 | `GBM_COMMIT_EMAIL` | Email address used for git commits |
+| Name | Description |
+| --- | --- |
+| `OAUTH2_CLIENT_ID` | OAuth2 client ID from <https://github.com/settings/developers> |
+| `OAUTH2_SECRET` | OAuth2 client secret from <https://github.com/settings/developers> |
+| `EXTERNAL_URL` | Fully qualified URL the service is reachable on, e.g. `http://localhost:8080` |
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
+
+You can place these settings in `/etc/gobookmarks/gobookmarks.env` as `KEY=VALUE` pairs and the service will load them automatically if the file exists.
+The release packages do not install this file; create it manually if you want to use environment-based settings.
 
 ## OAuth2 setup
 
@@ -126,4 +134,22 @@ set `GBM_GITLAB_BASE_URL` to the base API endpoint
 Provider implementations live behind build tags. Use `go build` with
 `-tags exclude_github` or `exclude_gitlab` to omit a backend.
 Run the binary with `-version` to print compiled capabilities and exit.
+
+## Running as a Service
+
+The release packages include service files for both `systemd` and FreeBSD
+`rc.d`.  During installation these files can be copied to your system so the
+server starts automatically on boot.
+
+When installed from the release packages the service files pass
+`--config /etc/gobookmarks/config.json`. An example config file is included in
+the packages and is installed with permissions `0600` owned by the
+`gobookmarks` user.  The installation process creates this user automatically
+and both service files run the daemon as `gobookmarks`.
+
+### Docker
+
+The Docker image continues to work as before.  Mount `/data` if you need
+persistent storage and pass the same environment variables as listed above or
+mount a compatible `gobookmarks.env` file to `/etc/gobookmarks/gobookmarks.env`.
 

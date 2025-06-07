@@ -54,6 +54,22 @@ nfpms:
     release: 1
     section: default
     priority: extra
+    scripts:
+      postinstall: packaging/postinstall.sh
+    contents:
+      - src: packaging/systemd/gobookmarks.service
+        dst: /lib/systemd/system/gobookmarks.service
+        type: config
+      - src: packaging/rc.d/gobookmarks
+        dst: /usr/local/etc/rc.d/gobookmarks
+        type: config
+      - src: packaging/config.json
+        dst: /etc/gobookmarks/config.json
+        type: config
+        file_info:
+          mode: 0600
+          owner: gobookmarks
+          group: gobookmarks
 
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj

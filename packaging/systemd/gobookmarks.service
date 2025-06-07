@@ -1,0 +1,14 @@
+[Unit]
+Description=Gobookmarks Service
+After=network.target
+
+[Service]
+Type=simple
+User=gobookmarks
+Group=gobookmarks
+EnvironmentFile=-/etc/gobookmarks/gobookmarks.env
+ExecStart=/usr/local/bin/gobookmarks --config /etc/gobookmarks/config.json
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

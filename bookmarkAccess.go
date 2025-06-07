@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"golang.org/x/oauth2"
+	"net/http"
 	"os"
 )
 
@@ -14,9 +15,8 @@ var (
 )
 
 func GetBookmarksRepoName() string {
-	ns := os.Getenv("GBM_NAMESPACE")
-	if ns != "" {
-		return fmt.Sprintf("MyBookmarks-%s", ns)
+	if Namespace != "" {
+		return fmt.Sprintf("MyBookmarks-%s", Namespace)
 	}
 	return "MyBookmarks"
 }
