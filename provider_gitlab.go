@@ -22,6 +22,8 @@ func init() { RegisterProvider(GitLabProvider{}) }
 
 func (GitLabProvider) Name() string { return "gitlab" }
 
+func (GitLabProvider) DefaultServer() string { return "https://gitlab.com" }
+
 func (GitLabProvider) OAuth2Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
 	server := strings.TrimRight(GitServer, "/")
 	if server == "" {

@@ -6,10 +6,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-github/v55/github"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 )
 
 // GitHubProvider implements Provider for GitHub.
@@ -19,18 +19,36 @@ func init() { RegisterProvider(GitHubProvider{}) }
 
 func (GitHubProvider) Name() string { return "github" }
 
+func (GitHubProvider) DefaultServer() string { return "https://github.com" }
+
 func (GitHubProvider) OAuth2Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
+	server := strings.TrimRight(GitServer, "/")
+	if server == "" {
+		server = "https://github.com"
+	}
 	return &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
 		Scopes:       []string{"repo", "read:user", "user:email"},
-		Endpoint:     endpoints.GitHub,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  server + "/login/oauth/authorize",
+			TokenURL: server + "/login/oauth/access_token",
+		},
 	}
 }
 
 func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.Client {
-	return github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(token)))
+	httpClient := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
+	server := strings.TrimRight(GitServer, "/")
+	if server == "" || server == "https://github.com" {
+		return github.NewClient(httpClient)
+	}
+	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
+	if err != nil {
+		return github.NewClient(httpClient)
+	}
+	return c
 }
 
 func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
