@@ -1,7 +1,7 @@
 {{define "head"}}
 <html>
 	<head>
-		<title>{{$.Title}}</title>
+                <title>{{if eq (version) "dev"}}dev: {{end}}{{$.Title}}</title>
 		<style type="text/css">
         <!--
         @import url("/main.css");

@@ -57,6 +57,7 @@ func main() {
 		ExternalURL:    os.Getenv("EXTERNAL_URL"),
 		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
 		Namespace:      os.Getenv("GBM_NAMESPACE"),
+		Title:          os.Getenv("GBM_TITLE"),
 		Provider:       os.Getenv("GBM_PROVIDER"),
 	}
 
@@ -67,6 +68,7 @@ func main() {
 	var secretFlag stringFlag
 	var urlFlag stringFlag
 	var nsFlag stringFlag
+	var titleFlag stringFlag
 	var providerFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
@@ -76,6 +78,7 @@ func main() {
 	flag.Var(&secretFlag, "client-secret", "OAuth2 client secret")
 	flag.Var(&urlFlag, "external-url", "external URL")
 	flag.Var(&nsFlag, "namespace", "repository namespace")
+	flag.Var(&titleFlag, "title", "site title")
 	flag.Var(&providerFlag, "provider", fmt.Sprintf("git provider (%s)", strings.Join(ProviderNames(), ", ")))
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
@@ -109,6 +112,9 @@ func main() {
 	if nsFlag.set {
 		cfg.Namespace = nsFlag.value
 	}
+	if titleFlag.set {
+		cfg.Title = titleFlag.value
+	}
 	if columnFlag.set {
 		cfg.CssColumns = columnFlag.value
 	}
@@ -124,6 +130,7 @@ func main() {
 
 	UseCssColumns = cfg.CssColumns
 	Namespace = cfg.Namespace
+	SiteTitle = cfg.Title
 	clientID = cfg.Oauth2ClientID
 	clientSecret = cfg.Oauth2Secret
 	externalUrl = cfg.ExternalURL

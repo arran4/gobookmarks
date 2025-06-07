@@ -27,9 +27,17 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 			login = githubUser.Login
 		}
 
+		title := SiteTitle
+		if title == "" {
+			title = "Arran4's Bookmarks Website"
+		}
+		if version == "dev" && !strings.HasPrefix(title, "dev: ") {
+			title = "dev: " + title
+		}
+
 		ctx := context.WithValue(request.Context(), ContextValues("coreData"), &CoreData{
 			UserRef: login,
-			Title:   "Arran4's Bookmarks Website",
+			Title:   title,
 		})
 		next.ServeHTTP(writer, request.WithContext(ctx))
 	})
