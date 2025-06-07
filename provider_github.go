@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
 
 	"github.com/google/go-github/v55/github"
 	"golang.org/x/oauth2"
@@ -36,6 +37,7 @@ func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.C
 func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
 	u, _, err := p.client(ctx, token).Users.Get(ctx, "")
 	if err != nil {
+		log.Printf("github CurrentUser: %v", err)
 		return nil, err
 	}
 	user := &User{}
@@ -48,6 +50,7 @@ func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*
 func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
 	tags, _, err := p.client(ctx, token).Repositories.ListTags(ctx, user, RepoName, &github.ListOptions{})
 	if err != nil {
+		log.Printf("github GetTags: %v", err)
 		return nil, fmt.Errorf("ListTags: %w", err)
 	}
 	res := make([]*Tag, 0, len(tags))
@@ -60,6 +63,7 @@ func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.
 func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
 	bs, _, err := p.client(ctx, token).Repositories.ListBranches(ctx, user, RepoName, &github.BranchListOptions{})
 	if err != nil {
+		log.Printf("github GetBranches: %v", err)
 		return nil, fmt.Errorf("ListBranches: %w", err)
 	}
 	res := make([]*Branch, 0, len(bs))
@@ -72,6 +76,7 @@ func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oau
 func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
 	cs, _, err := p.client(ctx, token).Repositories.ListCommits(ctx, user, RepoName, &github.CommitsListOptions{})
 	if err != nil {
+		log.Printf("github GetCommits: %v", err)
 		return nil, fmt.Errorf("ListCommits: %w", err)
 	}
 	res := make([]*Commit, 0, len(cs))
@@ -98,6 +103,7 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 		return "", "", nil
 	}
 	if err != nil {
+		log.Printf("github GetBookmarks: %v", err)
 		return "", "", fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if contents.Content == nil {
@@ -105,6 +111,7 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 	}
 	b, err := base64.StdEncoding.DecodeString(*contents.Content)
 	if err != nil {
+		log.Printf("github GetBookmarks decode: %v", err)
 		return "", "", fmt.Errorf("GetBookmarks: %w", err)
 	}
 	sha := ""
@@ -122,11 +129,13 @@ func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, clien
 	if resp != nil && resp.StatusCode == 404 {
 		rep, err = p.createRepo(ctx, user, client)
 		if err != nil {
+			log.Printf("github createRepo: %v", err)
 			return "", created, err
 		}
 		created = true
 	}
 	if err != nil {
+		log.Printf("github getDefaultBranch: %v", err)
 		return "", created, fmt.Errorf("Repositories.Get: %w", err)
 	}
 	if rep.DefaultBranch != nil {
@@ -141,6 +150,7 @@ func (p GitHubProvider) createRepo(ctx context.Context, user string, client *git
 	rep := &github.Repository{Name: &RepoName, Description: SP("Personal bookmarks"), Private: BP(true)}
 	rep, _, err := client.Repositories.Create(ctx, "", rep)
 	if err != nil {
+		log.Printf("github createRepo: %v", err)
 		return nil, fmt.Errorf("Repositories.Create: %w", err)
 	}
 	_, _, err = client.Repositories.CreateFile(ctx, user, RepoName, "readme.md", &github.RepositoryContentFileOptions{
@@ -151,6 +161,7 @@ See . https://github.com/arran4/gobookmarks `),
 		Author: commitAuthor, Committer: commitAuthor,
 	})
 	if err != nil {
+		log.Printf("github createRepo readme: %v", err)
 		return nil, fmt.Errorf("CreateReadme: %w", err)
 	}
 	return rep, nil
@@ -162,10 +173,12 @@ func (p GitHubProvider) createRef(ctx context.Context, user string, client *gith
 		err = nil
 	}
 	if err != nil {
+		log.Printf("github createRef getRef: %v", err)
 		return fmt.Errorf("GetRef: %w", err)
 	}
 	_, _, err = client.Git.CreateRef(ctx, user, RepoName, &github.Reference{Ref: &branchRef, Object: gsref.Object})
 	if err != nil {
+		log.Printf("github createRef create: %v", err)
 		return fmt.Errorf("CreateRef: %w", err)
 	}
 	return nil
@@ -189,21 +202,25 @@ func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token 
 	}
 	_, grefResp, err := client.Git.GetRef(ctx, user, RepoName, branchRef)
 	if err != nil && grefResp.StatusCode != 404 {
+		log.Printf("github UpdateBookmarks getRef: %v", err)
 		return fmt.Errorf("GetRef: %w", err)
 	}
 	if grefResp.StatusCode == 404 {
 		if err := p.createRef(ctx, user, client, sourceRef, branchRef); err != nil {
+			log.Printf("github UpdateBookmarks create ref: %v", err)
 			return fmt.Errorf("create ref: %w", err)
 		}
 	}
 	contents, _, resp, err := client.Repositories.GetContents(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: branchRef})
 	if resp != nil && resp.StatusCode == 404 {
 		if _, err := p.createRepo(ctx, user, client); err != nil {
+			log.Printf("github UpdateBookmarks create repo: %v", err)
 			return fmt.Errorf("CreateRepo: %w", err)
 		}
 		return p.CreateBookmarks(ctx, user, token, branch, text)
 	}
 	if err != nil {
+		log.Printf("github UpdateBookmarks get contents: %v", err)
 		return fmt.Errorf("GetContents: %w", err)
 	}
 	if contents == nil || contents.Content == nil {
@@ -221,6 +238,7 @@ func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token 
 		Committer: commitAuthor,
 	})
 	if err != nil {
+		log.Printf("github UpdateBookmarks update: %v", err)
 		return fmt.Errorf("UpdateBookmarks: %w", err)
 	}
 	return nil
@@ -232,6 +250,7 @@ func (p GitHubProvider) CreateBookmarks(ctx context.Context, user string, token 
 		var err error
 		branch, _, err = p.getDefaultBranch(ctx, user, client, branch)
 		if err != nil {
+			log.Printf("github CreateBookmarks default branch: %v", err)
 			return err
 		}
 	}
@@ -243,6 +262,7 @@ func (p GitHubProvider) CreateBookmarks(ctx context.Context, user string, token 
 		Committer: commitAuthor,
 	})
 	if err != nil {
+		log.Printf("github CreateBookmarks: %v", err)
 		return fmt.Errorf("CreateBookmarks: %w", err)
 	}
 	return nil
