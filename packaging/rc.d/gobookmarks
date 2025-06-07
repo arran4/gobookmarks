@@ -1,0 +1,29 @@
+#!/bin/sh
+# PROVIDE: gobookmarks
+# REQUIRE: LOGIN NETWORKING
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="gobookmarks"
+rcvar=gobookmarks_enable
+
+: ${gobookmarks_enable:="NO"}
+: ${gobookmarks_config_file:="/etc/gobookmarks/config.json"}
+: ${gobookmarks_user:="gobookmarks"}
+: ${gobookmarks_env_file:="/etc/gobookmarks/gobookmarks.env"}
+
+command="/usr/local/bin/gobookmarks"
+command_args="--config ${gobookmarks_config_file}"
+pidfile="/var/run/${name}.pid"
+command_user="${gobookmarks_user}"
+
+if [ -f "${gobookmarks_env_file}" ]; then
+       set -a
+       . "${gobookmarks_env_file}"
+       set +a
+fi
+
+load_rc_config $name
+
+run_rc_command "$1"

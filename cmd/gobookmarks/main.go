@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"flag"
 	"fmt"
 	. "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
@@ -28,10 +29,10 @@ import (
 )
 
 var (
-	clientID     = os.Getenv("OAUTH2_CLIENT_ID")
-	clientSecret = os.Getenv("OAUTH2_SECRET")
-	externalUrl  = os.Getenv("EXTERNAL_URL")
-	redirectUrl  = fmt.Sprintf("%s/oauth2Callback", externalUrl)
+	clientID     string
+	clientSecret string
+	externalUrl  string
+	redirectUrl  string
 	version      = "dev"
 	commit       = "none"
 	date         = "unknown"
@@ -39,6 +40,77 @@ var (
 
 func init() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
+}
+
+func main() {
+
+	envPath := os.Getenv("GOBM_ENV_FILE")
+	if envPath == "" {
+		envPath = "/etc/gobookmarks/gobookmarks.env"
+	}
+	if err := LoadEnvFile(envPath); err != nil {
+		log.Printf("unable to load env file %s: %v", envPath, err)
+	}
+
+	cfg := Config{
+		Oauth2ClientID: os.Getenv("OAUTH2_CLIENT_ID"),
+		Oauth2Secret:   os.Getenv("OAUTH2_SECRET"),
+		ExternalURL:    os.Getenv("EXTERNAL_URL"),
+		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
+		Namespace:      os.Getenv("GBM_NAMESPACE"),
+	}
+
+	configPath := os.Getenv("GOBM_CONFIG_FILE")
+	if configPath == "" {
+		configPath = "/etc/gobookmarks/config.json"
+	}
+
+	var cfgFlag stringFlag
+	var idFlag stringFlag
+	var secretFlag stringFlag
+	var urlFlag stringFlag
+	var nsFlag stringFlag
+	var columnFlag boolFlag
+	flag.Var(&cfgFlag, "config", "path to config file")
+	flag.Var(&idFlag, "client-id", "OAuth2 client ID")
+	flag.Var(&secretFlag, "client-secret", "OAuth2 client secret")
+	flag.Var(&urlFlag, "external-url", "external URL")
+	flag.Var(&nsFlag, "namespace", "repository namespace")
+	flag.Var(&columnFlag, "css-columns", "use CSS columns")
+	flag.Parse()
+
+	if cfgFlag.set {
+		configPath = cfgFlag.value
+	}
+	if fileCfg, err := LoadConfigFile(configPath); err == nil {
+		MergeConfig(&cfg, fileCfg)
+	} else {
+		log.Printf("unable to load config file %s: %v", configPath, err)
+	}
+
+	if idFlag.set {
+		cfg.Oauth2ClientID = idFlag.value
+	}
+	if secretFlag.set {
+		cfg.Oauth2Secret = secretFlag.value
+	}
+	if urlFlag.set {
+		cfg.ExternalURL = urlFlag.value
+	}
+	if nsFlag.set {
+		cfg.Namespace = nsFlag.value
+	}
+	if columnFlag.set {
+		cfg.CssColumns = columnFlag.value
+	}
+
+	UseCssColumns = cfg.CssColumns
+	Namespace = cfg.Namespace
+	clientID = cfg.Oauth2ClientID
+	clientSecret = cfg.Oauth2Secret
+	externalUrl = cfg.ExternalURL
+	redirectUrl = fmt.Sprintf("%s/oauth2Callback", externalUrl)
+
 	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
 	Oauth2Config = &oauth2.Config{
@@ -48,9 +120,7 @@ func init() {
 		Scopes:       []string{"repo", "read:user", "user:email"},
 		Endpoint:     endpoints.GitHub,
 	}
-}
 
-func main() {
 	r := mux.NewRouter()
 
 	r.Use(UserAdderMiddleware)
