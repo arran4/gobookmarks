@@ -5,8 +5,6 @@
         {{- range Providers }}
         <a href="{{ LoginURL . }}">Login with {{ . }}</a><br>
         {{- end }}
-        {{- else }}
-        <p>No providers configured. See <a href="/status">status</a>.</p>
         {{- end }}
     {{else}}
         {{- if not bookmarksExist }}

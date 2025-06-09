@@ -11,18 +11,19 @@ import (
 
 // Config holds runtime configuration values.
 type Config struct {
-	GithubClientID string `json:"github_client_id"`
-	GithubSecret   string `json:"github_secret"`
-	GitlabClientID string `json:"gitlab_client_id"`
-	GitlabSecret   string `json:"gitlab_secret"`
-	ExternalURL    string `json:"external_url"`
-	CssColumns     bool   `json:"css_columns"`
-	Namespace      string `json:"namespace"`
-	Title          string `json:"title"`
-	GithubServer   string `json:"github_server"`
-	GitlabServer   string `json:"gitlab_server"`
+	GithubClientID   string `json:"github_client_id"`
+	GithubSecret     string `json:"github_secret"`
+	GitlabClientID   string `json:"gitlab_client_id"`
+	GitlabSecret     string `json:"gitlab_secret"`
+	ExternalURL      string `json:"external_url"`
+	CssColumns       bool   `json:"css_columns"`
+	Namespace        string `json:"namespace"`
+	Title            string `json:"title"`
+	GithubServer     string `json:"github_server"`
+	GitlabServer     string `json:"gitlab_server"`
 	FaviconCacheDir  string `json:"favicon_cache_dir"`
 	FaviconCacheSize int64  `json:"favicon_cache_size"`
+	JSONDBPath       string `json:"json_db_path"`
 }
 
 // LoadConfigFile loads configuration from the given path if it exists.
@@ -70,12 +71,15 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.GitlabServer != "" {
 		dst.GitlabServer = src.GitlabServer
-  }
+	}
 	if src.FaviconCacheDir != "" {
 		dst.FaviconCacheDir = src.FaviconCacheDir
 	}
 	if src.FaviconCacheSize != 0 {
 		dst.FaviconCacheSize = src.FaviconCacheSize
+	}
+	if src.JSONDBPath != "" {
+		dst.JSONDBPath = src.JSONDBPath
 	}
 }
 

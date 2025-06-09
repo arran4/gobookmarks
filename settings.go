@@ -18,6 +18,8 @@ var (
 	OauthRedirectURL string
 	FaviconCacheDir  string
 	FaviconCacheSize int64
+
+	JSONDBPath string
 )
 
 const (

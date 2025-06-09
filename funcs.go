@@ -56,8 +56,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"Providers": func() []string {
 			names := make([]string, 0)
 			for _, n := range ProviderNames() {
-				id, secret := providerCreds(n)
-				if id != "" && secret != "" {
+				creds := providerCreds(n)
+				if creds != nil {
 					names = append(names, n)
 				}
 			}
@@ -67,8 +67,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return ProviderNames()
 		},
 		"ProviderConfigured": func(p string) bool {
-			id, secret := providerCreds(p)
-			return id != "" && secret != "" && GetProvider(p) != nil
+			creds := providerCreds(p)
+			return creds != nil && GetProvider(p) != nil
 		},
 		"ref": func() string {
 			return r.URL.Query().Get("ref")

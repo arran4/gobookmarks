@@ -2,12 +2,18 @@ package gobookmarks
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
@@ -56,8 +62,16 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("session save: %w", err)
 	}
 
-	id, secret := providerCreds(providerName)
-	cfg := p.OAuth2Config(id, secret, OauthRedirectURL)
+	creds := providerCreds(providerName)
+	if creds == nil {
+		http.NotFound(w, r)
+		return nil
+	}
+	cfg := p.Config(creds.ID, creds.Secret, OauthRedirectURL)
+	if cfg == nil {
+		http.NotFound(w, r)
+		return nil
+	}
 	http.Redirect(w, r, cfg.AuthCodeURL(""), http.StatusTemporaryRedirect)
 	return nil
 }
@@ -80,8 +94,14 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("unknown provider")
 	}
 
-	id, secret := providerCreds(providerName)
-	cfg := p.OAuth2Config(id, secret, OauthRedirectURL)
+	creds := providerCreds(providerName)
+	if creds == nil {
+		return fmt.Errorf("provider does not support login")
+	}
+	cfg := p.Config(creds.ID, creds.Secret, OauthRedirectURL)
+	if cfg == nil {
+		return fmt.Errorf("provider does not support login")
+	}
 	token, err := cfg.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
 		return fmt.Errorf("exchange error: %w", err)
@@ -103,6 +123,33 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return nil
+}
+
+func JSONLoginAction(w http.ResponseWriter, r *http.Request) error {
+	session, err := getSession(w, r)
+	if err != nil {
+		return fmt.Errorf("session error: %w", err)
+	}
+	user := r.FormValue("username")
+	pass := r.FormValue("password")
+	data, err := os.ReadFile(userPasswordPath(user))
+	if err != nil || bcrypt.CompareHashAndPassword(data, []byte(pass)) != nil {
+		http.Redirect(w, r, "/login/json?error=invalid", http.StatusSeeOther)
+		return nil
+	}
+	session.Values["Provider"] = "json"
+	session.Values["GithubUser"] = &User{Login: user}
+	session.Values["Token"] = nil
+	session.Values["version"] = version
+	if err := session.Save(r, w); err != nil {
+		return fmt.Errorf("session save: %w", err)
+	}
+	return nil
+}
+
+func userPasswordPath(user string) string {
+	uh := sha256.Sum256([]byte(user))
+	return filepath.Join(JSONDBPath, hex.EncodeToString(uh[:]), ".password")
 }
 
 func UserAdderMiddleware(next http.Handler) http.Handler {
