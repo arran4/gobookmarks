@@ -6,8 +6,9 @@
         {{- if not bookmarksExist }}
         <p>Your bookmarks repository was not found. Click <a href="/edit">here</a> to create it.</p>
         {{- end }}
-        {{- range bookmarkPages }}
-        <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}">
+        {{- if tab }}<h1>{{ tab }} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a></h1>{{ end }}
+        {{- range $i, $p := bookmarkPages }}
+        <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}">
             {{- range .Blocks }}
             {{- if .HR }}
             <hr class="bookmarkHr" />
@@ -56,5 +57,6 @@
             {{- end }}
         </div>
         {{- end }}
+        <p><a href="/editTab?ref={{ref}}">Add Tab</a></p>
     {{end}}
 {{ template "tail" $ }}

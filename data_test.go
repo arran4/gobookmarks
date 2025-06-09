@@ -17,6 +17,7 @@ func TestCompileGoHTML(t *testing.T) {
 	files := []string{
 		"edit.gohtml",
 		"editCategory.gohtml",
+		"editTab.gohtml",
 		"editNotes.gohtml",
 		"error.gohtml",
 		"head.gohtml",
@@ -42,6 +43,9 @@ func testFuncMap() template.FuncMap {
 		"version":       func() string { return "test" },
 		"OAuth2URL":     func() string { return "https://example.com" },
 		"ref":           func() string { return "refs/heads/main" },
+		"add1":          func(i int) int { return i + 1 },
+		"tab":           func() string { return "" },
+		"bookmarkTabs":  func() ([]string, error) { return []string{"tab"}, nil },
 		"useCssColumns": func() bool { return false },
 		"loggedIn":      func() (bool, error) { return true, nil },
 		"commitShort": func() string {

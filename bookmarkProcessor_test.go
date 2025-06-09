@@ -14,12 +14,13 @@ type (
 	Ent = BookmarkEntry
 )
 
-func e(u, n string) *Ent               { return &Ent{Url: u, Name: n} }
-func cat(name string, es ...*Ent) *Cat { return &Cat{Name: name, Entries: es} }
-func col(cs ...*Cat) *Col              { return &Col{Categories: cs} }
-func colsBlock(cs ...*Col) *Blk        { return &Blk{Columns: cs} }
-func hrBlock() *Blk                    { return &Blk{HR: true} }
-func page(bs ...*Blk) *Pg              { return &Pg{Blocks: bs} }
+func e(u, n string) *Ent                  { return &Ent{Url: u, Name: n} }
+func cat(name string, es ...*Ent) *Cat    { return &Cat{Name: name, Entries: es} }
+func col(cs ...*Cat) *Col                 { return &Col{Categories: cs} }
+func colsBlock(cs ...*Col) *Blk           { return &Blk{Columns: cs} }
+func hrBlock() *Blk                       { return &Blk{HR: true} }
+func page(bs ...*Blk) *Pg                 { return &Pg{Blocks: bs} }
+func tabPage(name string, bs ...*Blk) *Pg { return &Pg{Tab: name, Blocks: bs} }
 
 func Test_preprocessBookmarks(t *testing.T) {
 	tests := []struct {
@@ -80,13 +81,32 @@ func Test_preprocessBookmarks(t *testing.T) {
 				),
 			},
 		},
+		{
+			name:  "tabs",
+			input: "Tab: First\nCategory: A\nTab: Second\nCategory: B\n",
+			want: []*Pg{
+				page(colsBlock(col())),
+				tabPage("First", colsBlock(col(cat("A")))),
+				tabPage("Second", colsBlock(col(cat("B")))),
+			},
+		},
+		{
+			name:  "tab multiple pages",
+			input: "Tab: X\nCategory: A\nPage\nCategory: B\n",
+			want: []*Pg{
+				page(colsBlock(col())),
+				tabPage("X", colsBlock(col(cat("A")))),
+				tabPage("X", colsBlock(col(cat("B")))),
+			},
+		},
 	}
 
 	ignore := cmpopts.IgnoreFields(BookmarkCategory{}, "Index")
+	ignoreTab := cmpopts.IgnoreFields(BookmarkPage{}, "Tab")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := PreprocessBookmarks(tt.input)
-			if diff := cmp.Diff(tt.want, got, ignore); diff != "" {
+			if diff := cmp.Diff(tt.want, got, ignore, ignoreTab); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 			}
 		})
