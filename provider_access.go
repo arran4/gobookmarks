@@ -59,14 +59,30 @@ func providerFromContext(ctx context.Context) Provider {
 	return nil
 }
 
-func providerCreds(name string) (clientID, secret string) {
+type ProviderCreds struct {
+	ID     string
+	Secret string
+}
+
+func providerCreds(name string) *ProviderCreds {
 	switch name {
 	case "github":
-		return GithubClientID, GithubClientSecret
+		if GithubClientID == "" || GithubClientSecret == "" {
+			return nil
+		}
+		return &ProviderCreds{ID: GithubClientID, Secret: GithubClientSecret}
 	case "gitlab":
-		return GitlabClientID, GitlabClientSecret
+		if GitlabClientID == "" || GitlabClientSecret == "" {
+			return nil
+		}
+		return &ProviderCreds{ID: GitlabClientID, Secret: GitlabClientSecret}
+	case "json":
+		if JSONDBPath == "" {
+			return nil
+		}
+		return &ProviderCreds{}
 	default:
-		return "", ""
+		return nil
 	}
 }
 
@@ -110,11 +126,11 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 	if p == nil {
 		return ErrNoProvider
 	}
-  err := p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
-  if err == nil {
-    invalidateBookmarkCache(user)
-  }
-  return err
+	err := p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
+	if err == nil {
+		invalidateBookmarkCache(user)
+	}
+	return err
 }
 
 func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
@@ -122,9 +138,9 @@ func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, bran
 	if p == nil {
 		return ErrNoProvider
 	}
-  err := p.CreateBookmarks(ctx, user, token, branch, text)
-  if err == nil {
+	err := p.CreateBookmarks(ctx, user, token, branch, text)
+	if err == nil {
 		invalidateBookmarkCache(user)
 	}
-  return err
+	return err
 }

@@ -28,7 +28,7 @@ type Commit struct {
 
 type Provider interface {
 	Name() string
-	OAuth2Config(clientID, clientSecret, redirectURL string) *oauth2.Config
+	Config(clientID, clientSecret, redirectURL string) *oauth2.Config
 	CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error)
 	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error)
 	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)

@@ -52,16 +52,16 @@ func main() {
 	}
 
 	cfg := Config{
-		GithubClientID: os.Getenv("GITHUB_CLIENT_ID"),
-		GithubSecret:   os.Getenv("GITHUB_SECRET"),
-		GitlabClientID: os.Getenv("GITLAB_CLIENT_ID"),
-		GitlabSecret:   os.Getenv("GITLAB_SECRET"),
-		ExternalURL:    os.Getenv("EXTERNAL_URL"),
-		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
-		Namespace:      os.Getenv("GBM_NAMESPACE"),
-		Title:          os.Getenv("GBM_TITLE"),
-		GithubServer:   os.Getenv("GITHUB_SERVER"),
-		GitlabServer:   os.Getenv("GITLAB_SERVER"),
+		GithubClientID:  os.Getenv("GITHUB_CLIENT_ID"),
+		GithubSecret:    os.Getenv("GITHUB_SECRET"),
+		GitlabClientID:  os.Getenv("GITLAB_CLIENT_ID"),
+		GitlabSecret:    os.Getenv("GITLAB_SECRET"),
+		ExternalURL:     os.Getenv("EXTERNAL_URL"),
+		CssColumns:      os.Getenv("GBM_CSS_COLUMNS") != "",
+		Namespace:       os.Getenv("GBM_NAMESPACE"),
+		Title:           os.Getenv("GBM_TITLE"),
+		GithubServer:    os.Getenv("GITHUB_SERVER"),
+		GitlabServer:    os.Getenv("GITLAB_SERVER"),
 		FaviconCacheDir: os.Getenv("FAVICON_CACHE_DIR"),
 		FaviconCacheSize: func() int64 {
 			if v := os.Getenv("FAVICON_CACHE_SIZE"); v != "" {
@@ -71,6 +71,7 @@ func main() {
 			}
 			return 0
 		}(),
+		JSONDBPath: os.Getenv("JSON_DB_PATH"),
 	}
 
 	configPath := DefaultConfigPath()
@@ -87,6 +88,7 @@ func main() {
 	var glServerFlag stringFlag
 	var faviconDirFlag stringFlag
 	var faviconSizeFlag stringFlag
+	var jsonPathFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
@@ -102,6 +104,7 @@ func main() {
 	flag.Var(&faviconSizeFlag, "favicon-cache-size", "max size of favicon cache in bytes")
 	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
+	flag.Var(&jsonPathFlag, "json-db-path", "JSON database path")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
@@ -160,6 +163,9 @@ func main() {
 	if glServerFlag.set {
 		cfg.GitlabServer = glServerFlag.value
 	}
+	if jsonPathFlag.set {
+		cfg.JSONDBPath = jsonPathFlag.value
+	}
 
 	if dumpConfig {
 		data, _ := json.MarshalIndent(cfg, "", "  ")
@@ -184,6 +190,9 @@ func main() {
 		FaviconCacheSize = cfg.FaviconCacheSize
 	} else {
 		FaviconCacheSize = DefaultFaviconCacheSize
+	}
+	if cfg.JSONDBPath != "" {
+		JSONDBPath = cfg.JSONDBPath
 	}
 	githubID := cfg.GithubClientID
 	githubSecret := cfg.GithubSecret
@@ -244,6 +253,8 @@ func main() {
 	r.HandleFunc("/status", runTemplate("statusPage.gohtml")).Methods("GET")
 	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
+	r.HandleFunc("/login/json", runTemplate("jsonLoginPage.gohtml")).Methods("GET")
+	r.HandleFunc("/login/json", runHandlerChain(JSONLoginAction, redirectToHandler("/"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")

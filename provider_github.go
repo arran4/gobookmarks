@@ -22,7 +22,7 @@ func (GitHubProvider) Name() string { return "github" }
 
 func (GitHubProvider) DefaultServer() string { return "https://github.com" }
 
-func (GitHubProvider) OAuth2Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
+func (GitHubProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
 	server := strings.TrimRight(GithubServer, "/")
 	if server == "" {
 		server = "https://github.com"
