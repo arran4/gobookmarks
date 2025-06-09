@@ -11,14 +11,16 @@ import (
 
 // Config holds runtime configuration values.
 type Config struct {
-	Oauth2ClientID string `json:"oauth2_client_id"`
-	Provider       string `json:"provider"`
-	Oauth2Secret   string `json:"oauth2_secret"`
-	ExternalURL    string `json:"external_url"`
-	CssColumns     bool   `json:"css_columns"`
-	Namespace      string `json:"namespace"`
-	Title          string `json:"title"`
-	GitServer      string `json:"git_server"`
+	Oauth2ClientID   string `json:"oauth2_client_id"`
+	Provider         string `json:"provider"`
+	Oauth2Secret     string `json:"oauth2_secret"`
+	ExternalURL      string `json:"external_url"`
+	CssColumns       bool   `json:"css_columns"`
+	Namespace        string `json:"namespace"`
+	Title            string `json:"title"`
+	GitServer        string `json:"git_server"`
+	FaviconCacheDir  string `json:"favicon_cache_dir"`
+	FaviconCacheSize int64  `json:"favicon_cache_size"`
 }
 
 // LoadConfigFile loads configuration from the given path if it exists.
@@ -57,6 +59,12 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.GitServer != "" {
 		dst.GitServer = src.GitServer
+	}
+	if src.FaviconCacheDir != "" {
+		dst.FaviconCacheDir = src.FaviconCacheDir
+	}
+	if src.FaviconCacheSize != 0 {
+		dst.FaviconCacheSize = src.FaviconCacheSize
 	}
 
 	if src.Provider != "" {

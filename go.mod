@@ -10,8 +10,10 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v55 v55.0.0
 	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
 	github.com/xanzy/go-gitlab v0.115.0
+	golang.org/x/image v0.28.0
 	golang.org/x/oauth2 v0.12.0
 )
 
@@ -21,7 +23,6 @@ require (
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
 	golang.org/x/crypto v0.36.0 // indirect

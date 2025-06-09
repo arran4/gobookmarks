@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,14 +54,23 @@ func main() {
 	}
 
 	cfg := Config{
-		Oauth2ClientID: os.Getenv("OAUTH2_CLIENT_ID"),
-		Oauth2Secret:   os.Getenv("OAUTH2_SECRET"),
-		ExternalURL:    os.Getenv("EXTERNAL_URL"),
-		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
-		Namespace:      os.Getenv("GBM_NAMESPACE"),
-		Title:          os.Getenv("GBM_TITLE"),
-		Provider:       os.Getenv("GBM_PROVIDER"),
-		GitServer:      os.Getenv("GIT_SERVER"),
+		Oauth2ClientID:  os.Getenv("OAUTH2_CLIENT_ID"),
+		Oauth2Secret:    os.Getenv("OAUTH2_SECRET"),
+		ExternalURL:     os.Getenv("EXTERNAL_URL"),
+		CssColumns:      os.Getenv("GBM_CSS_COLUMNS") != "",
+		Namespace:       os.Getenv("GBM_NAMESPACE"),
+		Title:           os.Getenv("GBM_TITLE"),
+		Provider:        os.Getenv("GBM_PROVIDER"),
+		GitServer:       os.Getenv("GIT_SERVER"),
+		FaviconCacheDir: os.Getenv("FAVICON_CACHE_DIR"),
+		FaviconCacheSize: func() int64 {
+			if v := os.Getenv("FAVICON_CACHE_SIZE"); v != "" {
+				if i, err := strconv.ParseInt(v, 10, 64); err == nil {
+					return i
+				}
+			}
+			return 0
+		}(),
 	}
 
 	configPath := DefaultConfigPath()
@@ -73,6 +83,8 @@ func main() {
 	var titleFlag stringFlag
 	var providerFlag stringFlag
 	var gitServerFlag stringFlag
+	var faviconDirFlag stringFlag
+	var faviconSizeFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
@@ -84,6 +96,8 @@ func main() {
 	flag.Var(&titleFlag, "title", "site title")
 	flag.Var(&providerFlag, "provider", fmt.Sprintf("git provider (%s)", strings.Join(ProviderNames(), ", ")))
 	flag.Var(&gitServerFlag, "git-server", "git provider base URL")
+	flag.Var(&faviconDirFlag, "favicon-cache-dir", "directory for cached favicons")
+	flag.Var(&faviconSizeFlag, "favicon-cache-size", "max size of favicon cache in bytes")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
@@ -125,6 +139,14 @@ func main() {
 	if gitServerFlag.set {
 		cfg.GitServer = gitServerFlag.value
 	}
+	if faviconDirFlag.set {
+		cfg.FaviconCacheDir = faviconDirFlag.value
+	}
+	if faviconSizeFlag.set {
+		if i, err := strconv.ParseInt(faviconSizeFlag.value, 10, 64); err == nil {
+			cfg.FaviconCacheSize = i
+		}
+	}
 	if providerFlag.set {
 		cfg.Provider = providerFlag.value
 	}
@@ -141,6 +163,14 @@ func main() {
 	SiteTitle = cfg.Title
 	if cfg.GitServer != "" {
 		GitServer = cfg.GitServer
+	}
+	if cfg.FaviconCacheDir != "" {
+		FaviconCacheDir = cfg.FaviconCacheDir
+	}
+	if cfg.FaviconCacheSize != 0 {
+		FaviconCacheSize = cfg.FaviconCacheSize
+	} else {
+		FaviconCacheSize = DefaultFaviconCacheSize
 	}
 	clientID = cfg.Oauth2ClientID
 	clientSecret = cfg.Oauth2Secret

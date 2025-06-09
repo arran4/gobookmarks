@@ -77,8 +77,12 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
 | `GBM_TITLE` | Overrides the page title shown in the browser. |
 | `GIT_SERVER` | Base URL for a self-hosted git provider, e.g. `https://gitlab.example.com`. Defaults to the public server for the selected provider. |
+| `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/data/favicons` in Docker. |
+| `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when run as root. |
+
+Favicons fetched for your bookmarks are cached on disk when `FAVICON_CACHE_DIR` is set. The `/proxy/favicon` endpoint also accepts a `size` parameter to scale icons on the fly.
 
 You can place these settings in `/etc/gobookmarks/gobookmarks.env` as `KEY=VALUE` pairs and the service will load them automatically if the file exists.
 The release packages do not install this file; create it manually if you want to use environment-based settings.
@@ -120,6 +124,8 @@ and both service files run the daemon as `gobookmarks`.
 
 The Docker image continues to work as before.  Mount `/data` if you need
 persistent storage and pass the same environment variables as listed above.
+Favicons are cached on disk under `/data/favicons` by default. Set
+`FAVICON_CACHE_DIR` to an empty string to disable disk caching.
 You can also mount a config file and env file:
 
 ```bash
