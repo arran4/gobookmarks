@@ -147,6 +147,29 @@ func JSONLoginAction(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func JSONSignupAction(w http.ResponseWriter, r *http.Request) error {
+	user := r.FormValue("username")
+	pass := r.FormValue("password")
+	p := userPasswordPath(user)
+	if _, err := os.Stat(p); err == nil {
+		http.Redirect(w, r, "/login/json?error=exists", http.StatusSeeOther)
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("stat: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+		return fmt.Errorf("mkdir: %w", err)
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash: %w", err)
+	}
+	if err := os.WriteFile(p, hash, 0600); err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
+	return nil
+}
+
 func userPasswordPath(user string) string {
 	uh := sha256.Sum256([]byte(user))
 	return filepath.Join(JSONDBPath, hex.EncodeToString(uh[:]), ".password")
