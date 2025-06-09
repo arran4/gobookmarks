@@ -4,5 +4,14 @@ var (
 	UseCssColumns bool
 	Namespace     string
 	SiteTitle     string
-	GitServer     string
+
+	GithubServer string
+	GitlabServer string
+
+	GithubClientID     string
+	GithubClientSecret string
+	GitlabClientID     string
+	GitlabClientSecret string
+
+	OauthRedirectURL string
 )

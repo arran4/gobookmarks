@@ -12,3 +12,6 @@ var ErrHandled = errors.New("handled")
 // ErrSignedOut indicates that the OAuth token is no longer valid and
 // the user must authenticate again.
 var ErrSignedOut = errors.New("signed out")
+
+// ErrNoProvider indicates that no provider was selected for the request.
+var ErrNoProvider = errors.New("no provider selected")

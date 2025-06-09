@@ -1,9 +1,12 @@
 {
-  "oauth2_client_id": "",
-  "oauth2_secret": "",
+  "github_client_id": "",
+  "github_secret": "",
+  "gitlab_client_id": "",
+  "gitlab_secret": "",
   "external_url": "http://localhost:8080",
   "css_columns": false,
   "namespace": "",
   "title": "",
-  "git_server": "https://gitlab.com"
+  "github_server": "https://github.com",
+  "gitlab_server": "https://gitlab.com"
 }

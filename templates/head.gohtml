@@ -34,7 +34,13 @@
                                                         <a href="#page{{$i}}">Page {{ add1 $i }}</a><br/>
                                                 {{- end }}
                                         {{ else }}
-                                                <a href="{{ OAuth2URL }}">Login</a><br>
+                                                {{- if Providers }}
+                                                {{- range Providers }}
+                                                <a href="{{ LoginURL . }}">Login with {{ . }}</a><br>
+                                                {{- end }}
+                                                {{- else }}
+                                                <p>No providers configured. See <a href="/status">status</a>.</p>
+                                                {{- end }}
                                         {{ end }}
                                <td>
 {{end}}
