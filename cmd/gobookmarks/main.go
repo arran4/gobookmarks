@@ -253,6 +253,7 @@ func main() {
 	r.HandleFunc("/status", runTemplate("statusPage.gohtml")).Methods("GET")
 	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
+	r.HandleFunc("/login", runTemplate("loginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/json", runTemplate("jsonLoginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/json", runHandlerChain(JSONLoginAction, redirectToHandler("/"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")

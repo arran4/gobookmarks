@@ -34,11 +34,7 @@
                                                         <a href="#page{{$i}}">Page {{ add1 $i }}</a><br/>
                                                 {{- end }}
                                         {{ else }}
-                                                {{- if Providers }}
-                                                {{- range Providers }}
-                                                <a href="{{ LoginURL . }}">Login with {{ . }}</a><br>
-                                                {{- end }}
-                                                {{- end }}
+                                                <a href="/login">Login</a><br/>
                                         {{ end }}
                                <td>
 {{end}}
