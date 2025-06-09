@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -61,6 +62,15 @@ func main() {
 		Title:          os.Getenv("GBM_TITLE"),
 		GithubServer:   os.Getenv("GITHUB_SERVER"),
 		GitlabServer:   os.Getenv("GITLAB_SERVER"),
+		FaviconCacheDir: os.Getenv("FAVICON_CACHE_DIR"),
+		FaviconCacheSize: func() int64 {
+			if v := os.Getenv("FAVICON_CACHE_SIZE"); v != "" {
+				if i, err := strconv.ParseInt(v, 10, 64); err == nil {
+					return i
+				}
+			}
+			return 0
+		}(),
 	}
 
 	configPath := DefaultConfigPath()
@@ -75,6 +85,8 @@ func main() {
 	var titleFlag stringFlag
 	var ghServerFlag stringFlag
 	var glServerFlag stringFlag
+	var faviconDirFlag stringFlag
+	var faviconSizeFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
@@ -86,6 +98,8 @@ func main() {
 	flag.Var(&urlFlag, "external-url", "external URL")
 	flag.Var(&nsFlag, "namespace", "repository namespace")
 	flag.Var(&titleFlag, "title", "site title")
+	flag.Var(&faviconDirFlag, "favicon-cache-dir", "directory for cached favicons")
+	flag.Var(&faviconSizeFlag, "favicon-cache-size", "max size of favicon cache in bytes")
 	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
@@ -135,6 +149,14 @@ func main() {
 	if ghServerFlag.set {
 		cfg.GithubServer = ghServerFlag.value
 	}
+	if faviconDirFlag.set {
+		cfg.FaviconCacheDir = faviconDirFlag.value
+	}
+	if faviconSizeFlag.set {
+		if i, err := strconv.ParseInt(faviconSizeFlag.value, 10, 64); err == nil {
+			cfg.FaviconCacheSize = i
+		}
+	}
 	if glServerFlag.set {
 		cfg.GitlabServer = glServerFlag.value
 	}
@@ -154,6 +176,14 @@ func main() {
 	}
 	if cfg.GitlabServer != "" {
 		GitlabServer = cfg.GitlabServer
+	}
+	if cfg.FaviconCacheDir != "" {
+		FaviconCacheDir = cfg.FaviconCacheDir
+	}
+	if cfg.FaviconCacheSize != 0 {
+		FaviconCacheSize = cfg.FaviconCacheSize
+	} else {
+		FaviconCacheSize = DefaultFaviconCacheSize
 	}
 	githubID := cfg.GithubClientID
 	githubSecret := cfg.GithubSecret

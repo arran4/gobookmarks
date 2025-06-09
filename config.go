@@ -21,6 +21,8 @@ type Config struct {
 	Title          string `json:"title"`
 	GithubServer   string `json:"github_server"`
 	GitlabServer   string `json:"gitlab_server"`
+	FaviconCacheDir  string `json:"favicon_cache_dir"`
+	FaviconCacheSize int64  `json:"favicon_cache_size"`
 }
 
 // LoadConfigFile loads configuration from the given path if it exists.
@@ -68,6 +70,12 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.GitlabServer != "" {
 		dst.GitlabServer = src.GitlabServer
+  }
+	if src.FaviconCacheDir != "" {
+		dst.FaviconCacheDir = src.FaviconCacheDir
+	}
+	if src.FaviconCacheSize != 0 {
+		dst.FaviconCacheSize = src.FaviconCacheSize
 	}
 }
 
