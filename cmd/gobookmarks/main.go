@@ -353,6 +353,17 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 					if errors.Is(err, ErrHandled) {
 						return
 					}
+					if errors.Is(err, ErrSignedOut) {
+						if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
+							log.Printf("logout error: %v", logoutErr)
+						}
+						type Data struct{ *CoreData }
+						if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", Data{r.Context().Value(ContextValues("coreData")).(*CoreData)}); err != nil {
+							log.Printf("Logout Template Error: %s", err)
+							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+						}
+						return
+					}
 					type ErrorData struct {
 						*CoreData
 						Error string
