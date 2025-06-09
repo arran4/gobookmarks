@@ -6,6 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 	"log"
 	"net/http"
 	"os"
@@ -45,7 +48,7 @@ var (
 )
 
 func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
-	providerName := r.PathValue("provider")
+	providerName := mux.Vars(r)["provider"]
 	p := GetProvider(providerName)
 	if p == nil {
 		http.NotFound(w, r)
