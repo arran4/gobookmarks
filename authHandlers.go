@@ -9,14 +9,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
