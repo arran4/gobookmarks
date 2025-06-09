@@ -36,7 +36,11 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		repoName = r.PostFormValue("repoName")
 	}
 	if r.PostFormValue("createRepo") == "1" {
-		if err := ActiveProvider.CreateRepo(r.Context(), login, token, repoName); err != nil {
+		p := providerFromContext(r.Context())
+		if p == nil {
+			return fmt.Errorf("create repo: %w", ErrNoProvider)
+		}
+		if err := p.CreateRepo(r.Context(), login, token, repoName); err != nil {
 			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, err)
 		}
 		RepoName = repoName

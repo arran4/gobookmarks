@@ -69,16 +69,18 @@ Configuration values can be supplied as environment variables, via a JSON config
 
 | Name | Description |
 | --- | --- |
-| `OAUTH2_CLIENT_ID` | OAuth2 client ID from <https://github.com/settings/developers> |
-| `OAUTH2_SECRET` | OAuth2 client secret from <https://github.com/settings/developers> |
+| `GITHUB_CLIENT_ID` | GitHub OAuth2 client ID |
+| `GITHUB_SECRET` | GitHub OAuth2 client secret |
+| `GITLAB_CLIENT_ID` | GitLab OAuth2 client ID |
+| `GITLAB_SECRET` | GitLab OAuth2 client secret |
 | `EXTERNAL_URL` | Fully qualified URL the service is reachable on, e.g. `http://localhost:8080` |
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
-| `GBM_PROVIDER` | Git provider to use (`github` or `gitlab`). Defaults to `github`. |
 | `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
 | `GBM_TITLE` | Overrides the page title shown in the browser. |
-| `GIT_SERVER` | Base URL for a self-hosted git provider, e.g. `https://gitlab.example.com`. Defaults to the public server for the selected provider. |
 | `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/data/favicons` in Docker. |
 | `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
+| `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
+| `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when run as root. |
 
@@ -89,17 +91,17 @@ The release packages do not install this file; create it manually if you want to
 
 Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration file is loaded.
 
-The `--provider` command line flag or `GBM_PROVIDER` environment variable selects which git provider to use. By default the binary includes both GitHub and GitLab support. Use build tags `nogithub` or `nogitlab` to exclude either provider when building from source. If you specify an unknown provider the program will exit with an error listing the available options.
 The `--title` flag or `GBM_TITLE` environment variable sets the browser page title.
-Use `--git-server` or `GIT_SERVER` to override the base URL of the git provider (defaults to the provider's public server).
+Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
+When no OAuth2 credentials are configured the login buttons are hidden. Visit `/status` to see which providers are available.
 Use `--dump-config` to print the final configuration after merging the environment,
 config file and command line arguments.
 
 ## Oauth2 setup
 
-Visit: https://github.com/settings/developers
+For GitHub visit <https://github.com/settings/developers>. For GitLab visit <https://gitlab.com/-/profile/applications>.
 
 Create an application, call it what ever you like. Set the Callback URL what ever you put in `EXTERNAL_URL` and add: 
 `/oauth2Callback` to the end, ie if you entered: `http://localhost:8080` it should be: `http://localhost:8080/oauth2Callback`

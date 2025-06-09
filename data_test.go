@@ -28,6 +28,7 @@ func TestCompileGoHTML(t *testing.T) {
 		"logoutPage.gohtml",
 		"tail.gohtml",
 		"taskDoneAutoRefreshPage.gohtml",
+		"statusPage.gohtml",
 	}
 
 	for _, name := range files {
@@ -39,15 +40,18 @@ func TestCompileGoHTML(t *testing.T) {
 
 func testFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"now":           func() time.Time { return time.Unix(0, 0) },
-		"version":       func() string { return "test" },
-		"OAuth2URL":     func() string { return "https://example.com" },
-		"ref":           func() string { return "refs/heads/main" },
-		"add1":          func(i int) int { return i + 1 },
-		"tab":           func() string { return "" },
-		"bookmarkTabs":  func() ([]string, error) { return []string{"tab"}, nil },
-		"useCssColumns": func() bool { return false },
-		"loggedIn":      func() (bool, error) { return true, nil },
+		"now":                func() time.Time { return time.Unix(0, 0) },
+		"version":            func() string { return "test" },
+		"LoginURL":           func(p string) string { return "https://example.com/login/" + p },
+		"Providers":          func() []string { return []string{"github", "gitlab"} },
+		"AllProviders":       func() []string { return []string{"github", "gitlab"} },
+		"ProviderConfigured": func(string) bool { return true },
+		"ref":                func() string { return "refs/heads/main" },
+		"add1":               func(i int) int { return i + 1 },
+		"tab":                func() string { return "" },
+		"bookmarkTabs":       func() ([]string, error) { return []string{"tab"}, nil },
+		"useCssColumns":      func() bool { return false },
+		"loggedIn":           func() (bool, error) { return true, nil },
 		"commitShort": func() string {
 			short := commit
 			if len(short) > 7 {

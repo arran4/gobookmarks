@@ -11,14 +11,16 @@ import (
 
 // Config holds runtime configuration values.
 type Config struct {
-	Oauth2ClientID   string `json:"oauth2_client_id"`
-	Provider         string `json:"provider"`
-	Oauth2Secret     string `json:"oauth2_secret"`
-	ExternalURL      string `json:"external_url"`
-	CssColumns       bool   `json:"css_columns"`
-	Namespace        string `json:"namespace"`
-	Title            string `json:"title"`
-	GitServer        string `json:"git_server"`
+	GithubClientID string `json:"github_client_id"`
+	GithubSecret   string `json:"github_secret"`
+	GitlabClientID string `json:"gitlab_client_id"`
+	GitlabSecret   string `json:"gitlab_secret"`
+	ExternalURL    string `json:"external_url"`
+	CssColumns     bool   `json:"css_columns"`
+	Namespace      string `json:"namespace"`
+	Title          string `json:"title"`
+	GithubServer   string `json:"github_server"`
+	GitlabServer   string `json:"gitlab_server"`
 	FaviconCacheDir  string `json:"favicon_cache_dir"`
 	FaviconCacheSize int64  `json:"favicon_cache_size"`
 }
@@ -39,11 +41,17 @@ func LoadConfigFile(path string) (Config, error) {
 
 // MergeConfig copies values from src into dst if they are non-zero.
 func MergeConfig(dst *Config, src Config) {
-	if src.Oauth2ClientID != "" {
-		dst.Oauth2ClientID = src.Oauth2ClientID
+	if src.GithubClientID != "" {
+		dst.GithubClientID = src.GithubClientID
 	}
-	if src.Oauth2Secret != "" {
-		dst.Oauth2Secret = src.Oauth2Secret
+	if src.GithubSecret != "" {
+		dst.GithubSecret = src.GithubSecret
+	}
+	if src.GitlabClientID != "" {
+		dst.GitlabClientID = src.GitlabClientID
+	}
+	if src.GitlabSecret != "" {
+		dst.GitlabSecret = src.GitlabSecret
 	}
 	if src.ExternalURL != "" {
 		dst.ExternalURL = src.ExternalURL
@@ -57,18 +65,17 @@ func MergeConfig(dst *Config, src Config) {
 	if src.Title != "" {
 		dst.Title = src.Title
 	}
-	if src.GitServer != "" {
-		dst.GitServer = src.GitServer
+	if src.GithubServer != "" {
+		dst.GithubServer = src.GithubServer
 	}
+	if src.GitlabServer != "" {
+		dst.GitlabServer = src.GitlabServer
+  }
 	if src.FaviconCacheDir != "" {
 		dst.FaviconCacheDir = src.FaviconCacheDir
 	}
 	if src.FaviconCacheSize != 0 {
 		dst.FaviconCacheSize = src.FaviconCacheSize
-	}
-
-	if src.Provider != "" {
-		dst.Provider = src.Provider
 	}
 }
 
