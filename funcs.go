@@ -56,6 +56,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"ref": func() string {
 			return r.URL.Query().Get("ref")
 		},
+		"tab": func() string {
+			return r.URL.Query().Get("tab")
+		},
+		"add1": func(i int) int {
+			return i + 1
+		},
 		"useCssColumns": func() bool {
 			return UseCssColumns
 		},
@@ -122,7 +128,57 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			return PreprocessBookmarks(bookmark), nil
+			pages := PreprocessBookmarks(bookmark)
+			tabName := r.URL.Query().Get("tab")
+			if tabName != "" {
+				var filtered []*BookmarkPage
+				for _, p := range pages {
+					if p.Tab == tabName {
+						filtered = append(filtered, p)
+					}
+				}
+				pages = filtered
+			} else {
+				var filtered []*BookmarkPage
+				for _, p := range pages {
+					if p.Tab == "" {
+						filtered = append(filtered, p)
+					}
+				}
+				if len(filtered) > 0 {
+					pages = filtered
+				}
+			}
+			return pages, nil
+		},
+		"bookmarkTabs": func() ([]string, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil {
+				login = githubUser.Login
+			}
+
+			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			var bookmark = defaultBookmarks
+			if err != nil {
+				// TODO check for error type and if it's not exist, fall through
+				return nil, fmt.Errorf("bookmarkTabs: %w", err)
+			} else {
+				bookmark = bookmarks
+			}
+			pages := PreprocessBookmarks(bookmark)
+			seen := map[string]bool{}
+			var tabs []string
+			for _, p := range pages {
+				if p.Tab != "" && !seen[p.Tab] {
+					seen[p.Tab] = true
+					tabs = append(tabs, p.Tab)
+				}
+			}
+			return tabs, nil
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)

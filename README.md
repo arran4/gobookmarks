@@ -42,6 +42,7 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `<Link> <Name>`        | Will create a link to `<Link>` with the display name `<Name>` |
 | `Column`               | Will create a column                                         |
 | `Page`                 | Creates a new page |
+| `Tab: <name>`          | Starts a new named tab (switch using `?tab=<name>`) |
 | `--`                   | Inserts a horizontal rule and resets columns |
 
 ## Editing
