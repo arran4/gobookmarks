@@ -21,6 +21,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		session := request.Context().Value(ContextValues("session")).(*sessions.Session)
 		githubUser, _ := session.Values["GithubUser"].(*User)
+		providerName, _ := session.Values["Provider"].(string)
 
 		login := ""
 		if githubUser != nil {
@@ -35,7 +36,8 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 			title = "dev: " + title
 		}
 
-		ctx := context.WithValue(request.Context(), ContextValues("coreData"), &CoreData{
+		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
+		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
 			UserRef: login,
 			Title:   title,
 		})

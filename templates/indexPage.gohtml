@@ -1,7 +1,13 @@
 {{ template "head" $ }}
     {{ if not loggedIn }}
-        You will need to login to see this page:
-        <a href="{{ OAuth2URL }}">Login</a><br>
+        You will need to login to see this page:<br>
+        {{- if Providers }}
+        {{- range Providers }}
+        <a href="{{ LoginURL . }}">Login with {{ . }}</a><br>
+        {{- end }}
+        {{- else }}
+        <p>No providers configured. See <a href="/status">status</a>.</p>
+        {{- end }}
     {{else}}
         {{- if not bookmarksExist }}
         <p>Your bookmarks repository was not found. Click <a href="/edit">here</a> to create it.</p>

@@ -29,13 +29,11 @@ import (
 )
 
 var (
-	clientID     string
-	clientSecret string
-	externalUrl  string
-	redirectUrl  string
-	version      = "dev"
-	commit       = "none"
-	date         = "unknown"
+	externalUrl string
+	redirectUrl string
+	version     = "dev"
+	commit      = "none"
+	date        = "unknown"
 )
 
 func init() {
@@ -53,37 +51,43 @@ func main() {
 	}
 
 	cfg := Config{
-		Oauth2ClientID: os.Getenv("OAUTH2_CLIENT_ID"),
-		Oauth2Secret:   os.Getenv("OAUTH2_SECRET"),
+		GithubClientID: os.Getenv("GITHUB_CLIENT_ID"),
+		GithubSecret:   os.Getenv("GITHUB_SECRET"),
+		GitlabClientID: os.Getenv("GITLAB_CLIENT_ID"),
+		GitlabSecret:   os.Getenv("GITLAB_SECRET"),
 		ExternalURL:    os.Getenv("EXTERNAL_URL"),
 		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
 		Namespace:      os.Getenv("GBM_NAMESPACE"),
 		Title:          os.Getenv("GBM_TITLE"),
-		Provider:       os.Getenv("GBM_PROVIDER"),
-		GitServer:      os.Getenv("GIT_SERVER"),
+		GithubServer:   os.Getenv("GITHUB_SERVER"),
+		GitlabServer:   os.Getenv("GITLAB_SERVER"),
 	}
 
 	configPath := DefaultConfigPath()
 
 	var cfgFlag stringFlag
-	var idFlag stringFlag
-	var secretFlag stringFlag
+	var ghIDFlag stringFlag
+	var ghSecretFlag stringFlag
+	var glIDFlag stringFlag
+	var glSecretFlag stringFlag
 	var urlFlag stringFlag
 	var nsFlag stringFlag
 	var titleFlag stringFlag
-	var providerFlag stringFlag
-	var gitServerFlag stringFlag
+	var ghServerFlag stringFlag
+	var glServerFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
 	flag.Var(&cfgFlag, "config", "path to config file")
-	flag.Var(&idFlag, "client-id", "OAuth2 client ID")
-	flag.Var(&secretFlag, "client-secret", "OAuth2 client secret")
+	flag.Var(&ghIDFlag, "github-client-id", "GitHub OAuth client ID")
+	flag.Var(&ghSecretFlag, "github-secret", "GitHub OAuth client secret")
+	flag.Var(&glIDFlag, "gitlab-client-id", "GitLab OAuth client ID")
+	flag.Var(&glSecretFlag, "gitlab-secret", "GitLab OAuth client secret")
 	flag.Var(&urlFlag, "external-url", "external URL")
 	flag.Var(&nsFlag, "namespace", "repository namespace")
 	flag.Var(&titleFlag, "title", "site title")
-	flag.Var(&providerFlag, "provider", fmt.Sprintf("git provider (%s)", strings.Join(ProviderNames(), ", ")))
-	flag.Var(&gitServerFlag, "git-server", "git provider base URL")
+	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
+	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
@@ -104,11 +108,17 @@ func main() {
 		log.Printf("unable to load config file %s: %v", configPath, err)
 	}
 
-	if idFlag.set {
-		cfg.Oauth2ClientID = idFlag.value
+	if ghIDFlag.set {
+		cfg.GithubClientID = ghIDFlag.value
 	}
-	if secretFlag.set {
-		cfg.Oauth2Secret = secretFlag.value
+	if ghSecretFlag.set {
+		cfg.GithubSecret = ghSecretFlag.value
+	}
+	if glIDFlag.set {
+		cfg.GitlabClientID = glIDFlag.value
+	}
+	if glSecretFlag.set {
+		cfg.GitlabSecret = glSecretFlag.value
 	}
 	if urlFlag.set {
 		cfg.ExternalURL = urlFlag.value
@@ -122,11 +132,11 @@ func main() {
 	if columnFlag.set {
 		cfg.CssColumns = columnFlag.value
 	}
-	if gitServerFlag.set {
-		cfg.GitServer = gitServerFlag.value
+	if ghServerFlag.set {
+		cfg.GithubServer = ghServerFlag.value
 	}
-	if providerFlag.set {
-		cfg.Provider = providerFlag.value
+	if glServerFlag.set {
+		cfg.GitlabServer = glServerFlag.value
 	}
 
 	if dumpConfig {
@@ -139,27 +149,30 @@ func main() {
 	Namespace = cfg.Namespace
 	RepoName = GetBookmarksRepoName()
 	SiteTitle = cfg.Title
-	if cfg.GitServer != "" {
-		GitServer = cfg.GitServer
+	if cfg.GithubServer != "" {
+		GithubServer = cfg.GithubServer
 	}
-	clientID = cfg.Oauth2ClientID
-	clientSecret = cfg.Oauth2Secret
+	if cfg.GitlabServer != "" {
+		GitlabServer = cfg.GitlabServer
+	}
+	githubID := cfg.GithubClientID
+	githubSecret := cfg.GithubSecret
+	gitlabID := cfg.GitlabClientID
+	gitlabSecret := cfg.GitlabSecret
 	externalUrl = cfg.ExternalURL
 	redirectUrl = fmt.Sprintf("%s/oauth2Callback", externalUrl)
-
-	if cfg.Provider != "" {
-		if !SetProviderByName(cfg.Provider) {
-			log.Fatalf("invalid provider %q. valid options: %s", cfg.Provider, strings.Join(ProviderNames(), ", "))
-		}
-	}
+	GithubClientID = githubID
+	GithubClientSecret = githubSecret
+	GitlabClientID = gitlabID
+	GitlabClientSecret = gitlabSecret
+	OauthRedirectURL = redirectUrl
 
 	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
-	if ActiveProvider == nil {
-		fmt.Printf("no active provider please set one options: %v\n", ProviderNames())
+	if len(ProviderNames()) == 0 {
+		fmt.Println("no providers compiled")
 		os.Exit(-1)
 	}
-	Oauth2Config = ActiveProvider.OAuth2Config(clientID, clientSecret, redirectUrl)
 
 	r := mux.NewRouter()
 
@@ -198,8 +211,10 @@ func main() {
 	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/history/commits", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/status", runTemplate("statusPage.gohtml")).Methods("GET")
 	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
+	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 

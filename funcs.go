@@ -50,8 +50,25 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return s[:l]
 		},
-		"OAuth2URL": func() string {
-			return Oauth2Config.AuthCodeURL("")
+		"LoginURL": func(p string) string {
+			return "/login/" + p
+		},
+		"Providers": func() []string {
+			names := make([]string, 0)
+			for _, n := range ProviderNames() {
+				id, secret := providerCreds(n)
+				if id != "" && secret != "" {
+					names = append(names, n)
+				}
+			}
+			return names
+		},
+		"AllProviders": func() []string {
+			return ProviderNames()
+		},
+		"ProviderConfigured": func(p string) bool {
+			id, secret := providerCreds(p)
+			return id != "" && secret != "" && GetProvider(p) != nil
 		},
 		"ref": func() string {
 			return r.URL.Query().Get("ref")

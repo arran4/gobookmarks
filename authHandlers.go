@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 )
@@ -23,6 +22,7 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	delete(session.Values, "GithubUser")
 	delete(session.Values, "Token")
+	delete(session.Values, "Provider")
 
 	if err := session.Save(r, w); err != nil {
 		return fmt.Errorf("session.Save Error: %w", err)
@@ -34,10 +34,33 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 }
 
 var (
-	Oauth2Config *oauth2.Config
 	SessionStore sessions.Store
 	SessionName  string
 )
+
+func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
+	providerName := r.PathValue("provider")
+	p := GetProvider(providerName)
+	if p == nil {
+		http.NotFound(w, r)
+		return nil
+	}
+
+	session, err := getSession(w, r)
+	if err != nil {
+		return fmt.Errorf("session error: %w", err)
+	}
+
+	session.Values["Provider"] = providerName
+	if err := session.Save(r, w); err != nil {
+		return fmt.Errorf("session save: %w", err)
+	}
+
+	id, secret := providerCreds(providerName)
+	cfg := p.OAuth2Config(id, secret, OauthRedirectURL)
+	http.Redirect(w, r, cfg.AuthCodeURL(""), http.StatusTemporaryRedirect)
+	return nil
+}
 
 func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
@@ -46,21 +69,30 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		Error string
 	}
 
-	token, err := Oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
-	if err != nil {
-		return fmt.Errorf("exchange error: %w", err)
-	}
-
 	session, err := getSession(w, r)
 	if err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 
-	user, err := ActiveProvider.CurrentUser(r.Context(), token)
+	providerName, _ := session.Values["Provider"].(string)
+	p := GetProvider(providerName)
+	if p == nil {
+		return fmt.Errorf("unknown provider")
+	}
+
+	id, secret := providerCreds(providerName)
+	cfg := p.OAuth2Config(id, secret, OauthRedirectURL)
+	token, err := cfg.Exchange(r.Context(), r.URL.Query().Get("code"))
+	if err != nil {
+		return fmt.Errorf("exchange error: %w", err)
+	}
+
+	user, err := p.CurrentUser(r.Context(), token)
 	if err != nil {
 		return fmt.Errorf("user lookup error: %w", err)
 	}
 
+	session.Values["Provider"] = providerName
 	session.Values["GithubUser"] = user
 	session.Values["Token"] = token
 	session.Values["version"] = version

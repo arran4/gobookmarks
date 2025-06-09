@@ -1,3 +1,9 @@
 {{ template "head" $ }}
-    <a href="{{ OAuth2URL }}">Click here to login</a><br>
+    {{- if Providers }}
+    {{- range Providers }}
+    <a href="{{ LoginURL . }}">Login with {{ . }}</a><br>
+    {{- end }}
+    {{- else }}
+    <p>No providers configured. See <a href="/status">status</a>.</p>
+    {{- end }}
 {{ template "tail" $ }}

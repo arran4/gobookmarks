@@ -1,0 +1,8 @@
+{{ template "head" $ }}
+<h1>Server Status</h1>
+<ul>
+    {{- range AllProviders }}
+    <li>{{ . }} - {{ if ProviderConfigured . }}configured{{ else }}not configured{{ end }}</li>
+    {{- end }}
+</ul>
+{{ template "tail" $ }}
