@@ -256,6 +256,7 @@ func main() {
 	r.HandleFunc("/login", runTemplate("loginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/json", runTemplate("jsonLoginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/json", runHandlerChain(JSONLoginAction, redirectToHandler("/"))).Methods("POST")
+	r.HandleFunc("/signup/json", runHandlerChain(JSONSignupAction, redirectToHandler("/login/json"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
