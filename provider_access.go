@@ -2,8 +2,53 @@ package gobookmarks
 
 import (
 	"context"
+	"strings"
+	"sync"
+	"time"
+
 	"golang.org/x/oauth2"
 )
+
+type bookmarkCacheEntry struct {
+	bookmarks string
+	sha       string
+	expiry    time.Time
+}
+
+var bookmarksCache = struct {
+	sync.RWMutex
+	data map[string]*bookmarkCacheEntry
+}{data: make(map[string]*bookmarkCacheEntry)}
+
+func cacheKey(user, ref string) string { return user + "|" + ref }
+
+func getCachedBookmarks(user, ref string) (string, string, bool) {
+	key := cacheKey(user, ref)
+	bookmarksCache.RLock()
+	entry, ok := bookmarksCache.data[key]
+	bookmarksCache.RUnlock()
+	if !ok || time.Now().After(entry.expiry) {
+		return "", "", false
+	}
+	return entry.bookmarks, entry.sha, true
+}
+
+func setCachedBookmarks(user, ref, bookmarks, sha string) {
+	key := cacheKey(user, ref)
+	bookmarksCache.Lock()
+	bookmarksCache.data[key] = &bookmarkCacheEntry{bookmarks: bookmarks, sha: sha, expiry: time.Now().Add(time.Minute)}
+	bookmarksCache.Unlock()
+}
+
+func invalidateBookmarkCache(user string) {
+	bookmarksCache.Lock()
+	for k := range bookmarksCache.data {
+		if strings.HasPrefix(k, user+"|") {
+			delete(bookmarksCache.data, k)
+		}
+	}
+	bookmarksCache.Unlock()
+}
 
 func providerFromContext(ctx context.Context) Provider {
 	if name, ok := ctx.Value(ContextValues("provider")).(string); ok {
@@ -50,6 +95,9 @@ func GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commi
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+	if b, sha, ok := getCachedBookmarks(user, ref); ok {
+		return b, sha, nil
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return "", "", ErrNoProvider
@@ -62,7 +110,11 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 	if p == nil {
 		return ErrNoProvider
 	}
-	return p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
+  err := p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
+  if err == nil {
+    invalidateBookmarkCache(user)
+  }
+  return err
 }
 
 func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
@@ -70,5 +122,9 @@ func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, bran
 	if p == nil {
 		return ErrNoProvider
 	}
-	return p.CreateBookmarks(ctx, user, token, branch, text)
+  err := p.CreateBookmarks(ctx, user, token, branch, text)
+  if err == nil {
+		invalidateBookmarkCache(user)
+	}
+  return err
 }
