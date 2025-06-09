@@ -21,6 +21,11 @@ import (
 // defined in settings.go.
 type GitLabProvider struct{}
 
+func gitlabUnauthorized(err error) bool {
+	var respErr *gitlab.ErrorResponse
+	return errors.As(err, &respErr) && respErr.Response != nil && respErr.Response.StatusCode == http.StatusUnauthorized
+}
+
 func init() { RegisterProvider(GitLabProvider{}) }
 
 func (GitLabProvider) Name() string { return "gitlab" }
@@ -74,6 +79,9 @@ func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 	}
 	tags, _, err := c.Tags.ListTags(user+"/"+RepoName, &gitlab.ListTagsOptions{})
 	if err != nil {
+		if gitlabUnauthorized(err) {
+			return nil, ErrSignedOut
+		}
 		log.Printf("gitlab GetTags: %v", err)
 		return nil, fmt.Errorf("ListTags: %w", err)
 	}
@@ -92,6 +100,9 @@ func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth
 	}
 	bs, _, err := c.Branches.ListBranches(user+"/"+RepoName, &gitlab.ListBranchesOptions{})
 	if err != nil {
+		if gitlabUnauthorized(err) {
+			return nil, ErrSignedOut
+		}
 		log.Printf("gitlab GetBranches: %v", err)
 		return nil, fmt.Errorf("ListBranches: %w", err)
 	}
@@ -110,6 +121,9 @@ func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2
 	}
 	cs, _, err := c.Commits.ListCommits(user+"/"+RepoName, &gitlab.ListCommitsOptions{})
 	if err != nil {
+		if gitlabUnauthorized(err) {
+			return nil, ErrSignedOut
+		}
 		log.Printf("gitlab GetCommits: %v", err)
 		return nil, fmt.Errorf("ListCommits: %w", err)
 	}
@@ -144,8 +158,14 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return "", "", nil
 			}
+			if gitlabUnauthorized(err) {
+				return "", "", ErrSignedOut
+			}
 			log.Printf("gitlab GetBookmarks get file: %v", err)
 			return "", "", nil
+		}
+		if gitlabUnauthorized(err) {
+			return "", "", ErrSignedOut
 		}
 		log.Printf("gitlab GetBookmarks: %v", err)
 		return "", "", err
@@ -161,8 +181,16 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
 	p, _, err := client.Projects.GetProject(user+"/"+RepoName, nil)
 	if err != nil {
-		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
-			return "", ErrRepoNotFound
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
+			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+				return "", ErrRepoNotFound
+			}
+			if gitlabUnauthorized(err) {
+				return "", ErrSignedOut
+			}
+		}
+		if gitlabUnauthorized(err) {
+			return "", ErrSignedOut
 		}
 		log.Printf("gitlab getDefaultBranch: %v", err)
 		return "", err
@@ -202,8 +230,14 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return ErrRepoNotFound
 			}
+			if gitlabUnauthorized(err) {
+				return ErrSignedOut
+			}
 			log.Printf("gitlab UpdateBookmarks update file: %v", err)
 			return err
+		}
+		if gitlabUnauthorized(err) {
+			return ErrSignedOut
 		}
 		if err.Error() == "404 Not Found" {
 			return ErrRepoNotFound
@@ -240,8 +274,14 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
 				return ErrRepoNotFound
 			}
+			if gitlabUnauthorized(err) {
+				return ErrSignedOut
+			}
 			log.Printf("gitlab CreateBookmarks create file: %v", err)
 			return err
+		}
+		if gitlabUnauthorized(err) {
+			return ErrSignedOut
 		}
 		log.Printf("gitlab CreateBookmarks: %v", err)
 		return err
@@ -261,5 +301,8 @@ func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oaut
 		Visibility:           gitlab.Ptr(gitlab.PrivateVisibility),
 		InitializeWithReadme: gitlab.Ptr(true),
 	})
+	if err != nil && gitlabUnauthorized(err) {
+		return ErrSignedOut
+	}
 	return err
 }
