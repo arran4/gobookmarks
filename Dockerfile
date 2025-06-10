@@ -11,7 +11,7 @@ ENV GBM_CSS_COLUMNS=""
 ENV GBM_NAMESPACE=""
 ENV FAVICON_CACHE_DIR=/data/favicons
 ENV FAVICON_CACHE_SIZE=20971520
-ENV JSON_DB_PATH=/db/gobookmarks
+ENV LOCAL_GIT_PATH=/db/gobookmarks
 ENV GOBM_ENV_FILE=/etc/gobookmarks/gobookmarks.env
 ENV GOBM_CONFIG_FILE=/etc/gobookmarks/config.json
 EXPOSE 8080

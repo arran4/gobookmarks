@@ -2,18 +2,13 @@ package gobookmarks
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
@@ -125,19 +120,24 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func JSONLoginAction(w http.ResponseWriter, r *http.Request) error {
+func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 	session, err := getSession(w, r)
 	if err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 	user := r.FormValue("username")
 	pass := r.FormValue("password")
-	data, err := os.ReadFile(userPasswordPath(user))
-	if err != nil || bcrypt.CompareHashAndPassword(data, []byte(pass)) != nil {
-		http.Redirect(w, r, "/login/json?error=invalid", http.StatusSeeOther)
+	p := GetProvider("git")
+	ph, ok := p.(PasswordHandler)
+	if !ok {
+		return fmt.Errorf("password handler not available")
+	}
+	okPass, err := ph.CheckPassword(r.Context(), user, pass)
+	if err != nil || !okPass {
+		http.Redirect(w, r, "/login/git?error=invalid", http.StatusSeeOther)
 		return nil
 	}
-	session.Values["Provider"] = "json"
+	session.Values["Provider"] = "git"
 	session.Values["GithubUser"] = &User{Login: user}
 	session.Values["Token"] = nil
 	session.Values["version"] = version
@@ -147,32 +147,25 @@ func JSONLoginAction(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func JSONSignupAction(w http.ResponseWriter, r *http.Request) error {
+func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 	user := r.FormValue("username")
 	pass := r.FormValue("password")
-	p := userPasswordPath(user)
-	if _, err := os.Stat(p); err == nil {
-		http.Redirect(w, r, "/login/json?error=exists", http.StatusSeeOther)
-		return nil
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("stat: %w", err)
+	prov := GetProvider("git")
+	ph, ok := prov.(PasswordHandler)
+	if !ok {
+		return fmt.Errorf("password handler not available")
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
-		return fmt.Errorf("mkdir: %w", err)
+	if err := ph.CreateUser(r.Context(), user, pass); err != nil {
+		if errors.Is(err, ErrUserExists) {
+			http.Redirect(w, r, "/login/git?error=exists", http.StatusSeeOther)
+			return nil
+		}
+		return err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("hash: %w", err)
-	}
-	if err := os.WriteFile(p, hash, 0600); err != nil {
-		return fmt.Errorf("write: %w", err)
+	if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
+		return err
 	}
 	return nil
-}
-
-func userPasswordPath(user string) string {
-	uh := sha256.Sum256([]byte(user))
-	return filepath.Join(JSONDBPath, hex.EncodeToString(uh[:]), ".password")
 }
 
 func UserAdderMiddleware(next http.Handler) http.Handler {

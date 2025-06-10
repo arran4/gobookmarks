@@ -81,7 +81,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
 | `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
-| `JSON_DB_PATH` | Directory used for the local JSON provider. |
+| `LOCAL_GIT_PATH` | Directory used for the local git provider. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when run as root. |
 
@@ -126,10 +126,12 @@ and both service files run the daemon as `gobookmarks`.
 ### Docker
 
 The Docker image continues to work as before.  Mount `/data` if you need
-persistent storage and mount `/db` for the JSON provider. Pass the same environment variables as listed above. The JSON provider stores data under
-`$JSON_DB_PATH/<sha256(username)>/` with a `.password` file containing the bcrypt hash,
-`bookmarks.txt`, `branches.txt`, `tags.txt` and a tar archive per branch.
-Login with this provider via `/login/json` using the username and password that match the stored bcrypt hash.
+persistent storage and mount `/db` for the git provider. Pass the same environment variables as listed above. The git provider stores data under
+`$LOCAL_GIT_PATH/<sha256(username)>/` as a git repository with a `.password` file containing the bcrypt hash.
+Create an account via `/signup/git`. This stores the password hash under
+`$LOCAL_GIT_PATH/<sha256(username)>/.password` and creates the repository. Log in
+later via `/login/git` using the same credentials. Passwords can be updated with
+the provider's SetPassword method.
 Favicons are cached on disk under `/data/favicons` by default. Set
 `FAVICON_CACHE_DIR` to an empty string to disable disk caching.
 You can also mount a config file and env file:
