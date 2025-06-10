@@ -1,4 +1,4 @@
-//go:build jsonprovider
+//go:build !excludejsonprovider
 
 package gobookmarks
 
@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -195,8 +196,6 @@ func userDir(user string) string {
 	uh := sha256.Sum256([]byte(user))
 	return filepath.Join(JSONDBPath, hex.EncodeToString(uh[:]))
 }
-
-func userPasswordPath(user string) string { return filepath.Join(userDir(user), ".password") }
 
 func commitTarPath(user, branch string) string { return filepath.Join(userDir(user), branch+".tar") }
 
