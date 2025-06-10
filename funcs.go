@@ -109,6 +109,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			_, sha, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			if err != nil {
+				if errors.Is(err, ErrRepoNotFound) {
+					return "", nil
+				}
 				return "", err
 			}
 			return sha, nil
@@ -140,8 +143,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			var bookmark = defaultBookmarks
 			if err != nil {
-				// TODO check for error type and if it's not exist, fall through
-				return nil, fmt.Errorf("bookmarkPages: %w", err)
+				if errors.Is(err, ErrRepoNotFound) {
+					bookmark = ""
+				} else {
+					return nil, fmt.Errorf("bookmarkPages: %w", err)
+				}
 			} else {
 				bookmark = bookmarks
 			}
@@ -181,8 +187,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			var bookmark = defaultBookmarks
 			if err != nil {
-				// TODO check for error type and if it's not exist, fall through
-				return nil, fmt.Errorf("bookmarkTabs: %w", err)
+				if errors.Is(err, ErrRepoNotFound) {
+					bookmark = ""
+				} else {
+					return nil, fmt.Errorf("bookmarkTabs: %w", err)
+				}
 			} else {
 				bookmark = bookmarks
 			}
@@ -210,8 +219,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			var bookmark = defaultBookmarks
 			if err != nil {
-				// TODO check for error type and if it's not exist, fall through
-				return nil, fmt.Errorf("bookmarkColumns: %w", err)
+				if errors.Is(err, ErrRepoNotFound) {
+					bookmark = ""
+				} else {
+					return nil, fmt.Errorf("bookmarkColumns: %w", err)
+				}
 			} else {
 				bookmark = bookmarks
 			}
@@ -289,6 +301,9 @@ func Bookmarks(r *http.Request) (string, error) {
 
 	bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
+		if errors.Is(err, ErrRepoNotFound) {
+			return "", nil
+		}
 		return "", fmt.Errorf("bookmarks: %w", err)
 	}
 	return bookmarks, nil
