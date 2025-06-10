@@ -40,6 +40,19 @@ type Provider interface {
 	DefaultServer() string
 }
 
+// PasswordHandler is implemented by providers that manage passwords.
+// PasswordHandler manages user accounts for providers that do not rely on
+// external authentication.
+//
+// CreateUser registers a new account and returns ErrUserExists if the user is
+// already present. SetPassword updates the password for an existing user and
+// returns ErrUserNotFound when the account does not exist.
+type PasswordHandler interface {
+	CreateUser(ctx context.Context, user, password string) error
+	SetPassword(ctx context.Context, user, password string) error
+	CheckPassword(ctx context.Context, user, password string) (bool, error)
+}
+
 var providers = map[string]Provider{}
 
 func RegisterProvider(p Provider) { providers[p.Name()] = p }

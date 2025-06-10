@@ -19,7 +19,7 @@ var (
 	FaviconCacheDir  string
 	FaviconCacheSize int64
 
-	JSONDBPath string
+	LocalGitPath string
 )
 
 const (

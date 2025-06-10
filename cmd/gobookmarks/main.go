@@ -71,7 +71,7 @@ func main() {
 			}
 			return 0
 		}(),
-		JSONDBPath: os.Getenv("JSON_DB_PATH"),
+		LocalGitPath: os.Getenv("LOCAL_GIT_PATH"),
 	}
 
 	configPath := DefaultConfigPath()
@@ -88,7 +88,7 @@ func main() {
 	var glServerFlag stringFlag
 	var faviconDirFlag stringFlag
 	var faviconSizeFlag stringFlag
-	var jsonPathFlag stringFlag
+	var localGitPathFlag stringFlag
 	var columnFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
@@ -104,7 +104,7 @@ func main() {
 	flag.Var(&faviconSizeFlag, "favicon-cache-size", "max size of favicon cache in bytes")
 	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
-	flag.Var(&jsonPathFlag, "json-db-path", "JSON database path")
+	flag.Var(&localGitPathFlag, "local-git-path", "directory for local git provider")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
@@ -163,8 +163,8 @@ func main() {
 	if glServerFlag.set {
 		cfg.GitlabServer = glServerFlag.value
 	}
-	if jsonPathFlag.set {
-		cfg.JSONDBPath = jsonPathFlag.value
+	if localGitPathFlag.set {
+		cfg.LocalGitPath = localGitPathFlag.value
 	}
 
 	if dumpConfig {
@@ -191,8 +191,8 @@ func main() {
 	} else {
 		FaviconCacheSize = DefaultFaviconCacheSize
 	}
-	if cfg.JSONDBPath != "" {
-		JSONDBPath = cfg.JSONDBPath
+	if cfg.LocalGitPath != "" {
+		LocalGitPath = cfg.LocalGitPath
 	}
 	githubID := cfg.GithubClientID
 	githubSecret := cfg.GithubSecret
@@ -254,9 +254,9 @@ func main() {
 	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/login", runTemplate("loginPage.gohtml")).Methods("GET")
-	r.HandleFunc("/login/json", runTemplate("jsonLoginPage.gohtml")).Methods("GET")
-	r.HandleFunc("/login/json", runHandlerChain(JSONLoginAction, redirectToHandler("/"))).Methods("POST")
-	r.HandleFunc("/signup/json", runHandlerChain(JSONSignupAction, redirectToHandler("/login/json"))).Methods("POST")
+	r.HandleFunc("/login/git", runTemplate("gitLoginPage.gohtml")).Methods("GET")
+	r.HandleFunc("/login/git", runHandlerChain(GitLoginAction, redirectToHandler("/"))).Methods("POST")
+	r.HandleFunc("/signup/git", runHandlerChain(GitSignupAction, redirectToHandler("/login/git"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")

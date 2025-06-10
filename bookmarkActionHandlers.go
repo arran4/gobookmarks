@@ -18,9 +18,6 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
 	repoName := RepoName
-	if r.PostFormValue("repoName") != "" {
-		repoName = r.PostFormValue("repoName")
-	}
 
 	login := ""
 	if githubUser != nil {
@@ -30,7 +27,7 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
-			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, nil)
+			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, nil)
 		}
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
@@ -44,9 +41,8 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 			return fmt.Errorf("create repo: %w", ErrNoProvider)
 		}
 		if err := p.CreateRepo(r.Context(), login, token, repoName); err != nil {
-			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, err)
+			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, err)
 		}
-		RepoName = repoName
 		if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
 			return fmt.Errorf("createBookmark error: %w", err)
 		}
@@ -55,7 +51,7 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text, curSha); err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
-			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, nil)
+			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, nil)
 		}
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
@@ -117,18 +113,16 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func renderCreateRepoPrompt(w http.ResponseWriter, r *http.Request, repoName, text, branch, ref, sha string, err error) error {
+func renderCreateRepoPrompt(w http.ResponseWriter, r *http.Request, text, branch, ref, sha string, err error) error {
 	data := struct {
 		*CoreData
-		RepoName string
-		Text     string
-		Branch   string
-		Ref      string
-		Sha      string
-		Error    string
+		Text   string
+		Branch string
+		Ref    string
+		Sha    string
+		Error  string
 	}{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-		RepoName: repoName,
 		Text:     text,
 		Branch:   branch,
 		Ref:      ref,

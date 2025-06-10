@@ -23,7 +23,7 @@ type Config struct {
 	GitlabServer     string `json:"gitlab_server"`
 	FaviconCacheDir  string `json:"favicon_cache_dir"`
 	FaviconCacheSize int64  `json:"favicon_cache_size"`
-	JSONDBPath       string `json:"json_db_path"`
+	LocalGitPath     string `json:"local_git_path"`
 }
 
 // LoadConfigFile loads configuration from the given path if it exists.
@@ -78,8 +78,8 @@ func MergeConfig(dst *Config, src Config) {
 	if src.FaviconCacheSize != 0 {
 		dst.FaviconCacheSize = src.FaviconCacheSize
 	}
-	if src.JSONDBPath != "" {
-		dst.JSONDBPath = src.JSONDBPath
+	if src.LocalGitPath != "" {
+		dst.LocalGitPath = src.LocalGitPath
 	}
 }
 

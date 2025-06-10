@@ -76,8 +76,8 @@ func providerCreds(name string) *ProviderCreds {
 			return nil
 		}
 		return &ProviderCreds{ID: GitlabClientID, Secret: GitlabClientSecret}
-	case "json":
-		if JSONDBPath == "" {
+	case "git":
+		if LocalGitPath == "" {
 			return nil
 		}
 		return &ProviderCreds{}

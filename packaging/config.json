@@ -9,5 +9,5 @@
   "title": "",
   "github_server": "https://github.com",
   "gitlab_server": "https://gitlab.com"
-  ,"json_db_path": ""
+  ,"local_git_path": ""
 }
