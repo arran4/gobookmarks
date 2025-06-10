@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -120,6 +121,7 @@ func (JSONProvider) GetBookmarks(ctx context.Context, user, ref string, token *o
 		if os.IsNotExist(err) {
 			return "", "", ErrRepoNotFound
 		}
+		log.Printf("json GetBookmarks read: %v", err)
 		return "", "", err
 	}
 	sum := sha256.Sum256(data)
@@ -132,15 +134,21 @@ func (JSONProvider) UpdateBookmarks(ctx context.Context, user string, token *oau
 	}
 	_, sha, err := JSONProvider{}.GetBookmarks(ctx, user, branch, token)
 	if err != nil && !errors.Is(err, ErrRepoNotFound) {
+		log.Printf("json UpdateBookmarks get: %v", err)
 		return err
 	}
 	if err == nil && sha != expectSHA {
 		return errors.New("sha mismatch")
 	}
 	if err := os.WriteFile(filepath.Join(userDir(user), branch+".txt"), []byte(text), 0600); err != nil {
+		log.Printf("json UpdateBookmarks write: %v", err)
 		return err
 	}
-	return appendCommit(user, branch, []byte(text))
+	if err := appendCommit(user, branch, []byte(text)); err != nil {
+		log.Printf("json UpdateBookmarks commit: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (JSONProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
@@ -149,9 +157,11 @@ func (JSONProvider) CreateBookmarks(ctx context.Context, user string, token *oau
 	}
 	dir := userDir(user)
 	if err := os.MkdirAll(dir, 0700); err != nil {
+		log.Printf("json CreateBookmarks mkdir: %v", err)
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(dir, branch+".txt"), []byte(text), 0600); err != nil {
+		log.Printf("json CreateBookmarks write: %v", err)
 		return err
 	}
 	branchesPath := filepath.Join(dir, "branches.txt")
@@ -170,6 +180,7 @@ func (JSONProvider) CreateBookmarks(ctx context.Context, user string, token *oau
 		branches = append(branches, branch)
 	}
 	if err := os.WriteFile(branchesPath, []byte(strings.Join(branches, "\n")+"\n"), 0600); err != nil {
+		log.Printf("json CreateBookmarks branches: %v", err)
 		return err
 	}
 	tagsPath := filepath.Join(dir, "tags.txt")
@@ -182,14 +193,23 @@ func (JSONProvider) CreateBookmarks(ctx context.Context, user string, token *oau
 	}
 	if _, err := os.Stat(tagsPath); os.IsNotExist(err) {
 		if err := os.WriteFile(tagsPath, []byte(""), 0600); err != nil {
+			log.Printf("json CreateBookmarks tags: %v", err)
 			return err
 		}
 	}
-	return appendCommit(user, branch, []byte(text))
+	if err := appendCommit(user, branch, []byte(text)); err != nil {
+		log.Printf("json CreateBookmarks commit: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (JSONProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	return JSONProvider{}.CreateBookmarks(ctx, user, token, "main", "")
+	if err := (JSONProvider{}).CreateBookmarks(ctx, user, token, "main", ""); err != nil {
+		log.Printf("json CreateRepo: %v", err)
+		return err
+	}
+	return nil
 }
 
 func userDir(user string) string {

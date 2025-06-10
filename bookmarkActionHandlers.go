@@ -17,6 +17,10 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
+	repoName := RepoName
+	if r.PostFormValue("repoName") != "" {
+		repoName = r.PostFormValue("repoName")
+	}
 
 	login := ""
 	if githubUser != nil {
@@ -25,16 +29,15 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
+		if errors.Is(err, ErrRepoNotFound) {
+			return renderCreateRepoPrompt(w, r, repoName, text, branch, ref, sha, nil)
+		}
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if sha != "" && curSha != sha {
 		return fmt.Errorf("bookmark modified concurrently")
 	}
 
-	repoName := RepoName
-	if r.PostFormValue("repoName") != "" {
-		repoName = r.PostFormValue("repoName")
-	}
 	if r.PostFormValue("createRepo") == "1" {
 		p := providerFromContext(r.Context())
 		if p == nil {
