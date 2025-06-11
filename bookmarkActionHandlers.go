@@ -27,6 +27,16 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
+			// attempt to create the repository automatically
+			if p := providerFromContext(r.Context()); p != nil {
+				if err := p.CreateRepo(r.Context(), login, token, repoName); err == nil {
+					if err := CreateBookmarks(r.Context(), login, token, branch, text); err == nil {
+						http.Redirect(w, r, "/edit?ref=refs/heads/"+branch, http.StatusTemporaryRedirect)
+						// stop the handler chain so the default redirect isn't executed
+						return ErrHandled
+					}
+				}
+			}
 			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, nil)
 		}
 		return fmt.Errorf("GetBookmarks: %w", err)
@@ -46,7 +56,9 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
 			return fmt.Errorf("createBookmark error: %w", err)
 		}
-		return nil
+		http.Redirect(w, r, "/edit?ref=refs/heads/"+branch, http.StatusTemporaryRedirect)
+		// skip the chain's final redirect so we stay on the edit page
+		return ErrHandled
 	}
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text, curSha); err != nil {
