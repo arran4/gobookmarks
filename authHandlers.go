@@ -156,7 +156,13 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("password handler not available")
 	}
 	okPass, err := ph.CheckPassword(r.Context(), user, pass)
+	if err != nil {
+		log.Printf("git login check error for %s: %v", user, err)
+	}
 	if err != nil || !okPass {
+		if !okPass {
+			log.Printf("git login failed for %s: invalid password", user)
+		}
 		http.Redirect(w, r, "/login/git?error=invalid", http.StatusSeeOther)
 		return nil
 	}
@@ -180,15 +186,19 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err := ph.CreateUser(r.Context(), user, pass); err != nil {
 		if errors.Is(err, ErrUserExists) {
+			log.Printf("git signup for %s failed: user exists", user)
 			http.Redirect(w, r, "/login/git?error=exists", http.StatusSeeOther)
 			return nil
 		}
+		log.Printf("git signup create user error for %s: %v", user, err)
 		return err
 	}
 	if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
+		log.Printf("git signup create repo error for %s: %v", user, err)
 		return err
 	}
 	if err := prov.CreateBookmarks(r.Context(), user, nil, "main", defaultBookmarks); err != nil {
+		log.Printf("git signup create sample bookmarks error for %s: %v", user, err)
 		return fmt.Errorf("create sample bookmarks: %w", err)
 	}
 	return nil

@@ -70,6 +70,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			creds := providerCreds(p)
 			return creds != nil && GetProvider(p) != nil
 		},
+		"errorMsg": errorMessage,
 		"ref": func() string {
 			return r.URL.Query().Get("ref")
 		},
@@ -328,4 +329,15 @@ func BookmarksExist(r *http.Request) (bool, error) {
 		return false, fmt.Errorf("bookmarks exist: %w", err)
 	}
 	return bookmarks != "", nil
+}
+
+func errorMessage(code string) string {
+	switch code {
+	case "invalid":
+		return "Invalid username or password"
+	case "exists":
+		return "Account already exists"
+	default:
+		return code
+	}
 }
