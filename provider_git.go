@@ -228,7 +228,14 @@ func (GitProvider) CreateRepo(ctx context.Context, user string, token *oauth2.To
 	}
 	r, err := git.PlainInit(path, false)
 	if err != nil {
-		return err
+		if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+			r, err = git.PlainOpen(path)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	wt, err := r.Worktree()
 	if err != nil {

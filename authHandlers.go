@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 )
@@ -38,6 +39,21 @@ var (
 	SessionStore sessions.Store
 	SessionName  string
 )
+
+// ensureRepo checks for the bookmarks repository and creates it with
+// some default content when missing.
+func ensureRepo(ctx context.Context, p Provider, user string, token *oauth2.Token) error {
+	if err := p.CreateBookmarks(ctx, user, token, "main", defaultBookmarks); err != nil {
+		if errors.Is(err, ErrRepoNotFound) {
+			if err := p.CreateRepo(ctx, user, token, RepoName); err != nil {
+				return err
+			}
+			return p.CreateBookmarks(ctx, user, token, "main", defaultBookmarks)
+		}
+		return err
+	}
+	return nil
+}
 
 func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	providerName := mux.Vars(r)["provider"]
@@ -107,6 +123,13 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("user lookup error: %w", err)
 	}
 
+	if err := ensureRepo(r.Context(), p, user.Login, token); err != nil {
+		// expire the session from the login step
+		session.Options.MaxAge = -1
+		_ = session.Save(r, w)
+		return fmt.Errorf("repository setup failed: %w", err)
+	}
+
 	session.Values["Provider"] = providerName
 	session.Values["GithubUser"] = user
 	session.Values["Token"] = token
@@ -164,6 +187,9 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
 		return err
+	}
+	if err := prov.CreateBookmarks(r.Context(), user, nil, "main", defaultBookmarks); err != nil {
+		return fmt.Errorf("create sample bookmarks: %w", err)
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/google/go-github/v55/github"
@@ -164,8 +165,12 @@ func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oaut
 	rep := &github.Repository{Name: &RepoName, Description: SP("Personal bookmarks"), Private: BP(true)}
 	rep, _, err := client.Repositories.Create(ctx, "", rep)
 	if err != nil {
-		log.Printf("github createRepo: %v", err)
-		return fmt.Errorf("Repositories.Create: %w", err)
+		if e, ok := err.(*github.ErrorResponse); ok && e.Response != nil && e.Response.StatusCode == http.StatusUnprocessableEntity {
+			// repository already exists
+		} else {
+			log.Printf("github createRepo: %v", err)
+			return fmt.Errorf("Repositories.Create: %w", err)
+		}
 	}
 	_, _, err = client.Repositories.CreateFile(ctx, user, RepoName, "readme.md", &github.RepositoryContentFileOptions{
 		Message: SP("Auto create from web"),

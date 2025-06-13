@@ -149,14 +149,6 @@ func TestExecuteTemplates(t *testing.T) {
 			*CoreData
 			Error string
 		}{baseData.CoreData, "boom"}},
-		{"createRepo", "createRepo.gohtml", struct {
-			*CoreData
-			Text   string
-			Branch string
-			Ref    string
-			Sha    string
-			Error  string
-		}{baseData.CoreData, "text", "main", "ref", "sha", ""}},
 	}
 
 	for _, tt := range pages {
