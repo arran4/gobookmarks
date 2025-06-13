@@ -46,6 +46,7 @@ func testFuncMap() template.FuncMap {
 		"Providers":          func() []string { return []string{"github", "gitlab"} },
 		"AllProviders":       func() []string { return []string{"github", "gitlab"} },
 		"ProviderConfigured": func(string) bool { return true },
+		"errorMsg":           func(s string) string { return s },
 		"ref":                func() string { return "refs/heads/main" },
 		"add1":               func(i int) int { return i + 1 },
 		"tab":                func() string { return "" },
