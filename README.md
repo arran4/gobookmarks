@@ -135,6 +135,15 @@ Create an account via `/signup/git`. This stores the password hash under
 `$LOCAL_GIT_PATH/<sha256(username)>/.password` and creates the repository. Log in
 later via `/login/git` using the same credentials. Passwords can be updated with
 the provider's SetPassword method.
+
+To locate the file, compute the SHA-256 of your username and look for the
+corresponding directory. For example:
+
+```bash
+echo -n alice | sha256sum
+```
+
+The output hash forms the path `$LOCAL_GIT_PATH/<hash>/.password`.
 Favicons are cached on disk under `/data/favicons` by default. Set
 `FAVICON_CACHE_DIR` to an empty string to disable disk caching.
 You can also mount a config file and env file:
