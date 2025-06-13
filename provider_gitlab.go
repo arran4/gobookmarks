@@ -301,8 +301,14 @@ func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oaut
 		Visibility:           gitlab.Ptr(gitlab.PrivateVisibility),
 		InitializeWithReadme: gitlab.Ptr(true),
 	})
-	if err != nil && gitlabUnauthorized(err) {
-		return ErrSignedOut
+	if err != nil {
+		if respErr, ok := err.(*gitlab.ErrorResponse); ok && respErr.Response != nil &&
+			(respErr.Response.StatusCode == http.StatusBadRequest || respErr.Response.StatusCode == http.StatusConflict) {
+			// repository already exists
+			err = nil
+		} else if gitlabUnauthorized(err) {
+			return ErrSignedOut
+		}
 	}
 	return err
 }

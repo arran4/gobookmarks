@@ -16,20 +16,23 @@ Oauth2 restrictions on SPA sites. You can read more about this here: https://arr
 
 # How to use
 
-1. Create a (private or public doesn't matter) repo in github under your user name called: "MyBookmarks"
-2. Create 1 file in it called `bookmarks.txt` Put the following content (or anything you want really):
-```text
-Category: Search
-http://www.google.com.au Google
-Category: Wikies
-http://en.wikipedia.org/wiki/Main_Page Wikipedia
-http://mathworld.wolfram.com/ Math World
-http://gentoo-wiki.com/Main_Page Gentoo-wiki
-```
-Ie:
-![img_3.png](media/img_3.png)
-3. Goto the URL this app is deployed at, your private instance or: https://bookmarks.arran.net.au
-4. Enjoy
+1. Sign up or log in using Git, GitHub or GitLab. On first use the service
+   creates a repository called `MyBookmarks` in your account containing a
+   `bookmarks.txt` file like:
+
+   ```text
+   Category: Search
+   http://www.google.com.au Google
+   Category: Wikies
+   http://en.wikipedia.org/wiki/Main_Page Wikipedia
+   http://mathworld.wolfram.com/ Math World
+   http://gentoo-wiki.com/Main_Page Gentoo-wiki
+   ```
+
+   ![img_3.png](media/img_3.png)
+2. Goto the URL this app is deployed at, your private instance or:
+   https://bookmarks.arran.net.au
+3. Enjoy
 
 ## File format
 

@@ -27,17 +27,15 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
-			// attempt to create the repository automatically
 			if p := providerFromContext(r.Context()); p != nil {
 				if err := p.CreateRepo(r.Context(), login, token, repoName); err == nil {
 					if err := CreateBookmarks(r.Context(), login, token, branch, text); err == nil {
 						http.Redirect(w, r, "/edit?ref=refs/heads/"+branch, http.StatusTemporaryRedirect)
-						// stop the handler chain so the default redirect isn't executed
 						return ErrHandled
 					}
 				}
 			}
-			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, nil)
+			return fmt.Errorf("repository not found")
 		}
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
@@ -45,25 +43,9 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("bookmark modified concurrently")
 	}
 
-	if r.PostFormValue("createRepo") == "1" {
-		p := providerFromContext(r.Context())
-		if p == nil {
-			return fmt.Errorf("create repo: %w", ErrNoProvider)
-		}
-		if err := p.CreateRepo(r.Context(), login, token, repoName); err != nil {
-			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, err)
-		}
-		if err := CreateBookmarks(r.Context(), login, token, branch, text); err != nil {
-			return fmt.Errorf("createBookmark error: %w", err)
-		}
-		http.Redirect(w, r, "/edit?ref=refs/heads/"+branch, http.StatusTemporaryRedirect)
-		// skip the chain's final redirect so we stay on the edit page
-		return ErrHandled
-	}
-
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text, curSha); err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
-			return renderCreateRepoPrompt(w, r, text, branch, ref, sha, nil)
+			return fmt.Errorf("repository not found")
 		}
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
@@ -123,28 +105,4 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
 	return nil
-}
-
-func renderCreateRepoPrompt(w http.ResponseWriter, r *http.Request, text, branch, ref, sha string, err error) error {
-	data := struct {
-		*CoreData
-		Text   string
-		Branch string
-		Ref    string
-		Sha    string
-		Error  string
-	}{
-		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-		Text:     text,
-		Branch:   branch,
-		Ref:      ref,
-		Sha:      sha,
-	}
-	if err != nil {
-		data.Error = err.Error()
-	}
-	if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "createRepo.gohtml", data); tplErr != nil {
-		return fmt.Errorf("template: %w", tplErr)
-	}
-	return ErrHandled
 }
