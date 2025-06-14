@@ -2,6 +2,7 @@ package gobookmarks
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -91,7 +92,11 @@ func GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, err
 	if p == nil {
 		return nil, ErrNoProvider
 	}
-	return p.GetTags(ctx, user, token)
+	tags, err := p.GetTags(ctx, user, token)
+	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+		return nil, ErrSignedOut
+	}
+	return tags, err
 }
 
 func GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
@@ -99,7 +104,11 @@ func GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Bran
 	if p == nil {
 		return nil, ErrNoProvider
 	}
-	return p.GetBranches(ctx, user, token)
+	bs, err := p.GetBranches(ctx, user, token)
+	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+		return nil, ErrSignedOut
+	}
+	return bs, err
 }
 
 func GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
@@ -107,7 +116,11 @@ func GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commi
 	if p == nil {
 		return nil, ErrNoProvider
 	}
-	return p.GetCommits(ctx, user, token)
+	cs, err := p.GetCommits(ctx, user, token)
+	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+		return nil, ErrSignedOut
+	}
+	return cs, err
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
@@ -118,7 +131,11 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 	if p == nil {
 		return "", "", ErrNoProvider
 	}
-	return p.GetBookmarks(ctx, user, ref, token)
+	b, sha, err := p.GetBookmarks(ctx, user, ref, token)
+	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+		return "", "", ErrSignedOut
+	}
+	return b, sha, err
 }
 
 func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
@@ -129,6 +146,8 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 	err := p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
 	if err == nil {
 		invalidateBookmarkCache(user)
+	} else if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+		return ErrSignedOut
 	}
 	return err
 }
@@ -141,6 +160,8 @@ func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, bran
 	err := p.CreateBookmarks(ctx, user, token, branch, text)
 	if err == nil {
 		invalidateBookmarkCache(user)
+	} else if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+		return ErrSignedOut
 	}
 	return err
 }

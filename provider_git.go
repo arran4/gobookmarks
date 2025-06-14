@@ -226,31 +226,59 @@ func (GitProvider) CreateRepo(ctx context.Context, user string, token *oauth2.To
 	if err := os.MkdirAll(path, 0700); err != nil {
 		return err
 	}
+	if _, err := git.PlainOpen(path); err == nil {
+		// repo already exists
+		return nil
+	} else if !errors.Is(err, git.ErrRepositoryNotExists) {
+		return err
+	}
 	r, err := git.PlainInit(path, false)
 	if err != nil {
-		if errors.Is(err, git.ErrRepositoryAlreadyExists) {
-			r, err = git.PlainOpen(path)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+		return err
 	}
 	wt, err := r.Worktree()
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(path, "readme.md"), []byte("# bookmarks"), 0600); err != nil {
-		return err
+	added := false
+	if _, err := os.Stat(filepath.Join(path, "readme.md")); os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(path, "readme.md"), []byte("# bookmarks"), 0600); err != nil {
+			return err
+		}
+		if _, err := wt.Add("readme.md"); err != nil {
+			return err
+		}
+		added = true
 	}
-	if _, err := wt.Add("readme.md"); err != nil {
-		return err
+	if _, err := os.Stat(filepath.Join(path, ".gitignore")); os.IsNotExist(err) {
+		if err := os.WriteFile(filepath.Join(path, ".gitignore"), []byte(".password\n"), 0600); err != nil {
+			return err
+		}
+		if _, err := wt.Add(".gitignore"); err != nil {
+			return err
+		}
+		added = true
 	}
-	_, err = wt.Commit("init", &git.CommitOptions{
-		Author: &object.Signature{Name: "Gobookmarks", Email: "Gobookmarks@arran.net.au", When: time.Now()},
-	})
-	return err
+	if added {
+		_, err = wt.Commit("init", &git.CommitOptions{
+			Author: &object.Signature{Name: "Gobookmarks", Email: "Gobookmarks@arran.net.au", When: time.Now()},
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (GitProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+	path := userDir(user)
+	if _, err := git.PlainOpen(path); err == nil {
+		return true, nil
+	} else if errors.Is(err, git.ErrRepositoryNotExists) {
+		return false, nil
+	} else {
+		return false, err
+	}
 }
 
 func passwordPath(user string) string {
@@ -261,6 +289,10 @@ func passwordPath(user string) string {
 // CreateUser writes a bcrypt hash for the given user. It returns ErrUserExists
 // if the password file already exists.
 func (GitProvider) CreateUser(ctx context.Context, user, password string) error {
+	gp := GitProvider{}
+	if err := gp.CreateRepo(ctx, user, nil, RepoName); err != nil {
+		return err
+	}
 	p := passwordPath(user)
 	if _, err := os.Stat(p); err == nil {
 		return ErrUserExists

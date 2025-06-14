@@ -3,7 +3,9 @@ package gobookmarks
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -15,6 +17,13 @@ func TestGitProviderCreateAndGet(t *testing.T) {
 	text := "Category: Test\nhttp://example.com test"
 	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
+	}
+	gi, err := os.ReadFile(filepath.Join(userDir(user), ".gitignore"))
+	if err != nil {
+		t.Fatalf("gitignore missing: %v", err)
+	}
+	if !strings.Contains(string(gi), ".password") {
+		t.Fatalf(".password not ignored")
 	}
 	if err := p.CreateBookmarks(context.Background(), user, nil, "main", text); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
@@ -31,6 +40,27 @@ func TestGitProviderCreateAndGet(t *testing.T) {
 	}
 }
 
+func TestGitRepoExists(t *testing.T) {
+	tmp := t.TempDir()
+	LocalGitPath = tmp
+	p := GitProvider{}
+	user := "carol"
+	exists, err := p.RepoExists(context.Background(), user, nil, RepoName)
+	if err != nil {
+		t.Fatalf("RepoExists before create: %v", err)
+	}
+	if exists {
+		t.Fatalf("repo should not exist")
+	}
+	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+	exists, err = p.RepoExists(context.Background(), user, nil, RepoName)
+	if err != nil || !exists {
+		t.Fatalf("repo should exist, got %v %v", exists, err)
+	}
+}
+
 func TestGitPasswordLifecycle(t *testing.T) {
 	tmp := t.TempDir()
 	LocalGitPath = tmp
@@ -39,9 +69,18 @@ func TestGitPasswordLifecycle(t *testing.T) {
 	user := "bob"
 	pass := "secret"
 
-	// create user
 	if err := p.CreateUser(ctx, user, pass); err != nil {
 		t.Fatalf("CreateUser: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(userDir(user), ".git")); err != nil {
+		t.Fatalf("repo missing after CreateUser: %v", err)
+	}
+	gi, err := os.ReadFile(filepath.Join(userDir(user), ".gitignore"))
+	if err != nil {
+		t.Fatalf("gitignore missing: %v", err)
+	}
+	if !strings.Contains(string(gi), ".password") {
+		t.Fatalf(".password not ignored")
 	}
 	// creating again should fail
 	if err := p.CreateUser(ctx, user, pass); !errors.Is(err, ErrUserExists) {

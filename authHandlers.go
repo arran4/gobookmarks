@@ -193,8 +193,13 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("git signup create user error for %s: %v", user, err)
 		return err
 	}
-	if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
-		log.Printf("git signup create repo error for %s: %v", user, err)
+	if exists, err := prov.RepoExists(r.Context(), user, nil, RepoName); err == nil && !exists {
+		if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
+			log.Printf("git signup create repo error for %s: %v", user, err)
+			return err
+		}
+	} else if err != nil {
+		log.Printf("git signup repo check error for %s: %v", user, err)
 		return err
 	}
 	if err := prov.CreateBookmarks(r.Context(), user, nil, "main", defaultBookmarks); err != nil {

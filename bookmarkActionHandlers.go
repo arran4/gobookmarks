@@ -26,6 +26,9 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
+		if errors.Is(err, ErrSignedOut) {
+			return ErrSignedOut
+		}
 		if errors.Is(err, ErrRepoNotFound) {
 			if p := providerFromContext(r.Context()); p != nil {
 				if err := p.CreateRepo(r.Context(), login, token, repoName); err == nil {
