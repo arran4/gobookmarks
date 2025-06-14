@@ -312,3 +312,21 @@ func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oaut
 	}
 	return err
 }
+
+func (p GitLabProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+	c, err := GitLabProvider{}.client(token)
+	if err != nil {
+		return false, err
+	}
+	_, resp, err := c.Projects.GetProject(user+"/"+name, nil)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, nil
+		}
+		if gitlabUnauthorized(err) {
+			return false, ErrSignedOut
+		}
+		return false, err
+	}
+	return true, nil
+}

@@ -187,6 +187,21 @@ See . https://github.com/arran4/gobookmarks `),
 	return nil
 }
 
+func (p GitHubProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+	client := p.client(ctx, token)
+	_, resp, err := client.Repositories.Get(ctx, user, name)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return false, nil
+		}
+		if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+			return false, ErrSignedOut
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (p GitHubProvider) createRef(ctx context.Context, user string, client *github.Client, sourceRef, branchRef string) error {
 	gsref, resp, err := client.Git.GetRef(ctx, user, RepoName, sourceRef)
 	if resp != nil && resp.StatusCode == 404 {
