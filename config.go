@@ -3,9 +3,12 @@ package gobookmarks
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
@@ -26,18 +29,46 @@ type Config struct {
 	LocalGitPath     string `json:"local_git_path"`
 }
 
-// LoadConfigFile loads configuration from the given path if it exists.
-func LoadConfigFile(path string) (Config, error) {
+// LoadConfigFile loads configuration from the given path.
+// It returns the loaded Config, a boolean indicating if the file existed,
+// and any error that occurred while reading or parsing the file.
+func LoadConfigFile(path string) (Config, bool, error) {
 	var c Config
+
+	log.Printf("attempting to load config from %s", path)
+
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return c, nil
+			log.Printf("config file %s not found", path)
+			return c, false, err
 		}
-		return c, err
+		return c, false, fmt.Errorf("unable to read config file: %w", err)
 	}
-	err = json.Unmarshal(data, &c)
-	return c, err
+
+	if err := json.Unmarshal(data, &c); err != nil {
+		return c, true, fmt.Errorf("unable to parse config file: %w", err)
+	}
+
+	log.Printf("successfully loaded config from %s (keys: %s)", path, strings.Join(loadedConfigKeys(c), ", "))
+
+	return c, true, nil
+}
+
+func loadedConfigKeys(c Config) []string {
+	var keys []string
+	v := reflect.ValueOf(c)
+	t := reflect.TypeOf(c)
+	for i := 0; i < v.NumField(); i++ {
+		if !v.Field(i).IsZero() {
+			key := t.Field(i).Tag.Get("json")
+			if key == "" {
+				key = t.Field(i).Name
+			}
+			keys = append(keys, key)
+		}
+	}
+	return keys
 }
 
 // MergeConfig copies values from src into dst if they are non-zero.

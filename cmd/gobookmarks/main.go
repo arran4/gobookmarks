@@ -119,10 +119,20 @@ func main() {
 	if cfgFlag.set {
 		configPath = cfgFlag.value
 	}
-	if fileCfg, err := LoadConfigFile(configPath); err == nil {
-		MergeConfig(&cfg, fileCfg)
+
+	cfgSpecified := cfgFlag.set || os.Getenv("GOBM_CONFIG_FILE") != ""
+
+	if fileCfg, found, err := LoadConfigFile(configPath); err == nil {
+		if found {
+			MergeConfig(&cfg, fileCfg)
+		}
 	} else {
-		log.Printf("unable to load config file %s: %v", configPath, err)
+		if os.IsNotExist(err) && !cfgSpecified {
+			log.Printf("config file %s not found", configPath)
+		} else {
+			log.Printf("unable to load config file %s: %v", configPath, err)
+			os.Exit(1)
+		}
 	}
 
 	if ghIDFlag.set {
