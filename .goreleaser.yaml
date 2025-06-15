@@ -29,7 +29,6 @@ dockers:
   - image_templates:
       - "arran4/gobookmarks:{{ .Tag }}"
       - "arran4/gobookmarks:latest"
-    skip_push: {{ ne .Env.DOCKERHUB_PUSH "true" }}
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
