@@ -282,13 +282,16 @@ func (p GitHubProvider) CreateBookmarks(ctx context.Context, user string, token 
 			return err
 		}
 	}
-	_, _, err := client.Repositories.CreateFile(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
+	_, resp, err := client.Repositories.CreateFile(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto create from web"),
 		Content:   []byte(text),
 		Branch:    &branch,
 		Author:    commitAuthor,
 		Committer: commitAuthor,
 	})
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return ErrRepoNotFound
+	}
 	if err != nil {
 		log.Printf("github CreateBookmarks: %v", err)
 		return fmt.Errorf("CreateBookmarks: %w", err)

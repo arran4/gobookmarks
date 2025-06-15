@@ -83,7 +83,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		http.NotFound(w, r)
 		return nil
 	}
-	http.Redirect(w, r, cfg.AuthCodeURL(""), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, cfg.AuthCodeURL(providerName), http.StatusTemporaryRedirect)
 	return nil
 }
 
@@ -99,7 +99,10 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("session error: %w", err)
 	}
 
-	providerName, _ := session.Values["Provider"].(string)
+	providerName := r.URL.Query().Get("state")
+	if providerName == "" {
+		providerName, _ = session.Values["Provider"].(string)
+	}
 	p := GetProvider(providerName)
 	if p == nil {
 		return fmt.Errorf("unknown provider")
