@@ -11,13 +11,12 @@
             <meta http-equiv="refresh" content="1">
         {{ end }}
 	</head>
-	<body>
-		<strong>Arran4</strong>'s bookmarks tool.
-		<br>
-		<table border=0>
-			<tr valign=top>
-				<td width=200px>
-                                       <a href="/">Home</a><br>
+        <body>
+                <table border=0 id="layout">
+                        <tr valign=top>
+                                <td width=200px id="nav">
+                                        <strong>Arran4</strong>'s bookmarks tool.<br>
+                                        <a href="/">Home</a><br>
                                         {{ if $.UserRef }}
                                                 <a href="/logout">Logout</a><br/>
                                                 <a href="/history">History</a><br/>
@@ -36,5 +35,5 @@
                                         {{ else }}
                                                 <a href="/login">Login</a><br/>
                                         {{ end }}
-                               <td>
+                                <td>
 {{end}}

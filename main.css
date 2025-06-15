@@ -130,3 +130,18 @@ div.title {
         page-break-inside: avoid;
         -webkit-column-break-inside: avoid;
 }
+
+/* Keep navigation bar fixed on the left */
+#nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* Offset main content to the right of the fixed nav */
+#layout {
+    margin-left: 200px;
+}
