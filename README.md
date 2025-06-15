@@ -65,8 +65,8 @@ changed while you were editing.
 
 # How to setup for yourself
 
-You can run this yourself. There is a docker version available under my github packages. There are also precompiled versions
-under the releases section of this git repo: https://github.com/arran4/StartHere/releases
+You can run this yourself. Docker images are published to the [GitHub Container Registry](https://github.com/arran4/gobookmarks/pkgs/container/gobookmarks) as `ghcr.io/arran4/gobookmarks`.
+There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/StartHere/releases
 
 Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
@@ -128,7 +128,7 @@ and both service files run the daemon as `gobookmarks`.
 
 ### Docker
 
-The Docker image continues to work as before. Mount `/var/cache/gobookmarks` if you need
+The Docker image continues to work as before and now uses an Alpine base image. Mount `/var/cache/gobookmarks` if you need
 persistent storage for favicons and `/var/lib/gobookmarks` for the git provider. These directories are also the defaults when gobookmarks is installed system-wide under `/usr`. Pass the same environment variables as listed above. The git provider stores data under
 `$LOCAL_GIT_PATH/<sha256(username)>/` as a git repository with a `.password` file containing the bcrypt hash.
 Create an account via `/signup/git`. This stores the password hash under
@@ -157,7 +157,7 @@ docker run -p 8080:8080 \
            -e GITHUB_SECRET=def \
            -e FAVICON_CACHE_DIR=/var/cache/gobookmarks/favcache \
            -e LOCAL_GIT_PATH=/var/lib/gobookmarks/localgit \
-           arran4/gobookmarks
+           ghcr.io/arran4/gobookmarks
 ```
 
 Alternatively you can mount a config file and environment file:
@@ -167,7 +167,7 @@ docker run -v /my/config.json:/etc/gobookmarks/config.json \
            -v /my/gobookmarks.env:/etc/gobookmarks/gobookmarks.env \
            -v /my/cache:/var/cache/gobookmarks \
            -v /my/db:/var/lib/gobookmarks \
-           -p 8080:8080 arran4/gobookmarks
+           -p 8080:8080 ghcr.io/arran4/gobookmarks
 ```
 
 An example `config.json` looks like:
@@ -198,7 +198,7 @@ Using environment variables:
 version: '3'
 services:
   gobookmarks:
-    image: arran4/gobookmarks
+    image: ghcr.io/arran4/gobookmarks
     ports:
       - "8080:8080"
     volumes:
@@ -221,7 +221,7 @@ Using a config and env file:
 version: '3'
 services:
   gobookmarks:
-    image: arran4/gobookmarks
+    image: ghcr.io/arran4/gobookmarks
     ports:
       - "8080:8080"
     volumes:

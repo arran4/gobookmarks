@@ -40,6 +40,10 @@ dockers:
   - image_templates:
       - "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
       - "ghcr.io/arran4/gobookmarks:latest"
+  - image_templates:
+      - "arran4/gobookmarks:{{ .Tag }}"
+      - "arran4/gobookmarks:latest"
+    skip_push: {{ ne .Env.DOCKERHUB_PUSH "true" }}
 nfpms:
   -
     vendor: Ubels Software Development
