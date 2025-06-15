@@ -43,14 +43,32 @@ var (
 // ensureRepo checks for the bookmarks repository and creates it with
 // some default content when missing.
 func ensureRepo(ctx context.Context, p Provider, user string, token *oauth2.Token) error {
-	if err := p.CreateBookmarks(ctx, user, token, "main", defaultBookmarks); err != nil {
-		if errors.Is(err, ErrRepoNotFound) {
-			if err := p.CreateRepo(ctx, user, token, RepoName); err != nil {
-				return err
-			}
-			return p.CreateBookmarks(ctx, user, token, "main", defaultBookmarks)
-		}
+	log.Printf("checking repo for %s", user)
+
+	exists, err := p.RepoExists(ctx, user, token, RepoName)
+	if err != nil {
+		log.Printf("repo check error: %v", err)
 		return err
+	}
+	if !exists {
+		log.Printf("creating repo %s for %s", RepoName, user)
+		if err := p.CreateRepo(ctx, user, token, RepoName); err != nil {
+			log.Printf("create repo: %v", err)
+			return err
+		}
+	}
+
+	b, _, err := p.GetBookmarks(ctx, user, "", token)
+	if err != nil {
+		log.Printf("get bookmarks: %v", err)
+		return err
+	}
+	if b == "" {
+		log.Printf("creating initial bookmarks for %s", user)
+		if err := p.CreateBookmarks(ctx, user, token, "main", defaultBookmarks); err != nil {
+			log.Printf("create bookmarks: %v", err)
+			return err
+		}
 	}
 	return nil
 }
