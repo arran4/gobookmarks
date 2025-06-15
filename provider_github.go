@@ -5,6 +5,7 @@ package gobookmarks
 import (
 	"context"
 	"encoding/base64"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,7 +18,10 @@ import (
 // GitHubProvider implements Provider for GitHub.
 type GitHubProvider struct{}
 
-func init() { RegisterProvider(GitHubProvider{}) }
+func init() {
+	gob.Register(&github.User{})
+	RegisterProvider(GitHubProvider{})
+}
 
 func (GitHubProvider) Name() string { return "github" }
 

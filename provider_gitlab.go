@@ -5,6 +5,7 @@ package gobookmarks
 import (
 	"context"
 	"encoding/base64"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log"
@@ -26,7 +27,10 @@ func gitlabUnauthorized(err error) bool {
 	return errors.As(err, &respErr) && respErr.Response != nil && respErr.Response.StatusCode == http.StatusUnauthorized
 }
 
-func init() { RegisterProvider(GitLabProvider{}) }
+func init() {
+	gob.Register(&gitlab.User{})
+	RegisterProvider(GitLabProvider{})
+}
 
 func (GitLabProvider) Name() string { return "gitlab" }
 
