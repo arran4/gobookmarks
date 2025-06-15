@@ -165,7 +165,7 @@ func (GitProvider) UpdateBookmarks(ctx context.Context, user string, token *oaut
 	if err != nil {
 		return err
 	}
-	err = wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branch)})
+	err = wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branch), Keep: true})
 	if err != nil {
 		return ErrRepoNotFound
 	}
@@ -185,7 +185,10 @@ func (GitProvider) UpdateBookmarks(ctx context.Context, user string, token *oaut
 	_, err = wt.Commit("Auto change from web", &git.CommitOptions{
 		Author: &object.Signature{Name: "Gobookmarks", Email: "Gobookmarks@arran.net.au", When: time.Now()},
 	})
-	return err
+	if err != nil && !errors.Is(err, git.ErrEmptyCommit) {
+		return err
+	}
+	return nil
 }
 
 func (GitProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
@@ -200,11 +203,11 @@ func (GitProvider) CreateBookmarks(ctx context.Context, user string, token *oaut
 	if err != nil {
 		return err
 	}
-	err = wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branch), Create: true})
+	err = wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branch), Create: true, Keep: true})
 	if err != nil {
 		if !errors.Is(err, git.ErrBranchExists) {
 			// branch already exists
-			if err = wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branch)}); err != nil {
+			if err = wt.Checkout(&git.CheckoutOptions{Branch: plumbing.NewBranchReferenceName(branch), Keep: true}); err != nil {
 				return err
 			}
 		}
@@ -218,7 +221,10 @@ func (GitProvider) CreateBookmarks(ctx context.Context, user string, token *oaut
 	_, err = wt.Commit("Auto create from web", &git.CommitOptions{
 		Author: &object.Signature{Name: "Gobookmarks", Email: "Gobookmarks@arran.net.au", When: time.Now()},
 	})
-	return err
+	if err != nil && !errors.Is(err, git.ErrEmptyCommit) {
+		return err
+	}
+	return nil
 }
 
 func (GitProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
@@ -263,7 +269,7 @@ func (GitProvider) CreateRepo(ctx context.Context, user string, token *oauth2.To
 		_, err = wt.Commit("init", &git.CommitOptions{
 			Author: &object.Signature{Name: "Gobookmarks", Email: "Gobookmarks@arran.net.au", When: time.Now()},
 		})
-		if err != nil {
+		if err != nil && !errors.Is(err, git.ErrEmptyCommit) {
 			return err
 		}
 	}
