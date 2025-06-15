@@ -17,7 +17,7 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 	GithubClientSecret = "secret"
 	GitlabClientID = "id"
 	GitlabClientSecret = "secret"
-	OauthRedirectURL = "http://example.com/callback"
+	OauthRedirectURL = JoinURL("http://example.com/", "callback")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
