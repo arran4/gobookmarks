@@ -1,31 +1,20 @@
+version: 2
 project_name: gobookmarks
 builds:
-  - env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    main: ./cmd/gobookmarks
-    id: "gobookmarks"
+  - id: "gobookmarks"
     binary: gobookmarks
-    goarch:
-      - amd64
-      - arm
-      - arm64
+    dir: cmd/gobookmarks
+    env:
+      - CGO_ENABLED=0
+    flags: ["-trimpath"]
+    goos: [linux, windows, darwin, freebsd]
+    goarch: [amd64, arm64]
 
 archives:
-  - format: tar.gz
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
+  -
     format_overrides:
-    - goos: windows
-      format: zip
+      - goos: windows
+        format: zip
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -38,12 +27,29 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
-      - "ghcr.io/arran4/gobookmarks:latest"
-  - image_templates:
       - "arran4/gobookmarks:{{ .Tag }}"
       - "arran4/gobookmarks:latest"
     skip_push: {{ ne .Env.DOCKERHUB_PUSH "true" }}
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: amd64
+    use: buildx
+  - image_templates:
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-arm64"
+      - "ghcr.io/arran4/gobookmarks:latest-arm64"
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: arm64
+    use: buildx
+docker_manifests:
+  - name_template: "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-amd64"
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-arm64"
+  - name_template: "ghcr.io/arran4/gobookmarks:latest"
+    image_templates:
+      - "ghcr.io/arran4/gobookmarks:latest-amd64"
+      - "ghcr.io/arran4/gobookmarks:latest-arm64"
 nfpms:
   -
     vendor: Ubels Software Development
@@ -55,6 +61,8 @@ nfpms:
       - apk
       - deb
       - rpm
+      - termux.deb
+      - archlinux
     release: 1
     section: default
     priority: extra

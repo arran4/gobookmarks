@@ -208,8 +208,8 @@ func main() {
 	githubSecret := cfg.GithubSecret
 	gitlabID := cfg.GitlabClientID
 	gitlabSecret := cfg.GitlabSecret
-	externalUrl = cfg.ExternalURL
-	redirectUrl = fmt.Sprintf("%s/oauth2Callback", externalUrl)
+	externalUrl = strings.TrimRight(cfg.ExternalURL, "/")
+	redirectUrl = JoinURL(externalUrl, "oauth2Callback")
 	GithubClientID = githubID
 	GithubClientSecret = githubSecret
 	GitlabClientID = gitlabID
