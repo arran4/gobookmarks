@@ -80,13 +80,13 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
 | `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
 | `GBM_TITLE` | Overrides the page title shown in the browser. |
-| `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/data/favicons` in Docker. |
+| `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/var/cache/gobookmarks/favcache` when installed system‑wide (including the Docker image). |
 | `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
 | `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
-| `LOCAL_GIT_PATH` | Directory used for the local git provider. |
+| `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image). |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
-| `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when run as root. |
+| `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
 
 Favicons fetched for your bookmarks are cached on disk when `FAVICON_CACHE_DIR` is set. The `/proxy/favicon` endpoint also accepts a `size` parameter to scale icons on the fly.
 
@@ -128,8 +128,8 @@ and both service files run the daemon as `gobookmarks`.
 
 ### Docker
 
-The Docker image continues to work as before.  Mount `/data` if you need
-persistent storage and mount `/db` for the git provider. Pass the same environment variables as listed above. The git provider stores data under
+The Docker image continues to work as before. Mount `/var/cache/gobookmarks` if you need
+persistent storage for favicons and `/var/lib/gobookmarks` for the git provider. These directories are also the defaults when gobookmarks is installed system-wide under `/usr`. Pass the same environment variables as listed above. The git provider stores data under
 `$LOCAL_GIT_PATH/<sha256(username)>/` as a git repository with a `.password` file containing the bcrypt hash.
 Create an account via `/signup/git`. This stores the password hash under
 `$LOCAL_GIT_PATH/<sha256(username)>/.password` and creates the repository. Log in
@@ -144,13 +144,93 @@ echo -n alice | sha256sum
 ```
 
 The output hash forms the path `$LOCAL_GIT_PATH/<hash>/.password`.
-Favicons are cached on disk under `/data/favicons` by default. Set
+Favicons are cached on disk under `/var/cache/gobookmarks/favcache` by default when the program is installed system‑wide or run in Docker. Set
 `FAVICON_CACHE_DIR` to an empty string to disable disk caching.
-You can also mount a config file and env file:
+You can run the container entirely via environment variables:
+
+```bash
+docker run -p 8080:8080 \
+           -v /my/cache:/var/cache/gobookmarks \
+           -v /my/db:/var/lib/gobookmarks \
+           -e EXTERNAL_URL=http://localhost:8080 \
+           -e GITHUB_CLIENT_ID=abc \
+           -e GITHUB_SECRET=def \
+           -e FAVICON_CACHE_DIR=/var/cache/gobookmarks/favcache \
+           -e LOCAL_GIT_PATH=/var/lib/gobookmarks/localgit \
+           arran4/gobookmarks
+```
+
+Alternatively you can mount a config file and environment file:
 
 ```bash
 docker run -v /my/config.json:/etc/gobookmarks/config.json \
            -v /my/gobookmarks.env:/etc/gobookmarks/gobookmarks.env \
+           -v /my/cache:/var/cache/gobookmarks \
+           -v /my/db:/var/lib/gobookmarks \
            -p 8080:8080 arran4/gobookmarks
+```
+
+An example `config.json` looks like:
+
+```json
+{
+  "github_client_id": "",
+  "github_secret": "",
+  "gitlab_client_id": "",
+  "gitlab_secret": "",
+  "external_url": "http://localhost:8080",
+  "css_columns": false,
+  "namespace": "",
+  "title": "",
+  "github_server": "https://github.com",
+  "gitlab_server": "https://gitlab.com",
+  "favicon_cache_dir": "/var/cache/gobookmarks/favcache",
+  "favicon_cache_size": 20971520,
+  "local_git_path": "/var/lib/gobookmarks/localgit"
+}
+```
+
+#### Docker Compose
+
+Using environment variables:
+
+```yaml
+version: '3'
+services:
+  gobookmarks:
+    image: arran4/gobookmarks
+    ports:
+      - "8080:8080"
+    volumes:
+      - cache:/var/cache/gobookmarks
+      - db:/var/lib/gobookmarks
+    environment:
+      EXTERNAL_URL: "http://localhost:8080"
+      GITHUB_CLIENT_ID: abc
+      GITHUB_SECRET: def
+      FAVICON_CACHE_DIR: /var/cache/gobookmarks/favcache
+      LOCAL_GIT_PATH: /var/lib/gobookmarks/localgit
+volumes:
+  cache:
+  db:
+```
+
+Using a config and env file:
+
+```yaml
+version: '3'
+services:
+  gobookmarks:
+    image: arran4/gobookmarks
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.json:/etc/gobookmarks/config.json:ro
+      - ./gobookmarks.env:/etc/gobookmarks/gobookmarks.env:ro
+      - cache:/var/cache/gobookmarks
+      - db:/var/lib/gobookmarks
+volumes:
+  cache:
+  db:
 ```
 
