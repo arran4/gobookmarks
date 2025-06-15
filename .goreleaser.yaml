@@ -27,8 +27,9 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-amd64"
-      - "ghcr.io/arran4/gobookmarks:latest-amd64"
+      - "arran4/gobookmarks:{{ .Tag }}"
+      - "arran4/gobookmarks:latest"
+    skip_push: {{ ne .Env.DOCKERHUB_PUSH "true" }}
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
