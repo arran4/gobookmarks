@@ -34,6 +34,13 @@ dockers:
     goarch: amd64
     use: buildx
   - image_templates:
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-amd64"
+      - "ghcr.io/arran4/gobookmarks:latest-amd64"
+    dockerfile: Dockerfile
+    goos: linux
+    goarch: amd64
+    use: buildx
+  - image_templates:
       - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-arm64"
       - "ghcr.io/arran4/gobookmarks:latest-arm64"
     dockerfile: Dockerfile
@@ -41,6 +48,12 @@ dockers:
     goarch: arm64
     use: buildx
 docker_manifests:
+  - name_template: "arran4/gobookmarks:{{ .Tag }}"
+    image_templates:
+      - "arran4/gobookmarks:{{ .Tag }}"
+  - name_template: "arran4/gobookmarks:latest"
+    image_templates:
+      - "arran4/gobookmarks:latest"
   - name_template: "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
     image_templates:
       - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-amd64"
