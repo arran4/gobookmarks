@@ -6,6 +6,7 @@ var (
 	UseCssColumns bool
 	Namespace     string
 	SiteTitle     string
+	NoFooter      bool
 
 	GithubServer string
 	GitlabServer string
