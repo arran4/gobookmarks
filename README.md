@@ -40,7 +40,7 @@ It's a basic file format. Every command must be on it's own line empty lines are
 
 | Code                   | Meaning |
 |------------------------|-----------------------------------------------------|
-| `Category[: <category>]` | Will create a category title. The name may be empty. |
+| `Category[: <category>]` | Will create a category title. If unnamed it displays as `Category`. |
 | `<Link>`               | Will create a link to `<Link>` with the display name `<Link>` |
 | `<Link> <Name>`        | Will create a link to `<Link>` with the display name `<Name>` |
 | `Column`               | Will create a column |
@@ -49,6 +49,16 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `--`                   | Inserts a horizontal rule and resets columns |
 
 Tabs contain one or more pages. The first tab is implicit and does not need a `Tab` directive unless you want to name it. Each `Page` line begins a new page within the current tab.
+
+Example with two named columns:
+
+```text
+Category: Left
+http://left.com
+Column
+Category: Right
+http://right.com
+```
 
 ## Editing
 

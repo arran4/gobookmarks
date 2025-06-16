@@ -121,6 +121,9 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkTab {
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
 			}
+			if rest == "" {
+				rest = "Category"
+			}
 			flushCategory()
 			ensurePage()
 			currentCategory = &BookmarkCategory{Name: rest}

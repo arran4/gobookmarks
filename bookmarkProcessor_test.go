@@ -160,8 +160,8 @@ func Test_preprocessBookmarks(t *testing.T) {
 			input: "Category:\nhttp://a.com\nCategory:\nhttp://b.com\n",
 			want: []*T{
 				tab("", page(colsBlock(col(
-					cat("", e("http://a.com", "http://a.com")),
-					cat("", e("http://b.com", "http://b.com")),
+					cat("Category", e("http://a.com", "http://a.com")),
+					cat("Category", e("http://b.com", "http://b.com")),
 				)))),
 			},
 		},
@@ -177,21 +177,21 @@ func Test_preprocessBookmarks(t *testing.T) {
 								e("http://www.google.com.au", "Google"),
 								e("http://www.google.com.au", "Google"),
 							),
-							cat("",
+							cat("Category",
 								e("http://www.google.com.au", "Google"),
 							),
 						),
 					)),
 					&Pg{Name: "Test", Blocks: []*Blk{colsBlock(col(
-						cat("", e("http://www.google.com.au", "Google")),
+						cat("Category", e("http://www.google.com.au", "Google")),
 						cat("Example", e("http://www.google.com.au", "Google"), e("http://www.google.com.au", "Google")),
 					))}},
 				),
 				tab("", page(colsBlock(
-					col(cat("", e("http://www.google.com.au", "Google"))),
+					col(cat("Category", e("http://www.google.com.au", "Google"))),
 				))),
 				tab("asdf", page(colsBlock(
-					col(cat("", e("http://www.google.com.au", "Google"))),
+					col(cat("Category", e("http://www.google.com.au", "Google"))),
 				))),
 			},
 		},
