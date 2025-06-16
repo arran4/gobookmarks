@@ -270,6 +270,10 @@ func main() {
 	r.HandleFunc("/addTab", runHandlerChain(AddTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/deleteTab", runHandlerChain(DeleteTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
 
+	r.HandleFunc("/moveCategory", runHandlerChain(MoveCategoryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addCategory", runHandlerChain(AddCategoryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/deleteCategory", runHandlerChain(DeleteCategoryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+
 	r.HandleFunc("/editEntry", runHandlerChain(EditEntryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editEntry", runHandlerChain(EntryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	r.HandleFunc("/editEntry", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")

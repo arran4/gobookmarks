@@ -72,9 +72,11 @@ Each pencil icon links to `/editCategory` or `/editTab` as before. These
 pages work the same but are only shown while edit mode is on. All edits
 check the file's SHA so you'll get an error if it changed while you were
 editing.
-While editing the index page also shows arrows for moving tabs and pages up or down,
-plus and minus icons for inserting or deleting them, and each bookmark link has its own
-edit button.
+While editing the index page also shows arrows for moving tabs, pages and categories up or down.
+A **+** icon inserts a new item above the current one and **⌫** deletes it.
+Each column ends with an **Add Category** link and the Tabs and Pages lists in the navigation
+include the same controls along with links to append new items. Every bookmark
+also has its own edit button.
 
 ![img.png](media/img.png)
 

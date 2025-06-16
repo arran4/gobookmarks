@@ -5,22 +5,21 @@
         {{- if not bookmarksExist }}
         <p>Your bookmarks repository was not found. Click <a href="/editAll">here</a> to create it.</p>
         {{- end }}
-        {{- if tab }}<h1>{{ tab }} {{- if editMode }}<a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/moveTab?index={{currentTabIndex}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/moveTab?index={{currentTabIndex}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addTab?index={{add1 currentTabIndex}}&ref={{ref}}">&#43;</a> <a href="/deleteTab?index={{currentTabIndex}}&ref={{ref}}">&#8722;</a>{{- end }}</h1>{{ end }}
+        {{- if tab }}<h1>{{ tab }} {{- if editMode }}<a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}</h1>{{ end }}
         {{- range $i, $p := bookmarkPages }}
         <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}">
-            {{- if $p.Name }}<h2>{{ $p.Name }} {{- if editMode }}<a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addPage?tab={{currentTabIndex}}&index={{add1 $i}}&ref={{ref}}">&#43;</a> <a href="/deletePage?tab={{currentTabIndex}}&index={{$i}}&ref={{ref}}">&#8722;</a>{{- end }}</h2>{{ else }}{{- if editMode }}<h2>Page {{add1 $i}} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addPage?tab={{currentTabIndex}}&index={{add1 $i}}&ref={{ref}}">&#43;</a> <a href="/deletePage?tab={{currentTabIndex}}&index={{$i}}&ref={{ref}}">&#8722;</a></h2>{{ end }}{{ end }}
-            {{- range .Blocks }}
-            {{- if .HR }}
+            {{- if $p.Name }}<h2>{{ $p.Name }} {{- if editMode }}<a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}</h2>{{ else }}{{- if editMode }}<h2>Page {{add1 $i}} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a></h2>{{ end }}{{ end }}
+            {{- range $bIdx, $block := .Blocks }}
+            {{- if $block.HR }}
             <hr class="bookmarkHr" />
             {{- else if useCssColumns }}
             <div class="bookmarkColumns">
                 {{- $first := true }}
-                {{- range .Columns }}
+                {{- range $cIdx, $col := $block.Columns }}
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
-                    {{- range .Categories }}
-                        {{- $cat := . }}
+                    {{- range $catIdx, $cat := $col.Categories }}
                         <div class="categoryBlock">
-                            <h2>{{ $cat.Name }} {{- if editMode }}<a class="edit-link" href="/editCategory?index={{ $cat.Index }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}</h2>
+                            <h2>{{ $cat.Name }} {{- if editMode }}<a class="edit-link" href="/editCategory?index={{ $cat.Index }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/moveCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/moveCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&ref={{ref}}">&#43;</a> <a href="/deleteCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&ref={{ref}}">&#9003;</a>{{- end }}</h2>
                             <ul  style="list-style-type: none;">
                                 {{- range $j, $e := $cat.Entries }}
                                     <li>
@@ -29,20 +28,21 @@
                                     </li>
                                 {{- end }}
                             </ul>
+                        {{- if editMode }}<a href="/addCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{add1 $catIdx}}&ref={{ref}}">&#43;</a>{{- end }}
                         </div>
                     {{- end }}
+                    {{- if editMode }}<div class="categoryBlock"><a href="/addCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{len $col.Categories}}&ref={{ref}}">&#43; Add Category</a></div>{{- end }}
                     {{- $first = false }}
                 {{- end }}
             </div>
             {{- else }}
             <table>
                 <tr valign="top">
-                    {{- range .Columns }}
+                    {{- range $cIdx, $col := $block.Columns }}
                     <td>
-                        {{- range .Categories }}
-                            {{- $cat := . }}
+                        {{- range $catIdx, $cat := $col.Categories }}
                             <ul  style="list-style-type: none;">
-                                <h2>{{ $cat.Name }} {{- if editMode }}<a class="edit-link" href="/editCategory?index={{ $cat.Index }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}</h2>
+                                <h2>{{ $cat.Name }} {{- if editMode }}<a class="edit-link" href="/editCategory?index={{ $cat.Index }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/moveCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/moveCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&ref={{ref}}">&#43;</a> <a href="/deleteCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{$catIdx}}&ref={{ref}}">&#9003;</a>{{- end }}</h2>
                                 {{- range $j, $e := $cat.Entries }}
                                     <li>
                                         <img src="/proxy/favicon?url={{ $e.Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
@@ -50,7 +50,9 @@
                                     </li>
                                 {{- end }}
                             </ul>
+                            {{- if editMode }}<a href="/addCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{add1 $catIdx}}&ref={{ref}}">&#43;</a>{{- end }}
                         {{- end }}
+                        {{- if editMode }}<a href="/addCategory?tab={{currentTabIndex}}&page={{$i}}&block={{$bIdx}}&col={{$cIdx}}&index={{len $col.Categories}}&ref={{ref}}">Add Category</a>{{- end }}
                     </td>
                     {{- end }}
                 </tr>
@@ -59,6 +61,6 @@
             {{- end }}
         </div>
         {{- end }}
-        {{- if editMode }}<p><a href="/addPage?tab={{currentTabIndex}}&index={{len (bookmarkPages)}}&ref={{ref}}">Add Page</a></p><p><a href="/editTab?ref={{ref}}">Add Tab</a></p>{{- end }}
+        {{- /* add page/tab links now moved to navigation */}}
     {{end}}
 {{ template "tail" $ }}

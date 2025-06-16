@@ -28,15 +28,17 @@
                                                {{- end }}
                                                <hr/>
                                                 <b>Tabs</b><br/>
-                                                <a href="/">Main</a><br/>
-                                                {{- range bookmarkTabs }}
-                                                        <a href="/?tab={{ . }}">{{ . }}</a><br/>
+                                                <span>Main{{- if editMode }} <a href="/addTab?index=0&ref={{ref}}">&#43;</a>{{- end }}</span><br/>
+                                                {{- range $i, $t := bookmarkTabs }}
+                                                        <span><a href="/?tab={{ $t }}">{{ $t }}</a>{{- if editMode }} <a href="/moveTab?index={{add1 $i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/moveTab?index={{add1 $i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addTab?index={{add1 $i}}&ref={{ref}}">&#43;</a> <a href="/deleteTab?index={{add1 $i}}&ref={{ref}}">&#9003;</a>{{- end }}</span><br/>
                                                 {{- end }}
+                                                {{- if editMode }}<a href="/addTab?index={{add1 (len bookmarkTabs)}}&ref={{ref}}">Add Tab</a><br/>{{- end }}
                                                 <hr/>
                                                 <b>Pages</b><br/>
                                                 {{- range $i, $p := bookmarkPages }}
-                                                        <a href="#page{{$i}}">Page {{ if $p.Name }}{{$p.Name}}{{ else }}{{ add1 $i }}{{ end }}</a><br/>
+                                                        <span><a href="#page{{$i}}">Page {{ if $p.Name }}{{$p.Name}}{{ else }}{{ add1 $i }}{{ end }}</a>{{- if editMode }} <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addPage?tab={{currentTabIndex}}&index={{$i}}&ref={{ref}}">&#43;</a> <a href="/deletePage?tab={{currentTabIndex}}&index={{$i}}&ref={{ref}}">&#9003;</a>{{- end }}</span><br/>
                                                 {{- end }}
+                                                {{- if editMode }}<a href="/addPage?tab={{currentTabIndex}}&index={{len (bookmarkPages)}}&ref={{ref}}">Add Page</a><br/>{{- end }}
                                         {{ else }}
                                                 <a href="/login">Login</a><br/>
                                         {{ end }}
