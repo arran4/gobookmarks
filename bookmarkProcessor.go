@@ -1,8 +1,6 @@
 package gobookmarks
 
-import (
-	"strings"
-)
+import "strings"
 
 type BookmarkEntry struct {
 	Url  string
@@ -26,24 +24,51 @@ type BookmarkBlock struct {
 
 type BookmarkPage struct {
 	Blocks []*BookmarkBlock
-	Tab    string
 	Name   string
 }
 
-func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
+type BookmarkTab struct {
+	Name  string
+	Pages []*BookmarkPage
+}
+
+func PreprocessBookmarks(bookmarks string) []*BookmarkTab {
 	lines := strings.Split(bookmarks, "\n")
-	var result []*BookmarkPage
+	var result []*BookmarkTab
+	var currentTab *BookmarkTab
+	var currentPage *BookmarkPage
 	var currentCategory *BookmarkCategory
-	currentTab := ""
 	idx := 0
 
-	ensurePage := func() *BookmarkPage {
-		if len(result) == 0 {
-			p := &BookmarkPage{Tab: currentTab, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
-			result = append(result, p)
-			return p
+	ensureTab := func() *BookmarkTab {
+		if currentTab == nil {
+			t := &BookmarkTab{}
+			result = append(result, t)
+			currentTab = t
 		}
-		return result[len(result)-1]
+		return currentTab
+	}
+
+	ensurePage := func() *BookmarkPage {
+		ensureTab()
+		if currentPage == nil {
+			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.Pages = append(currentTab.Pages, p)
+			currentPage = p
+		}
+		return currentPage
+	}
+
+	flushCategory := func() {
+		if currentCategory != nil {
+			currentCategory.Index = idx
+			idx++
+			page := ensurePage()
+			lastBlock := page.Blocks[len(page.Blocks)-1]
+			lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
+			lastColumn.Categories = append(lastColumn.Categories, currentCategory)
+			currentCategory = nil
+		}
 	}
 
 	for _, line := range lines {
@@ -54,17 +79,11 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
 			}
-			if currentCategory != nil {
-				currentCategory.Index = idx
-				idx++
-				lastPage := ensurePage()
-				lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
-				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
-				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
-				currentCategory = nil
-			}
-			currentTab = rest
-			result = append(result, &BookmarkPage{Tab: currentTab, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}})
+			flushCategory()
+			currentTab = &BookmarkTab{Name: rest}
+			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.Pages = append(currentTab.Pages, currentPage)
+			result = append(result, currentTab)
 			continue
 		}
 		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
@@ -72,45 +91,23 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
 			}
-			if currentCategory != nil {
-				currentCategory.Index = idx
-				idx++
-				lastPage := ensurePage()
-				lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
-				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
-				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
-				currentCategory = nil
-			}
-			result = append(result, &BookmarkPage{Tab: currentTab, Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}})
+			flushCategory()
+			ensureTab()
+			currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.Pages = append(currentTab.Pages, currentPage)
 			continue
 		}
 		if line == "--" {
-			if currentCategory != nil {
-				currentCategory.Index = idx
-				idx++
-				lastPage := ensurePage()
-				lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
-				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
-				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
-				currentCategory = nil
-			}
-			lastPage := ensurePage()
-			lastPage.Blocks = append(lastPage.Blocks, &BookmarkBlock{HR: true})
-			lastPage.Blocks = append(lastPage.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
+			flushCategory()
+			page := ensurePage()
+			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
+			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
 			continue
 		}
 		if strings.EqualFold(line, "column") {
-			if currentCategory != nil {
-				currentCategory.Index = idx
-				idx++
-				lastPage := ensurePage()
-				lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
-				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
-				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
-				currentCategory = nil
-			}
-			lastPage := ensurePage()
-			lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
+			flushCategory()
+			page := ensurePage()
+			lastBlock := page.Blocks[len(page.Blocks)-1]
 			lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
 			continue
 		}
@@ -124,20 +121,11 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
 			}
-			if currentCategory != nil {
-				currentCategory.Index = idx
-				idx++
-				lastPage := ensurePage()
-				lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
-				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
-				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
-			}
+			flushCategory()
 			ensurePage()
 			currentCategory = &BookmarkCategory{Name: rest}
 		} else if currentCategory != nil {
-			var entry BookmarkEntry
-			entry.Url = parts[0]
-			entry.Name = parts[0]
+			entry := BookmarkEntry{Url: parts[0], Name: parts[0]}
 			if len(parts) > 1 {
 				entry.Name = strings.Join(parts[1:], " ")
 			}
@@ -145,18 +133,13 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 		}
 	}
 
-	if currentCategory != nil {
-		currentCategory.Index = idx
-		idx++
-		lastPage := ensurePage()
-		lastBlock := lastPage.Blocks[len(lastPage.Blocks)-1]
-		lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
-		lastColumn.Categories = append(lastColumn.Categories, currentCategory)
-	}
+	flushCategory()
 
 	if len(result) == 0 {
-		// create an empty page if no directives produced one
-		result = append(result, &BookmarkPage{Tab: currentTab, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}})
+		t := &BookmarkTab{}
+		p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+		t.Pages = append(t.Pages, p)
+		result = append(result, t)
 	}
 
 	return result

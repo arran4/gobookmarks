@@ -152,25 +152,25 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			pages := PreprocessBookmarks(bookmark)
+			tabs := PreprocessBookmarks(bookmark)
 			tabName := r.URL.Query().Get("tab")
+			var pages []*BookmarkPage
 			if tabName != "" {
-				var filtered []*BookmarkPage
-				for _, p := range pages {
-					if p.Tab == tabName {
-						filtered = append(filtered, p)
+				for _, t := range tabs {
+					if t.Name == tabName {
+						pages = t.Pages
+						break
 					}
 				}
-				pages = filtered
 			} else {
-				var filtered []*BookmarkPage
-				for _, p := range pages {
-					if p.Tab == "" {
-						filtered = append(filtered, p)
+				for _, t := range tabs {
+					if t.Name == "" {
+						pages = t.Pages
+						break
 					}
 				}
-				if len(filtered) > 0 {
-					pages = filtered
+				if pages == nil && len(tabs) > 0 {
+					pages = tabs[0].Pages
 				}
 			}
 			return pages, nil
@@ -196,13 +196,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			pages := PreprocessBookmarks(bookmark)
-			seen := map[string]bool{}
+			tabsData := PreprocessBookmarks(bookmark)
 			var tabs []string
-			for _, p := range pages {
-				if p.Tab != "" && !seen[p.Tab] {
-					seen[p.Tab] = true
-					tabs = append(tabs, p.Tab)
+			for _, t := range tabsData {
+				if t.Name != "" {
+					tabs = append(tabs, t.Name)
 				}
 			}
 			return tabs, nil
@@ -228,14 +226,16 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			pages := PreprocessBookmarks(bookmark)
+			tabsData := PreprocessBookmarks(bookmark)
 			var columns []*BookmarkColumn
-			for _, p := range pages {
-				for _, b := range p.Blocks {
-					if b.HR {
-						continue
+			for _, t := range tabsData {
+				for _, p := range t.Pages {
+					for _, b := range p.Blocks {
+						if b.HR {
+							continue
+						}
+						columns = append(columns, b.Columns...)
 					}
-					columns = append(columns, b.Columns...)
 				}
 			}
 			return columns, nil
