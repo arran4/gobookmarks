@@ -117,7 +117,6 @@ func Test_preprocessBookmarks(t *testing.T) {
 			name:  "tabs",
 			input: "Tab: First\nCategory: A\nTab: Second\nCategory: B\n",
 			want: []*Pg{
-				page(colsBlock(col())),
 				tabPage("First", colsBlock(col(cat("A")))),
 				tabPage("Second", colsBlock(col(cat("B")))),
 			},
@@ -126,7 +125,6 @@ func Test_preprocessBookmarks(t *testing.T) {
 			name:  "tab multiple pages",
 			input: "Tab: X\nCategory: A\nPage\nCategory: B\n",
 			want: []*Pg{
-				page(colsBlock(col())),
 				tabPage("X", colsBlock(col(cat("A")))),
 				tabPage("X", colsBlock(col(cat("B")))),
 			},
@@ -135,7 +133,6 @@ func Test_preprocessBookmarks(t *testing.T) {
 			name:  "anonymous tab",
 			input: "Tab: F\nCategory: A\nTab\nCategory: B\n",
 			want: []*Pg{
-				page(colsBlock(col())),
 				tabPage("F", colsBlock(col(cat("A")))),
 				page(colsBlock(col(cat("B")))),
 			},
@@ -144,7 +141,6 @@ func Test_preprocessBookmarks(t *testing.T) {
 			name:  "tab no colon with name",
 			input: "Tab Foo\nCategory: A\n",
 			want: []*Pg{
-				page(colsBlock(col())),
 				tabPage("Foo", colsBlock(col(cat("A")))),
 			},
 		},
@@ -152,7 +148,6 @@ func Test_preprocessBookmarks(t *testing.T) {
 			name:  "page name no colon",
 			input: "Page Start\nCategory: A\nPage End\nCategory: B\n",
 			want: []*Pg{
-				page(colsBlock(col())),
 				page(colsBlock(col(cat("A")))),
 				page(colsBlock(col(cat("B")))),
 			},
@@ -234,14 +229,14 @@ func Test_preprocessBookmarksIndices(t *testing.T) {
 func Test_preprocessBookmarksPageNames(t *testing.T) {
 	input := "Page: Start\nCategory: A\nPage: End\nCategory: B\n"
 	pages := PreprocessBookmarks(input)
-	if len(pages) < 3 {
-		t.Fatalf("expected 3 pages got %d", len(pages))
+	if len(pages) < 2 {
+		t.Fatalf("expected 2 pages got %d", len(pages))
 	}
-	if pages[1].Name != "Start" {
-		t.Fatalf("expected Start got %q", pages[1].Name)
+	if pages[0].Name != "Start" {
+		t.Fatalf("expected Start got %q", pages[0].Name)
 	}
-	if pages[2].Name != "End" {
-		t.Fatalf("expected End got %q", pages[2].Name)
+	if pages[1].Name != "End" {
+		t.Fatalf("expected End got %q", pages[1].Name)
 	}
 }
 

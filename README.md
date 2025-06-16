@@ -48,6 +48,8 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `Tab[: <name>]`        | Starts a new tab. Without a name it reverts to the main tab (switch using `?tab=<name>`) |
 | `--`                   | Inserts a horizontal rule and resets columns |
 
+Tabs contain one or more pages. The first tab is implicit and does not need a `Tab` directive unless you want to name it. Each `Page` line begins a new page within the current tab.
+
 ## Editing
 
 The `/edit` page allows updating the entire bookmark file.
