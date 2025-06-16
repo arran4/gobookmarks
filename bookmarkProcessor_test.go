@@ -22,6 +22,38 @@ func hrBlock() *Blk                       { return &Blk{HR: true} }
 func page(bs ...*Blk) *Pg                 { return &Pg{Blocks: bs} }
 func tabPage(name string, bs ...*Blk) *Pg { return &Pg{Tab: name, Blocks: bs} }
 
+const complexBookmarkText = `Category: Example 1
+http://www.google.com.au Google
+Column
+Category: Example 2
+http://www.google.com.au Google
+http://www.google.com.au Google
+
+
+Category
+http://www.google.com.au Google
+
+Page: Test
+
+Category
+http://www.google.com.au Google
+
+Category: Example
+http://www.google.com.au Google
+http://www.google.com.au Google
+
+Tab
+
+Category
+http://www.google.com.au Google
+
+
+Tab: asdf
+
+Category
+http://www.google.com.au Google
+`
+
 func Test_preprocessBookmarks(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -135,6 +167,34 @@ func Test_preprocessBookmarks(t *testing.T) {
 				))),
 			},
 		},
+		{
+			name:  "complex example",
+			input: complexBookmarkText,
+			want: []*Pg{
+				page(colsBlock(
+					col(cat("Example 1", e("http://www.google.com.au", "Google"))),
+					col(
+						cat("Example 2",
+							e("http://www.google.com.au", "Google"),
+							e("http://www.google.com.au", "Google"),
+						),
+						cat("",
+							e("http://www.google.com.au", "Google"),
+						),
+					),
+				)),
+				&Pg{Name: "Test", Blocks: []*Blk{colsBlock(col(
+					cat("", e("http://www.google.com.au", "Google")),
+					cat("Example", e("http://www.google.com.au", "Google"), e("http://www.google.com.au", "Google")),
+				))}},
+				page(colsBlock(
+					col(cat("", e("http://www.google.com.au", "Google"))),
+				)),
+				tabPage("asdf", colsBlock(
+					col(cat("", e("http://www.google.com.au", "Google"))),
+				)),
+			},
+		},
 	}
 
 	ignore := cmpopts.IgnoreFields(BookmarkCategory{}, "Index")
@@ -182,5 +242,18 @@ func Test_preprocessBookmarksPageNames(t *testing.T) {
 	}
 	if pages[2].Name != "End" {
 		t.Fatalf("expected End got %q", pages[2].Name)
+	}
+}
+
+func Test_preprocessComplexNamesTabs(t *testing.T) {
+	pages := PreprocessBookmarks(complexBookmarkText)
+	if len(pages) != 4 {
+		t.Fatalf("expected 4 pages got %d", len(pages))
+	}
+	if pages[1].Name != "Test" {
+		t.Fatalf("expected Test got %q", pages[1].Name)
+	}
+	if pages[3].Tab != "asdf" {
+		t.Fatalf("expected tab asdf got %q", pages[3].Tab)
 	}
 }

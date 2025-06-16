@@ -104,8 +104,12 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 		if len(parts) == 0 {
 			continue
 		}
-		if len(parts) > 0 && strings.EqualFold(parts[0], "Category:") {
-			categoryName := strings.Join(parts[1:], " ")
+		lowerFirst := strings.ToLower(parts[0])
+		if strings.HasPrefix(lowerFirst, "category") {
+			rest := strings.TrimSpace(line[len("category"):])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
 			if currentCategory != nil {
 				currentCategory.Index = idx
 				idx++
@@ -113,8 +117,8 @@ func PreprocessBookmarks(bookmarks string) []*BookmarkPage {
 				lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
 				lastColumn.Categories = append(lastColumn.Categories, currentCategory)
 			}
-			currentCategory = &BookmarkCategory{Name: categoryName}
-		} else if len(parts) > 0 && currentCategory != nil {
+			currentCategory = &BookmarkCategory{Name: rest}
+		} else if currentCategory != nil {
 			var entry BookmarkEntry
 			entry.Url = parts[0]
 			entry.Name = parts[0]
