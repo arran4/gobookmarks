@@ -23,7 +23,8 @@ func ExtractCategoryByIndex(bookmarks string, index int) (string, error) {
 						break
 					}
 					t := strings.TrimSpace(lines[j])
-					if strings.HasPrefix(strings.ToLower(t), "category:") || strings.EqualFold(t, "column") || strings.EqualFold(t, "page") || t == "--" {
+					lower := strings.ToLower(t)
+					if strings.HasPrefix(lower, "category:") || strings.EqualFold(lower, "column") || strings.HasPrefix(lower, "page") || t == "--" {
 						end = j
 						break
 					}
@@ -56,7 +57,8 @@ func ReplaceCategoryByIndex(bookmarks string, index int, newText string) (string
 						break
 					}
 					t := strings.TrimSpace(lines[j])
-					if strings.HasPrefix(strings.ToLower(t), "category:") || strings.EqualFold(t, "column") || strings.EqualFold(t, "page") || t == "--" {
+					lower := strings.ToLower(t)
+					if strings.HasPrefix(lower, "category:") || strings.EqualFold(lower, "column") || strings.HasPrefix(lower, "page") || t == "--" {
 						end = j
 						break
 					}

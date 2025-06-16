@@ -8,6 +8,7 @@
         {{- if tab }}<h1>{{ tab }} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a></h1>{{ end }}
         {{- range $i, $p := bookmarkPages }}
         <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}">
+            {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
             {{- range .Blocks }}
             {{- if .HR }}
             <hr class="bookmarkHr" />

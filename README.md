@@ -38,14 +38,14 @@ Oauth2 restrictions on SPA sites. You can read more about this here: https://arr
 
 It's a basic file format. Every command must be on it's own line empty lines are ignored.
 
-| Code                   | Meaning                                                      |
-|------------------------|--------------------------------------------------------------|
-| `Category: <category>` | Will create a category title.                                |
+| Code                   | Meaning |
+|------------------------|-----------------------------------------------------|
+| `Category[: <category>]` | Will create a category title. The name may be empty. |
 | `<Link>`               | Will create a link to `<Link>` with the display name `<Link>` |
 | `<Link> <Name>`        | Will create a link to `<Link>` with the display name `<Name>` |
-| `Column`               | Will create a column                                         |
-| `Page`                 | Creates a new page |
-| `Tab: <name>`          | Starts a new named tab (switch using `?tab=<name>`) |
+| `Column`               | Will create a column |
+| `Page[: <name>]`       | Creates a new page and optionally names it |
+| `Tab[: <name>]`        | Starts a new tab. Without a name it reverts to the main tab (switch using `?tab=<name>`) |
 | `--`                   | Inserts a horizontal rule and resets columns |
 
 ## Editing

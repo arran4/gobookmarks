@@ -99,14 +99,50 @@ func Test_preprocessBookmarks(t *testing.T) {
 				tabPage("X", colsBlock(col(cat("B")))),
 			},
 		},
+		{
+			name:  "anonymous tab",
+			input: "Tab: F\nCategory: A\nTab\nCategory: B\n",
+			want: []*Pg{
+				page(colsBlock(col())),
+				tabPage("F", colsBlock(col(cat("A")))),
+				page(colsBlock(col(cat("B")))),
+			},
+		},
+		{
+			name:  "tab no colon with name",
+			input: "Tab Foo\nCategory: A\n",
+			want: []*Pg{
+				page(colsBlock(col())),
+				tabPage("Foo", colsBlock(col(cat("A")))),
+			},
+		},
+		{
+			name:  "page name no colon",
+			input: "Page Start\nCategory: A\nPage End\nCategory: B\n",
+			want: []*Pg{
+				page(colsBlock(col())),
+				page(colsBlock(col(cat("A")))),
+				page(colsBlock(col(cat("B")))),
+			},
+		},
+		{
+			name:  "anonymous categories",
+			input: "Category:\nhttp://a.com\nCategory:\nhttp://b.com\n",
+			want: []*Pg{
+				page(colsBlock(col(
+					cat("", e("http://a.com", "http://a.com")),
+					cat("", e("http://b.com", "http://b.com")),
+				))),
+			},
+		},
 	}
 
 	ignore := cmpopts.IgnoreFields(BookmarkCategory{}, "Index")
-	ignoreTab := cmpopts.IgnoreFields(BookmarkPage{}, "Tab")
+	ignorePage := cmpopts.IgnoreFields(BookmarkPage{}, "Tab", "Name")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := PreprocessBookmarks(tt.input)
-			if diff := cmp.Diff(tt.want, got, ignore, ignoreTab); diff != "" {
+			if diff := cmp.Diff(tt.want, got, ignore, ignorePage); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 			}
 		})
@@ -132,5 +168,19 @@ func Test_preprocessBookmarksIndices(t *testing.T) {
 	expected := []int{0, 1, 2}
 	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Fatalf("diff:\n%s", diff)
+	}
+}
+
+func Test_preprocessBookmarksPageNames(t *testing.T) {
+	input := "Page: Start\nCategory: A\nPage: End\nCategory: B\n"
+	pages := PreprocessBookmarks(input)
+	if len(pages) < 3 {
+		t.Fatalf("expected 3 pages got %d", len(pages))
+	}
+	if pages[1].Name != "Start" {
+		t.Fatalf("expected Start got %q", pages[1].Name)
+	}
+	if pages[2].Name != "End" {
+		t.Fatalf("expected End got %q", pages[2].Name)
 	}
 }
