@@ -265,9 +265,11 @@ func main() {
 
 	r.HandleFunc("/moveTab", runHandlerChain(MoveTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/movePage", runHandlerChain(MovePageHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/addPage", runHandlerChain(AddPageHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addPage", runHandlerChain(AddPageForm)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addPage", runHandlerChain(AddPageHandler, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/deletePage", runHandlerChain(DeletePageHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/addTab", runHandlerChain(AddTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addTab", runHandlerChain(AddTabForm)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addTab", runHandlerChain(AddTabHandler, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/deleteTab", runHandlerChain(DeleteTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/moveCategory", runHandlerChain(MoveCategoryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -277,6 +279,9 @@ func main() {
 	r.HandleFunc("/editEntry", runHandlerChain(EditEntryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editEntry", runHandlerChain(EntryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	r.HandleFunc("/editEntry", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/addEntry", runHandlerChain(AddEntryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/deleteEntry", runHandlerChain(DeleteEntryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveEntry", runHandlerChain(MoveEntryHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -502,6 +507,11 @@ func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
 
 func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ret := r.PostFormValue("return")
+		if ret != "" {
+			http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+			return
+		}
 		u, _ := url.Parse(toUrl)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))

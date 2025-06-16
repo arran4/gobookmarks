@@ -203,10 +203,16 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			tabsData := PreprocessBookmarks(bookmark)
 			var tabs []string
-			for _, t := range tabsData {
-				if t.Name != "" {
-					tabs = append(tabs, t.Name)
+			for i, t := range tabsData {
+				name := t.Name
+				if name == "" {
+					if i == 0 {
+						name = "Main"
+					} else {
+						continue
+					}
 				}
+				tabs = append(tabs, name)
 			}
 			return tabs, nil
 		},
@@ -230,7 +236,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			tabsData := PreprocessBookmarks(bookmarks)
 			tabName := r.URL.Query().Get("tab")
 			for i, t := range tabsData {
-				if t.Name == tabName {
+				name := t.Name
+				if name == "" {
+					name = "Main"
+				}
+				if name == tabName || (tabName == "" && i == 0) {
 					return i, nil
 				}
 			}

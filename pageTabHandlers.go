@@ -28,6 +28,7 @@ func MoveTabHandler(w http.ResponseWriter, r *http.Request) error {
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 	branch := r.URL.Query().Get("branch")
+	ret := r.PostFormValue("return")
 
 	login := ""
 	if githubUser != nil {
@@ -47,7 +48,11 @@ func MoveTabHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if ret != "" {
+		http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	return ErrHandled
 }
 
@@ -99,9 +104,27 @@ func MovePageHandler(w http.ResponseWriter, r *http.Request) error {
 	return ErrHandled
 }
 
+func AddPageForm(w http.ResponseWriter, r *http.Request) error {
+	tIdxStr := r.URL.Query().Get("tab")
+	idxStr := r.URL.Query().Get("index")
+	data := struct {
+		*CoreData
+		Tab    string
+		Index  string
+		Return string
+	}{
+		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		Tab:      tIdxStr,
+		Index:    idxStr,
+		Return:   r.URL.Query().Get("return"),
+	}
+	return GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "addPage.gohtml", data)
+}
+
 func AddPageHandler(w http.ResponseWriter, r *http.Request) error {
 	tabIdxStr := r.URL.Query().Get("tab")
 	idxStr := r.URL.Query().Get("index")
+	name := r.PostFormValue("name")
 	tIdx, err := strconv.Atoi(tabIdxStr)
 	if err != nil {
 		return fmt.Errorf("invalid tab index: %w", err)
@@ -130,6 +153,9 @@ func AddPageHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("tab index out of range")
 	}
 	insertPage(tabs[tIdx], idx)
+	if name != "" {
+		tabs[tIdx].Pages[idx].Name = name
+	}
 	updated := SerializeBookmarks(tabs)
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
@@ -177,8 +203,23 @@ func DeletePageHandler(w http.ResponseWriter, r *http.Request) error {
 	return ErrHandled
 }
 
+func AddTabForm(w http.ResponseWriter, r *http.Request) error {
+	idxStr := r.URL.Query().Get("index")
+	data := struct {
+		*CoreData
+		Index  string
+		Return string
+	}{
+		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		Index:    idxStr,
+		Return:   r.URL.Query().Get("return"),
+	}
+	return GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "addTab.gohtml", data)
+}
+
 func AddTabHandler(w http.ResponseWriter, r *http.Request) error {
 	idxStr := r.URL.Query().Get("index")
+	name := r.PostFormValue("name")
 	idx, err := strconv.Atoi(idxStr)
 	if err != nil {
 		return fmt.Errorf("invalid index: %w", err)
@@ -188,6 +229,7 @@ func AddTabHandler(w http.ResponseWriter, r *http.Request) error {
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 	branch := r.URL.Query().Get("branch")
+	ret := r.PostFormValue("return")
 
 	login := ""
 	if githubUser != nil {
@@ -200,11 +242,18 @@ func AddTabHandler(w http.ResponseWriter, r *http.Request) error {
 	}
 	tabs := PreprocessBookmarks(current)
 	tabs = insertTab(tabs, idx)
+	if name != "" {
+		tabs[idx].Name = name
+	}
 	updated := SerializeBookmarks(tabs)
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if ret != "" {
+		http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	return ErrHandled
 }
 

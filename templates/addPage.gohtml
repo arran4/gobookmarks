@@ -1,0 +1,9 @@
+{{ template "head" $ }}
+    <form method="post" action="?tab={{$.Tab}}&index={{$.Index}}" class="edit-form page-form">
+        <label for="name">Page Name</label>: <input id="name" type="text" name="name" /><br>
+        <input type="hidden" name="ref" value="{{ref}}" />
+        <input type="hidden" name="branch" value="{{branchOrEditBranch}}" />
+        <input type="hidden" name="return" value="{{$.Return}}" />
+        <input type="submit" name="task" value="Save" />
+    </form>
+{{ template "tail" $ }}

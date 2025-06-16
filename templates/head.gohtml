@@ -28,11 +28,10 @@
                                                {{- end }}
                                                <hr/>
                                                 <b>Tabs</b><br/>
-                                                <span>Main{{- if editMode }} <a href="/addTab?index=0&ref={{ref}}">&#43;</a>{{- end }}</span><br/>
                                                 {{- range $i, $t := bookmarkTabs }}
-                                                        <span><a href="/?tab={{ $t }}">{{ $t }}</a>{{- if editMode }} <a href="/moveTab?index={{add1 $i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/moveTab?index={{add1 $i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addTab?index={{add1 $i}}&ref={{ref}}">&#43;</a> <a href="/deleteTab?index={{add1 $i}}&ref={{ref}}">&#9003;</a>{{- end }}</span><br/>
+                                                        <span><a href="/?{{ if ne $i 0 }}tab={{ $t }}{{ end }}">{{ $t }}</a>{{- if editMode }} <a class="edit-link" href="/moveTab?index={{add1 $i}}&dir=up&ref={{ref}}" title="Move up">&#8593;</a> <a class="edit-link" href="/moveTab?index={{add1 $i}}&dir=down&ref={{ref}}" title="Move down">&#8595;</a> <a class="edit-link" href="/addTab?index={{add1 $i}}&ref={{ref}}" title="Add Tab">&#43;</a> <a class="edit-link" href="/deleteTab?index={{add1 $i}}&ref={{ref}}" title="Delete">&#9003;</a>{{- end }}</span><br/>
                                                 {{- end }}
-                                                {{- if editMode }}<a href="/addTab?index={{add1 (len bookmarkTabs)}}&ref={{ref}}">Add Tab</a><br/>{{- end }}
+                                                {{- if editMode }}<a href="/addTab?index={{add1 (len bookmarkTabs)}}&ref={{ref}}" title="Add Tab">Add Tab</a><br/>{{- end }}
                                                 <hr/>
                                                 <b>Pages</b><br/>
                                                 {{- range $i, $p := bookmarkPages }}

@@ -76,7 +76,7 @@ While editing the index page also shows arrows for moving tabs, pages and catego
 A **+** icon inserts a new item above the current one and **⌫** deletes it.
 Each column ends with an **Add Category** link and the Tabs and Pages lists in the navigation
 include the same controls along with links to append new items. Every bookmark
-also has its own edit button.
+also has its own edit button and **Add Link** control for inserting new links.
 
 ![img.png](media/img.png)
 

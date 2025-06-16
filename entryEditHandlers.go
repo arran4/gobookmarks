@@ -10,12 +10,13 @@ import (
 
 type entryData struct {
 	*CoreData
-	Error string
-	Cat   int
-	Entry int
-	Url   string
-	Name  string
-	Sha   string
+	Error  string
+	Cat    int
+	Entry  int
+	Url    string
+	Name   string
+	Sha    string
+	Return string
 }
 
 func EditEntryPage(w http.ResponseWriter, r *http.Request) error {
@@ -72,6 +73,7 @@ func EditEntryPage(w http.ResponseWriter, r *http.Request) error {
 		Url:      entry.Url,
 		Name:     entry.Name,
 		Sha:      sha,
+		Return:   r.URL.Query().Get("return"),
 	}
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editEntry.gohtml", data); err != nil {
 		return fmt.Errorf("template: %w", err)
