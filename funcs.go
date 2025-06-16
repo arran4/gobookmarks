@@ -83,6 +83,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"useCssColumns": func() bool {
 			return UseCssColumns
 		},
+		"editMode": func() bool {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			em, _ := session.Values["EditMode"].(bool)
+			return em
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, ok := session.Values["GithubUser"].(*User)
@@ -204,6 +209,32 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			}
 			return tabs, nil
+		},
+		"currentTabIndex": func() (int, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil {
+				login = githubUser.Login
+			}
+
+			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			if err != nil {
+				if errors.Is(err, ErrRepoNotFound) {
+					return 0, nil
+				}
+				return 0, err
+			}
+			tabsData := PreprocessBookmarks(bookmarks)
+			tabName := r.URL.Query().Get("tab")
+			for i, t := range tabsData {
+				if t.Name == tabName {
+					return i, nil
+				}
+			}
+			return 0, nil
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)

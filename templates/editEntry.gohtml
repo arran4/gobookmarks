@@ -1,0 +1,13 @@
+{{ template "head" $ }}
+    {{ if $.Error }}
+        <p style="color: #FF0000">Error: {{ $.Error }}</p>
+    {{ end }}
+    <form method=post action="?cat={{$.Cat}}&entry={{$.Entry}}" class="edit-form entry-form">
+        <label for="url">URL</label>: <input id="url" type="text" name="url" value="{{$.Url}}" /><br/>
+        <label for="name">Name</label>: <input id="name" type="text" name="name" value="{{$.Name}}" /><br/>
+        <label for="branch">Branch</label>: <input id="branch" type="text" name="branch" value="{{ branchOrEditBranch }}" /><br>
+        <input type=submit name="task" value="Save" /><br>
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+    </form>
+    {{ template "tail" $ }}

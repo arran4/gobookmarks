@@ -20,8 +20,13 @@
                                         {{ if $.UserRef }}
                                                 <a href="/logout">Logout</a><br/>
                                                 <a href="/history">History</a><br/>
-                                                {{if ref}}<a href="/edit?ref={{ref}}">Edit</a>{{else}}<a href="/edit">Edit</a>{{end}}<br/>
-                                                <hr/>
+                                               {{- if editMode }}
+                                               <a href="/stopEdit">Stop Edit</a><br/>
+                                               <a href="/editAll">Edit All</a><br/>
+                                               {{- else }}
+                                               {{if ref}}<a href="/edit?ref={{ref}}">Edit</a>{{else}}<a href="/edit">Edit</a>{{end}}<br/>
+                                               {{- end }}
+                                               <hr/>
                                                 <b>Tabs</b><br/>
                                                 <a href="/">Main</a><br/>
                                                 {{- range bookmarkTabs }}

@@ -3,12 +3,12 @@
         You will need to login to see this page: <a href="/login">Login</a><br>
     {{else}}
         {{- if not bookmarksExist }}
-        <p>Your bookmarks repository was not found. Click <a href="/edit">here</a> to create it.</p>
+        <p>Your bookmarks repository was not found. Click <a href="/editAll">here</a> to create it.</p>
         {{- end }}
-        {{- if tab }}<h1>{{ tab }} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a></h1>{{ end }}
+        {{- if tab }}<h1>{{ tab }} {{- if editMode }}<a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/moveTab?index={{currentTabIndex}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/moveTab?index={{currentTabIndex}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addTab?index={{add1 currentTabIndex}}&ref={{ref}}">&#43;</a> <a href="/deleteTab?index={{currentTabIndex}}&ref={{ref}}">&#8722;</a>{{- end }}</h1>{{ end }}
         {{- range $i, $p := bookmarkPages }}
         <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}">
-            {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
+            {{- if $p.Name }}<h2>{{ $p.Name }} {{- if editMode }}<a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addPage?tab={{currentTabIndex}}&index={{add1 $i}}&ref={{ref}}">&#43;</a> <a href="/deletePage?tab={{currentTabIndex}}&index={{$i}}&ref={{ref}}">&#8722;</a>{{- end }}</h2>{{ else }}{{- if editMode }}<h2>Page {{add1 $i}} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=up&ref={{ref}}">&#8593;</a> <a href="/movePage?tab={{currentTabIndex}}&index={{$i}}&dir=down&ref={{ref}}">&#8595;</a> <a href="/addPage?tab={{currentTabIndex}}&index={{add1 $i}}&ref={{ref}}">&#43;</a> <a href="/deletePage?tab={{currentTabIndex}}&index={{$i}}&ref={{ref}}">&#8722;</a></h2>{{ end }}{{ end }}
             {{- range .Blocks }}
             {{- if .HR }}
             <hr class="bookmarkHr" />
@@ -18,13 +18,14 @@
                 {{- range .Columns }}
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
                     {{- range .Categories }}
+                        {{- $cat := . }}
                         <div class="categoryBlock">
-                            <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}" title="Edit">&#9998;</a></h2>
+                            <h2>{{ $cat.Name }} {{- if editMode }}<a class="edit-link" href="/editCategory?index={{ $cat.Index }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}</h2>
                             <ul  style="list-style-type: none;">
-                                {{- range .Entries }}
+                                {{- range $j, $e := $cat.Entries }}
                                     <li>
-                                        <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
-                                        <a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
+                                        <img src="/proxy/favicon?url={{ $e.Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                        <a href="{{ $e.Url }}" target="_blank">{{ $e.Name }}</a>{{- if editMode }} <a class="edit-link" href="/editEntry?cat={{ $cat.Index }}&entry={{ $j }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}
                                     </li>
                                 {{- end }}
                             </ul>
@@ -39,12 +40,13 @@
                     {{- range .Columns }}
                     <td>
                         {{- range .Categories }}
+                            {{- $cat := . }}
                             <ul  style="list-style-type: none;">
-                                <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}" title="Edit">&#9998;</a></h2>
-                                {{- range .Entries }}
+                                <h2>{{ $cat.Name }} {{- if editMode }}<a class="edit-link" href="/editCategory?index={{ $cat.Index }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}</h2>
+                                {{- range $j, $e := $cat.Entries }}
                                     <li>
-                                        <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
-                                        <a href="{{ .Url }}" target="_blank">{{ .Name }}</a>
+                                        <img src="/proxy/favicon?url={{ $e.Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                        <a href="{{ $e.Url }}" target="_blank">{{ $e.Name }}</a>{{- if editMode }} <a class="edit-link" href="/editEntry?cat={{ $cat.Index }}&entry={{ $j }}&ref={{ref}}" title="Edit">&#9998;</a>{{- end }}
                                     </li>
                                 {{- end }}
                             </ul>
@@ -57,6 +59,6 @@
             {{- end }}
         </div>
         {{- end }}
-        <p><a href="/editTab?ref={{ref}}">Add Tab</a></p>
+        {{- if editMode }}<p><a href="/addPage?tab={{currentTabIndex}}&index={{len (bookmarkPages)}}&ref={{ref}}">Add Page</a></p><p><a href="/editTab?ref={{ref}}">Add Tab</a></p>{{- end }}
     {{end}}
 {{ template "tail" $ }}

@@ -243,12 +243,15 @@ func main() {
 	r.Handle("/", http.HandlerFunc(runTemplate("indexPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
-	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/edit", runHandlerChain(StartEditMode)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/stopEdit", runHandlerChain(StopEditMode)).Methods("GET").MatcherFunc(RequiresAnAccount())
+
+	r.HandleFunc("/editAll", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/editAll", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editAll", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
+	r.HandleFunc("/editAll", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
+	r.HandleFunc("/editAll", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	r.HandleFunc("/editAll", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -259,6 +262,17 @@ func main() {
 	r.HandleFunc("/editTab", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
 	r.HandleFunc("/editTab", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+
+	r.HandleFunc("/moveTab", runHandlerChain(MoveTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/movePage", runHandlerChain(MovePageHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addPage", runHandlerChain(AddPageHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/deletePage", runHandlerChain(DeletePageHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addTab", runHandlerChain(AddTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/deleteTab", runHandlerChain(DeleteTabHandler)).Methods("GET").MatcherFunc(RequiresAnAccount())
+
+	r.HandleFunc("/editEntry", runHandlerChain(EditEntryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editEntry", runHandlerChain(EntryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Save"))
+	r.HandleFunc("/editEntry", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())

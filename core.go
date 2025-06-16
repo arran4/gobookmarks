@@ -36,10 +36,12 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 			title = "dev: " + title
 		}
 
+		editMode, _ := session.Values["EditMode"].(bool)
 		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
 		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
-			UserRef: login,
-			Title:   title,
+			UserRef:  login,
+			Title:    title,
+			EditMode: editMode,
 		})
 		next.ServeHTTP(writer, request.WithContext(ctx))
 	})
@@ -49,6 +51,7 @@ type CoreData struct {
 	Title       string
 	AutoRefresh bool
 	UserRef     string
+	EditMode    bool
 }
 
 type Configuration struct {

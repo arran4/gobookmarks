@@ -62,12 +62,19 @@ http://right.com
 
 ## Editing
 
-The `/edit` page allows updating the entire bookmark file.
-Each category heading on the index page now includes a small pencil icon
-link that opens `/editCategory`. This page shows only the selected
-category text and saves changes back to your bookmarks without touching
-other sections. Edits check the file's SHA so you'll get an error if it
-changed while you were editing.
+Click **Edit** in the navigation to enable edit mode. When editing is
+active all the small pencil icons appear allowing quick updates to
+categories, pages and tabs. A **Stop Edit** link turns edit mode off.
+While editing you can open the full bookmark editor via the **Edit
+All** link.
+
+Each pencil icon links to `/editCategory` or `/editTab` as before. These
+pages work the same but are only shown while edit mode is on. All edits
+check the file's SHA so you'll get an error if it changed while you were
+editing.
+While editing the index page also shows arrows for moving tabs and pages up or down,
+plus and minus icons for inserting or deleting them, and each bookmark link has its own
+edit button.
 
 ![img.png](media/img.png)
 
