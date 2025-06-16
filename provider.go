@@ -67,3 +67,16 @@ func ProviderNames() []string {
 	}
 	return names
 }
+
+// ConfiguredProviderNames returns the list of providers that are both
+// compiled in and configured for use. A provider is considered configured
+// when providerCreds returns non-nil.
+func ConfiguredProviderNames() []string {
+	names := make([]string, 0, len(providers))
+	for _, n := range ProviderNames() {
+		if providerCreds(n) != nil {
+			names = append(names, n)
+		}
+	}
+	return names
+}

@@ -222,6 +222,10 @@ func main() {
 		fmt.Println("no providers compiled")
 		os.Exit(-1)
 	}
+	if len(ConfiguredProviderNames()) == 0 {
+		fmt.Println("no providers available")
+		os.Exit(-1)
+	}
 
 	r := mux.NewRouter()
 
