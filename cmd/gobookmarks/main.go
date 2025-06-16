@@ -72,6 +72,7 @@ func main() {
 			return 0
 		}(),
 		LocalGitPath: os.Getenv("LOCAL_GIT_PATH"),
+		NoFooter:     os.Getenv("GBM_NO_FOOTER") != "",
 	}
 
 	configPath := DefaultConfigPath()
@@ -90,6 +91,7 @@ func main() {
 	var faviconSizeFlag stringFlag
 	var localGitPathFlag stringFlag
 	var columnFlag boolFlag
+	var noFooterFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
 	flag.Var(&cfgFlag, "config", "path to config file")
@@ -106,6 +108,7 @@ func main() {
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
 	flag.Var(&localGitPathFlag, "local-git-path", "directory for local git provider")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
+	flag.Var(&noFooterFlag, "no-footer", "disable footer on pages")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
 	flag.Parse()
@@ -159,6 +162,9 @@ func main() {
 	if columnFlag.set {
 		cfg.CssColumns = columnFlag.value
 	}
+	if noFooterFlag.set {
+		cfg.NoFooter = noFooterFlag.value
+	}
 	if ghServerFlag.set {
 		cfg.GithubServer = ghServerFlag.value
 	}
@@ -187,6 +193,7 @@ func main() {
 	Namespace = cfg.Namespace
 	RepoName = GetBookmarksRepoName()
 	SiteTitle = cfg.Title
+	NoFooter = cfg.NoFooter
 	if cfg.GithubServer != "" {
 		GithubServer = cfg.GithubServer
 	}

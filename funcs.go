@@ -83,6 +83,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"useCssColumns": func() bool {
 			return UseCssColumns
 		},
+		"showFooter": func() bool {
+			return !NoFooter
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, ok := session.Values["GithubUser"].(*User)

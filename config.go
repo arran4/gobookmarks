@@ -27,6 +27,7 @@ type Config struct {
 	FaviconCacheDir  string `json:"favicon_cache_dir"`
 	FaviconCacheSize int64  `json:"favicon_cache_size"`
 	LocalGitPath     string `json:"local_git_path"`
+	NoFooter         bool   `json:"no_footer"`
 }
 
 // LoadConfigFile loads configuration from the given path.
@@ -111,6 +112,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.LocalGitPath != "" {
 		dst.LocalGitPath = src.LocalGitPath
+	}
+	if src.NoFooter {
+		dst.NoFooter = true
 	}
 }
 

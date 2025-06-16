@@ -1,7 +1,8 @@
 {{define "tail"}}
                  </table>
                  <div id="bottom"></div>
-                 <hr>
+                {{ if showFooter }}
+                <hr>
                 <footer class="footnote">
                        <div>Date and time is now: {{ now.Format "2006-01-02 15:04:05 MST" }}</div>
                        <div>
@@ -14,6 +15,7 @@
                                </i>
                        </div>
                 </footer>
+                {{ end }}
                  </body>
 </html>
 {{end}}
