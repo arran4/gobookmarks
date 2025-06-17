@@ -209,7 +209,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					if i == 0 {
 						name = "Main"
 					} else {
-						continue
+						name = fmt.Sprintf("Tab%d", i+1)
 					}
 				}
 				tabs = append(tabs, name)
@@ -238,7 +238,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			for i, t := range tabsData {
 				name := t.Name
 				if name == "" {
-					name = "Main"
+					if i == 0 {
+						name = "Main"
+					} else {
+						name = fmt.Sprintf("Tab%d", i+1)
+					}
 				}
 				if name == tabName || (tabName == "" && i == 0) {
 					return i, nil

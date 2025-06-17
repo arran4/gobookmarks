@@ -101,9 +101,13 @@ div.title {
 }
 
 .edit-link {
-        font-size: small;
+        font-size: 1em;
         margin-left: 0.3em;
         text-decoration: none;
+}
+
+.delete-icon {
+        font-size: small;
 }
 
 .edit-form textarea {

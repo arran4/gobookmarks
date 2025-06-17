@@ -1,0 +1,88 @@
+package gobookmarks
+
+import "testing"
+
+func TestTabOperationsImplicit(t *testing.T) {
+	input := "Category: A\nTab: Named\nCategory: B\n"
+	tabs := PreprocessBookmarks(input)
+	if len(tabs) != 2 {
+		t.Fatalf("expected 2 tabs got %d", len(tabs))
+	}
+	tabs = insertTab(tabs, 1)
+	if len(tabs) != 3 {
+		t.Fatalf("expected 3 tabs after insert got %d", len(tabs))
+	}
+	tabs = moveTab(tabs, 2, -2)
+	out := SerializeBookmarks(tabs)
+	round := PreprocessBookmarks(out)
+	if len(round) != 3 {
+		t.Fatalf("expected 3 tabs after round trip got %d", len(round))
+	}
+	if round[0].Name != "Named" {
+		t.Fatalf("expected first tab Named got %q", round[0].Name)
+	}
+	if round[1].Name != "" {
+		t.Fatalf("expected second tab unnamed got %q", round[1].Name)
+	}
+	round = deleteTab(round, 1)
+	if len(round) != 2 {
+		t.Fatalf("expected 2 tabs after delete got %d", len(round))
+	}
+}
+
+func TestPageOperations(t *testing.T) {
+	input := "Category: A\nPage: B\nCategory: C\n"
+	tabs := PreprocessBookmarks(input)
+	t0 := tabs[0]
+	insertPage(t0, 1)
+	if len(t0.Pages) != 3 {
+		t.Fatalf("expected 3 pages after insert got %d", len(t0.Pages))
+	}
+	movePage(t0, 2, -2)
+	out := SerializeBookmarks(tabs)
+	round := PreprocessBookmarks(out)
+	if round[0].Pages[0].Name != "B" {
+		t.Fatalf("expected first page B got %q", round[0].Pages[0].Name)
+	}
+	deletePage(round[0], 1)
+	if len(round[0].Pages) != 2 {
+		t.Fatalf("expected 2 pages after delete got %d", len(round[0].Pages))
+	}
+}
+
+func TestCategoryOperations(t *testing.T) {
+	input := "Category: A\nCategory: B\n"
+	tabs := PreprocessBookmarks(input)
+	t0 := tabs[0]
+	moveCategory(t0, 0, 0, 0, 1, -1)
+	insertCategory(t0, 0, 0, 0, 1)
+	cats := t0.Pages[0].Blocks[0].Columns[0].Categories
+	if len(cats) != 3 {
+		t.Fatalf("expected 3 categories after insert got %d", len(cats))
+	}
+	if cats[0].Name != "B" {
+		t.Fatalf("expected first category B got %q", cats[0].Name)
+	}
+	deleteCategory(t0, 0, 0, 0, 1)
+	if len(cats)-1 != 2 {
+		t.Fatalf("expected 2 categories after delete got %d", len(cats)-1)
+	}
+}
+
+func TestEntryOperations(t *testing.T) {
+	input := "Category: C\nhttps://a A\nhttps://b B\n"
+	tabs := PreprocessBookmarks(input)
+	cat := tabs[0].Pages[0].Blocks[0].Columns[0].Categories[0]
+	insertEntry(cat, 1)
+	if len(cat.Entries) != 3 {
+		t.Fatalf("expected 3 entries after insert got %d", len(cat.Entries))
+	}
+	moveEntry(cat, 2, -2)
+	if cat.Entries[0].Url != "https://b" {
+		t.Fatalf("expected first entry https://b got %q", cat.Entries[0].Url)
+	}
+	deleteEntry(cat, 1)
+	if len(cat.Entries) != 2 {
+		t.Fatalf("expected 2 entries after delete got %d", len(cat.Entries))
+	}
+}
