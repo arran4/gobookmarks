@@ -124,6 +124,7 @@ func GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commi
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+	ref = strings.TrimSuffix(ref, "/")
 	if b, sha, ok := getCachedBookmarks(user, ref); ok {
 		return b, sha, nil
 	}
@@ -139,6 +140,7 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 }
 
 func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+	sourceRef = strings.TrimSuffix(sourceRef, "/")
 	p := providerFromContext(ctx)
 	if p == nil {
 		return ErrNoProvider

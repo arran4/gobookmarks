@@ -122,3 +122,24 @@ func TestGitUserDirHash(t *testing.T) {
 		t.Fatalf("user dir not hashed")
 	}
 }
+
+func TestGetBookmarksTrailingSlash(t *testing.T) {
+	tmp := t.TempDir()
+	LocalGitPath = tmp
+	p := GitProvider{}
+	user := "dave"
+	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+	if err := p.CreateBookmarks(context.Background(), user, nil, "main", "Category: A\n"); err != nil {
+		t.Fatalf("CreateBookmarks: %v", err)
+	}
+	ctx := context.WithValue(context.Background(), ContextValues("provider"), "git")
+	_, sha, err := GetBookmarks(ctx, user, "refs/heads/main/", nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks: %v", err)
+	}
+	if sha == "" {
+		t.Fatalf("sha empty")
+	}
+}

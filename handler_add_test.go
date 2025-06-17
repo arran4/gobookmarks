@@ -30,6 +30,7 @@ func setupHandlerTest(t *testing.T, initial string) (GitProvider, string, contex
 	sess.Values["Token"] = &oauth2.Token{}
 	ctx := context.WithValue(sessReq.Context(), ContextValues("session"), sess)
 	ctx = context.WithValue(ctx, ContextValues("provider"), "git")
+	ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{})
 	return p, user, ctx
 }
 
