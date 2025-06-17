@@ -152,6 +152,9 @@ func AddPageHandler(w http.ResponseWriter, r *http.Request) error {
 	if tIdx < 0 || tIdx >= len(tabs) {
 		return fmt.Errorf("tab index out of range")
 	}
+	if idx < 0 || idx > len(tabs[tIdx].Pages) {
+		return fmt.Errorf("page index out of range")
+	}
 	insertPage(tabs[tIdx], idx)
 	if name != "" {
 		tabs[tIdx].Pages[idx].Name = name
@@ -241,6 +244,9 @@ func AddTabHandler(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	tabs := PreprocessBookmarks(current)
+	if idx < 0 || idx > len(tabs) {
+		return fmt.Errorf("tab index out of range")
+	}
 	tabs = insertTab(tabs, idx)
 	if name != "" {
 		tabs[idx].Name = name

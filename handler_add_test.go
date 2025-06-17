@@ -53,6 +53,25 @@ func TestAddTabHandler(t *testing.T) {
 	}
 }
 
+func TestAddTabHandlerInvalid(t *testing.T) {
+	p, _, ctx := setupHandlerTest(t, "Category: A\n")
+	values := url.Values{"name": {"Bad"}}
+	req := httptest.NewRequest("POST", "/addTab?index=5&branch=main&ref=refs/heads/main", strings.NewReader(values.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	err := AddTabHandler(w, req)
+	if err == nil || err == ErrHandled {
+		t.Fatalf("expected error got %v", err)
+	}
+	// ensure repo unchanged
+	got, _, _ := p.GetBookmarks(context.Background(), "alice", "refs/heads/main", nil)
+	tabs := PreprocessBookmarks(got)
+	if len(tabs) != 1 {
+		t.Fatalf("tabs changed unexpectedly")
+	}
+}
+
 func TestAddPageHandler(t *testing.T) {
 	p, user, ctx := setupHandlerTest(t, "Category: A\n")
 	form := url.Values{"name": {"P2"}}
@@ -67,6 +86,25 @@ func TestAddPageHandler(t *testing.T) {
 	pages := PreprocessBookmarks(got)[0].Pages
 	if len(pages) != 2 || pages[1].Name != "P2" {
 		t.Fatalf("page not added correctly: %#v", pages)
+	}
+}
+
+func TestAddPageHandlerInvalid(t *testing.T) {
+	p, _, ctx := setupHandlerTest(t, "Category: A\n")
+	form := url.Values{"name": {"P"}}
+	// invalid index beyond pages length
+	req := httptest.NewRequest("POST", "/addPage?tab=0&index=5&branch=main&ref=refs/heads/main", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	err := AddPageHandler(w, req)
+	if err == nil || err == ErrHandled {
+		t.Fatalf("expected error got %v", err)
+	}
+	got, _, _ := p.GetBookmarks(context.Background(), "alice", "refs/heads/main", nil)
+	pages := PreprocessBookmarks(got)[0].Pages
+	if len(pages) != 1 {
+		t.Fatalf("pages changed unexpectedly")
 	}
 }
 
