@@ -4,7 +4,7 @@ func insertEntry(cat *BookmarkCategory, index int) {
 	if index < 0 || index > len(cat.Entries) {
 		return
 	}
-	e := &BookmarkEntry{}
+	e := &BookmarkEntry{Url: "http://", Name: ""}
 	cat.Entries = append(cat.Entries[:index], append([]*BookmarkEntry{e}, cat.Entries[index:]...)...)
 }
 
