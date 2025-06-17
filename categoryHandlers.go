@@ -15,6 +15,7 @@ func MoveCategoryHandler(w http.ResponseWriter, r *http.Request) error {
 	cStr := r.URL.Query().Get("col")
 	iStr := r.URL.Query().Get("index")
 	dir := r.URL.Query().Get("dir")
+	ret := r.URL.Query().Get("return")
 
 	tIdx, err := strconv.Atoi(tStr)
 	if err != nil {
@@ -69,7 +70,11 @@ func MoveCategoryHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if ret != "" {
+		http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	return ErrHandled
 }
 
@@ -100,6 +105,7 @@ func AddCategoryHandler(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid index: %w", err)
 	}
+	ret := r.URL.Query().Get("return")
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
@@ -125,7 +131,11 @@ func AddCategoryHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if ret != "" {
+		http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	return ErrHandled
 }
 

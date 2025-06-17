@@ -60,6 +60,7 @@ func MovePageHandler(w http.ResponseWriter, r *http.Request) error {
 	tabIdxStr := r.URL.Query().Get("tab")
 	idxStr := r.URL.Query().Get("index")
 	dir := r.URL.Query().Get("dir")
+	ret := r.URL.Query().Get("return")
 	tIdx, err := strconv.Atoi(tabIdxStr)
 	if err != nil {
 		return fmt.Errorf("invalid tab index: %w", err)
@@ -100,7 +101,11 @@ func MovePageHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if ret != "" {
+		http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	return ErrHandled
 }
 
@@ -125,6 +130,7 @@ func AddPageHandler(w http.ResponseWriter, r *http.Request) error {
 	tabIdxStr := r.URL.Query().Get("tab")
 	idxStr := r.URL.Query().Get("index")
 	name := r.PostFormValue("name")
+	ret := r.PostFormValue("return")
 	tIdx, err := strconv.Atoi(tabIdxStr)
 	if err != nil {
 		return fmt.Errorf("invalid tab index: %w", err)
@@ -163,7 +169,11 @@ func AddPageHandler(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, sha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if ret != "" {
+		http.Redirect(w, r, ret, http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	return ErrHandled
 }
 
