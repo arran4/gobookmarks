@@ -86,3 +86,33 @@ func TestEntryOperations(t *testing.T) {
 		t.Fatalf("expected 2 entries after delete got %d", len(cat.Entries))
 	}
 }
+
+func TestInsertColumnAndMoveAcross(t *testing.T) {
+	input := "Category: A\nColumn\nCategory: B\n"
+	tabs := PreprocessBookmarks(input)
+	p := tabs[0].Pages[0]
+	insertColumn(p, 0, 1)
+	if len(p.Blocks[0].Columns) != 3 {
+		t.Fatalf("expected 3 columns got %d", len(p.Blocks[0].Columns))
+	}
+	moveCategoryTo(tabs[0], 0, 0, 0, 0, 0, 0, 2, 0)
+	if len(p.Blocks[0].Columns[0].Categories) != 0 || len(p.Blocks[0].Columns[2].Categories) != 2 {
+		t.Fatalf("moveCategoryTo failed")
+	}
+	if p.Blocks[0].Columns[2].Categories[0].Name != "A" {
+		t.Fatalf("expected moved category A")
+	}
+}
+
+func TestMoveEntryBetween(t *testing.T) {
+	input := "Category: A\nhttps://a A\nCategory: B\nhttps://b B\n"
+	tabs := PreprocessBookmarks(input)
+	cats := tabs[0].Pages[0].Blocks[0].Columns[0].Categories
+	moveEntryBetween(cats[0], 0, cats[1], 1)
+	if len(cats[0].Entries) != 0 || len(cats[1].Entries) != 2 {
+		t.Fatalf("moveEntryBetween counts wrong")
+	}
+	if cats[1].Entries[1].Url != "https://a" {
+		t.Fatalf("entry not moved")
+	}
+}
