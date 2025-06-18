@@ -50,6 +50,11 @@ func (p *BookmarkPage) DisplayName() string {
 	return ""
 }
 
+// IndexName returns a name suitable for the navigation index.
+func (p *BookmarkPage) IndexName() string {
+	return p.DisplayName()
+}
+
 // DisplayName returns a useful name for the tab.
 func (t *BookmarkTab) DisplayName() string {
 	if strings.TrimSpace(t.Name) != "" {
@@ -68,4 +73,9 @@ func (t *BookmarkTab) DisplayName() string {
 		}
 	}
 	return ""
+}
+
+// IndexName returns a name suitable for the navigation index.
+func (t *BookmarkTab) IndexName() string {
+	return t.DisplayName()
 }

@@ -18,6 +18,7 @@ func TestCompileGoHTML(t *testing.T) {
 		"edit.gohtml",
 		"editCategory.gohtml",
 		"editTab.gohtml",
+		"editPage.gohtml",
 		"editNotes.gohtml",
 		"error.gohtml",
 		"head.gohtml",
@@ -53,11 +54,20 @@ func testFuncMap() template.FuncMap {
 		"tab":                func() string { return "0" },
 		"tabName":            func() string { return "Main" },
 		"page":               func() string { return "" },
+<<<<<<< codex/fix-page-jump-behavior-in-edit-mode
 		"bookmarkTabs":       func() ([]TabInfo, error) { return []TabInfo{{Index: 0, Name: "Main", Href: "/"}}, nil },
 		"useCssColumns":      func() bool { return false },
 		"showFooter":         func() bool { return true },
 		"showPages":          func() bool { return true },
 		"loggedIn":           func() (bool, error) { return true, nil },
+=======
+		"bookmarkTabs": func() ([]TabInfo, error) {
+			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/"}}, nil
+		},
+		"useCssColumns": func() bool { return false },
+		"showFooter":    func() bool { return true },
+		"loggedIn":      func() (bool, error) { return true, nil },
+>>>>>>> main
 		"commitShort": func() string {
 			short := commit
 			if len(short) > 7 {
@@ -138,6 +148,19 @@ func TestExecuteTemplates(t *testing.T) {
 		Sha:      "sha",
 	}
 
+	pageData := struct {
+		*CoreData
+		Error string
+		Name  string
+		Text  string
+		Sha   string
+	}{
+		CoreData: baseData.CoreData,
+		Name:     "Demo",
+		Text:     "Category: Demo",
+		Sha:      "sha",
+	}
+
 	pages := []struct {
 		name string
 		tmpl string
@@ -148,6 +171,7 @@ func TestExecuteTemplates(t *testing.T) {
 		{"logout", "logoutPage.gohtml", baseData},
 		{"edit", "edit.gohtml", baseData},
 		{"editCategory", "editCategory.gohtml", catData},
+		{"editPage", "editPage.gohtml", pageData},
 		{"history", "history.gohtml", baseData},
 		{"historyCommits", "historyCommits.gohtml", baseData},
 		{"taskDone", "taskDoneAutoRefreshPage.gohtml", baseData},
