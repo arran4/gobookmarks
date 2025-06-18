@@ -271,52 +271,47 @@
                 e.currentTarget.classList.remove('drag-over');
                 var id = e.dataTransfer.getData('text/plain');
                 var el = document.getElementById(id);
-                if (el) {
-                    var from = parseInt(id.substring(3));
-                    var pageSha = e.dataTransfer.getData('pageSha');
-                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
-                    if (e.currentTarget.tagName === 'TD') {
-                        var td = document.createElement('td');
-                        td.appendChild(el);
-                        e.currentTarget.parentNode.insertBefore(td, e.currentTarget);
-                        if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
-                            var nz = e.currentTarget.cloneNode(false);
-                            nz.className = 'betweenColumnDropZone';
-                            e.currentTarget.parentNode.insertBefore(nz, td);
-                            var after = e.currentTarget.cloneNode(false);
-                            after.className = 'betweenColumnDropZone';
-                            e.currentTarget.parentNode.insertBefore(after, e.currentTarget.nextSibling);
-                        } else {
-                            var newZone = e.currentTarget.cloneNode(false);
-                            newZone.className = 'newColumnDropZone';
-                            e.currentTarget.parentNode.insertBefore(newZone, e.currentTarget.nextSibling);
-                        }
-                    } else {
-                        var brk = document.createElement('div');
-                        brk.className = 'columnBreak';
-                        var parent = e.currentTarget.parentNode;
-                        parent.insertBefore(brk, e.currentTarget);
-                        parent.insertBefore(el, e.currentTarget);
-                        if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
-                            var nz = e.currentTarget.cloneNode(false);
-                            nz.className = 'betweenColumnDropZone';
-                            parent.insertBefore(nz, brk);
-                            var after = e.currentTarget.cloneNode(false);
-                            after.className = 'betweenColumnDropZone';
-                            parent.insertBefore(after, e.currentTarget.nextSibling);
-                        } else {
-                            var newZone = e.currentTarget.cloneNode(false);
-                            newZone.className = 'newColumnDropZone';
-                            parent.insertBefore(newZone, e.currentTarget.nextSibling);
-                        }
+                if (!el) return;
+
+                var from = parseInt(id.substring(3));
+                var pageSha = e.dataTransfer.getData('pageSha');
+                var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
+
+                if (e.currentTarget.tagName === 'TD') {
+                    var td = document.createElement('td');
+                    td.appendChild(el);
+                    var end = document.createElement('div');
+                    end.className = 'columnEndDropZone';
+                    td.appendChild(end);
+
+                    if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
+                        var before = e.currentTarget.cloneNode(false);
+                        before.className = 'betweenColumnDropZone';
+                        e.currentTarget.parentNode.insertBefore(before, e.currentTarget);
                     }
-                    e.currentTarget.classList.remove('newColumnDropZone', 'betweenColumnDropZone');
-                    e.currentTarget.classList.add('columnEndDropZone');
-                    sendMoveNewColumn(from, pageSha, destSha);
-                    attachDropZones();
-                    removeEmptyColumns();
-                    updateColumnIndices();
+                    e.currentTarget.parentNode.insertBefore(td, e.currentTarget);
+                } else {
+                    var parent = e.currentTarget.parentNode;
+                    var brk = document.createElement('div');
+                    brk.className = 'columnBreak';
+                    var end = document.createElement('div');
+                    end.className = 'columnEndDropZone';
+
+                    if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
+                        var before = e.currentTarget.cloneNode(false);
+                        before.className = 'betweenColumnDropZone';
+                        parent.insertBefore(before, e.currentTarget);
+                    }
+
+                    parent.insertBefore(brk, e.currentTarget);
+                    parent.insertBefore(el, e.currentTarget);
+                    parent.insertBefore(end, e.currentTarget);
                 }
+
+                sendMoveNewColumn(from, pageSha, destSha);
+                attachDropZones();
+                removeEmptyColumns();
+                updateColumnIndices();
             }
 
             function dropEndColumn(e) {
