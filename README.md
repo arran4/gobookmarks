@@ -97,6 +97,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
 | `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
 | `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image). |
+| `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
 
@@ -114,6 +115,8 @@ Running `gobookmarks --version` will print the version information along with th
 When no OAuth2 credentials are configured the login buttons are hidden. Visit `/status` to see which providers are available.
 Use `--dump-config` to print the final configuration after merging the environment,
 config file and command line arguments.
+
+Sessions use the key from `SESSION_KEY` or the config file. When unset, a key is read from `session.key` in the state directory or generated on first start. If writing this file fails, sessions expire on restart. To keep sessions stable across restarts, provide a fixed key through configuration.
 
 ## Oauth2 setup
 
