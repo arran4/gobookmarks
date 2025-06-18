@@ -12,9 +12,9 @@ func TestSerializeBookmarksRoundTrip(t *testing.T) {
 		multiBookmarkText,
 	}
 	for _, in := range samples {
-		tabs1 := PreprocessBookmarks(in)
-		out := SerializeBookmarks(tabs1)
-		tabs2 := PreprocessBookmarks(out)
+		tabs1 := ParseBookmarks(in)
+		out := tabs1.String()
+		tabs2 := ParseBookmarks(out)
 		if diff := cmp.Diff(tabs1, tabs2); diff != "" {
 			t.Fatalf("round trip diff:\n%s", diff)
 		}

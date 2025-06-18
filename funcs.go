@@ -158,7 +158,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			tabs := PreprocessBookmarks(bookmark)
+			tabs := ParseBookmarks(bookmark)
 			tabName := r.URL.Query().Get("tab")
 			var pages []*BookmarkPage
 			if tabName != "" {
@@ -202,7 +202,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			tabsData := PreprocessBookmarks(bookmark)
+			tabsData := ParseBookmarks(bookmark)
 			var tabs []string
 			for _, t := range tabsData {
 				if name := t.DisplayName(); name != "" {
@@ -232,7 +232,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			tabsData := PreprocessBookmarks(bookmark)
+			tabsData := ParseBookmarks(bookmark)
 			var columns []*BookmarkColumn
 			for _, t := range tabsData {
 				for _, p := range t.Pages {

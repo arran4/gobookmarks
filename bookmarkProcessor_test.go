@@ -7,12 +7,13 @@ import (
 )
 
 type (
-	Pg  = BookmarkPage
-	Blk = BookmarkBlock
-	Col = BookmarkColumn
-	Cat = BookmarkCategory
-	Ent = BookmarkEntry
-	T   = BookmarkTab
+	Pg   = BookmarkPage
+	Blk  = BookmarkBlock
+	Col  = BookmarkColumn
+	Cat  = BookmarkCategory
+	Ent  = BookmarkEntry
+	T    = BookmarkTab
+	Tabs = BookmarkList
 )
 
 func e(u, n string) *Ent               { return &Ent{Url: u, Name: n} }
@@ -55,16 +56,16 @@ Category
 http://www.google.com.au Google
 `
 
-func Test_preprocessBookmarks(t *testing.T) {
+func Test_parseBookmarks(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
-		want  []*T
+		want  Tabs
 	}{
 		{
 			name:  "basic",
 			input: "Category: Search\nhttp://g.com G\nCategory: Wikies\nhttp://w.com W\n",
-			want: []*T{
+			want: Tabs{
 				tab("", page(colsBlock(
 					col(cat("Search", e("http://g.com", "G")),
 						cat("Wikies", e("http://w.com", "W"))),
@@ -74,7 +75,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "columns",
 			input: "Category: Search\nhttp://g.com G\nColumn\nCategory: Wikies\nhttp://w.com W\n",
-			want: []*T{
+			want: Tabs{
 				tab("", page(colsBlock(
 					col(cat("Search", e("http://g.com", "G"))),
 					col(cat("Wikies", e("http://w.com", "W"))),
@@ -84,7 +85,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "pages",
 			input: "Category: A\nhttp://a.com a\nPage\nCategory: B\nhttp://b.com b\n",
-			want: []*T{
+			want: Tabs{
 				tab("",
 					page(colsBlock(col(cat("A", e("http://a.com", "a"))))),
 					page(colsBlock(col(cat("B", e("http://b.com", "b"))))),
@@ -94,7 +95,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "pages and columns",
 			input: "Category: A\nhttp://a.com\nColumn\nCategory: B\nhttp://b.com\nPage\nCategory: C\nhttp://c.com\nColumn\nCategory: D\nhttp://d.com\n",
-			want: []*T{
+			want: Tabs{
 				tab("",
 					page(colsBlock(
 						col(cat("A", e("http://a.com", "http://a.com"))),
@@ -110,7 +111,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "horizontal rule",
 			input: "Category: One\nhttp://one.com\n--\nCategory: Two\nhttp://two.com\n",
-			want: []*T{
+			want: Tabs{
 				tab("", page(
 					colsBlock(col(cat("One", e("http://one.com", "http://one.com")))),
 					hrBlock(),
@@ -121,7 +122,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "tabs",
 			input: "Tab: First\nCategory: A\nTab: Second\nCategory: B\n",
-			want: []*T{
+			want: Tabs{
 				tab("First", page(colsBlock(col(cat("A"))))),
 				tab("Second", page(colsBlock(col(cat("B"))))),
 			},
@@ -129,14 +130,14 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "tab multiple pages",
 			input: "Tab: X\nCategory: A\nPage\nCategory: B\n",
-			want: []*T{
+			want: Tabs{
 				tab("X", page(colsBlock(col(cat("A")))), page(colsBlock(col(cat("B"))))),
 			},
 		},
 		{
 			name:  "anonymous tab",
 			input: "Tab: F\nCategory: A\nTab\nCategory: B\n",
-			want: []*T{
+			want: Tabs{
 				tab("F", page(colsBlock(col(cat("A"))))),
 				tab("", page(colsBlock(col(cat("B"))))),
 			},
@@ -144,21 +145,21 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "tab no colon with name",
 			input: "Tab Foo\nCategory: A\n",
-			want: []*T{
+			want: Tabs{
 				tab("Foo", page(colsBlock(col(cat("A"))))),
 			},
 		},
 		{
 			name:  "page name no colon",
 			input: "Page Start\nCategory: A\nPage End\nCategory: B\n",
-			want: []*T{
+			want: Tabs{
 				tab("", page(colsBlock(col(cat("A")))), page(colsBlock(col(cat("B"))))),
 			},
 		},
 		{
 			name:  "anonymous categories",
 			input: "Category:\nhttp://a.com\nCategory:\nhttp://b.com\n",
-			want: []*T{
+			want: Tabs{
 				tab("", page(colsBlock(col(
 					cat("Category", e("http://a.com", "http://a.com")),
 					cat("Category", e("http://b.com", "http://b.com")),
@@ -168,7 +169,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 		{
 			name:  "complex example",
 			input: complexBookmarkText,
-			want: []*T{
+			want: Tabs{
 				tab("",
 					page(colsBlock(
 						col(cat("Example 1", e("http://www.google.com.au", "Google"))),
@@ -201,7 +202,7 @@ func Test_preprocessBookmarks(t *testing.T) {
 	ignorePage := cmpopts.IgnoreFields(BookmarkPage{}, "Name")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := PreprocessBookmarks(tt.input)
+			got := ParseBookmarks(tt.input)
 			if diff := cmp.Diff(tt.want, got, ignore, ignorePage); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 			}
@@ -209,9 +210,9 @@ func Test_preprocessBookmarks(t *testing.T) {
 	}
 }
 
-func Test_preprocessBookmarksIndices(t *testing.T) {
+func Test_parseBookmarksIndices(t *testing.T) {
 	input := "Category: A\nColumn\nCategory: B\nPage\nCategory: C\n"
-	tabs := PreprocessBookmarks(input)
+	tabs := ParseBookmarks(input)
 	var got []int
 	for _, t := range tabs {
 		for _, p := range t.Pages {
@@ -233,9 +234,9 @@ func Test_preprocessBookmarksIndices(t *testing.T) {
 	}
 }
 
-func Test_preprocessBookmarksPageNames(t *testing.T) {
+func Test_parseBookmarksPageNames(t *testing.T) {
 	input := "Page: Start\nCategory: A\nPage: End\nCategory: B\n"
-	tabs := PreprocessBookmarks(input)
+	tabs := ParseBookmarks(input)
 	pages := tabs[0].Pages
 	if len(pages) < 2 {
 		t.Fatalf("expected 2 pages got %d", len(pages))
@@ -248,8 +249,8 @@ func Test_preprocessBookmarksPageNames(t *testing.T) {
 	}
 }
 
-func Test_preprocessComplexNamesTabs(t *testing.T) {
-	tabs := PreprocessBookmarks(complexBookmarkText)
+func Test_parseComplexNamesTabs(t *testing.T) {
+	tabs := ParseBookmarks(complexBookmarkText)
 	if len(tabs) != 3 {
 		t.Fatalf("expected 3 tabs got %d", len(tabs))
 	}
