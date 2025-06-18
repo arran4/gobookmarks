@@ -68,6 +68,16 @@
         <p><a href="/editTab?ref={{ref}}&tab={{tab}}">Add Tab</a></p>
         {{ if $.EditMode }}
         <script>
+        function postWithReload(url, options) {
+            fetch(url, options).then(function(resp) {
+                if (!resp.ok) {
+                    return resp.text().then(function(t) { alert(t); });
+                }
+            }).catch(function(err) {
+                alert(err);
+            }).finally(function() { location.reload(); });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             if (!document.body.classList.contains('edit-mode')) return;
 
@@ -174,7 +184,7 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
+                postWithReload('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
             }
 
             function sendMoveEnd(from, pageSha, destSha, destCol) {
@@ -198,7 +208,7 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'});
+                postWithReload('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'});
             }
 
             function sendMoveNewColumn(from, pageSha, destSha) {
@@ -221,7 +231,7 @@
                 fd.append('branch', branch);
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
-                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'});
+                postWithReload('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'});
             }
 
             function dragOver(e) {

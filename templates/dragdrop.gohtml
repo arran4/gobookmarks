@@ -26,7 +26,7 @@ function enableDragSort(list, buildUrl) {
                     } else {
                         li.before(dragEl);
                     }
-                    fetch(buildUrl(from, to), {method:'POST'}).then(() => location.reload());
+                    postWithReload(buildUrl(from, to), {method:'POST'});
                 }
             }
         });
