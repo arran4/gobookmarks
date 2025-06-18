@@ -206,3 +206,7 @@ body:not(.edit-mode) .categoryBlock h2 {
 body:not(.edit-mode) .moveIcon {
     display: none;
 }
+
+body:not(.edit-mode) .move-handle {
+    display: none;
+}
