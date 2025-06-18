@@ -98,6 +98,24 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"showFooter": func() bool {
 			return !NoFooter
 		},
+		"showPages": func() bool {
+			if r == nil {
+				return false
+			}
+			if strings.HasPrefix(r.URL.Path, "/login") || r.URL.Path == "/status" {
+				return false
+			}
+			sessioni := r.Context().Value(ContextValues("session"))
+			session, ok := sessioni.(*sessions.Session)
+			if !ok || session == nil {
+				return false
+			}
+			githubUser, ok := session.Values["GithubUser"].(*User)
+			if !ok || githubUser == nil {
+				return false
+			}
+			return true
+		},
 		"loggedIn": func() (bool, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, ok := session.Values["GithubUser"].(*User)
