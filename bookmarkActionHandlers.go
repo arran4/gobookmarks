@@ -173,7 +173,10 @@ func CategoryMoveEndAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid from index: %w", err)
 	}
-	destCol, _ := strconv.Atoi(destColStr)
+	destCol, err := strconv.Atoi(destColStr)
+	if destColStr == "" || err != nil {
+		destCol = -1
+	}
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
@@ -202,6 +205,11 @@ func CategoryMoveEndAction(w http.ResponseWriter, r *http.Request) error {
 	destPage := FindPageBySha(tabs, destPageSha)
 	if destPage == nil {
 		destPage = tabs[len(tabs)-1].Pages[len(tabs[len(tabs)-1].Pages)-1]
+	}
+
+	if destCol < 0 {
+		lastBlock := destPage.Blocks[len(destPage.Blocks)-1]
+		destCol = len(lastBlock.Columns) - 1
 	}
 
 	if err := tabs.MoveCategoryToEnd(fromIdx, destPage, destCol); err != nil {

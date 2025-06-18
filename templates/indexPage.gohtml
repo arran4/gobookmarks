@@ -144,6 +144,18 @@
                 zone.addEventListener('drop', dropEndColumn);
             });
 
+            document.querySelectorAll('#page-list li[data-page-sha]').forEach(function (li) {
+                li.addEventListener('dragover', dragOver);
+                li.addEventListener('dragleave', dragLeave);
+                li.addEventListener('drop', dropOnPageIndex);
+            });
+
+            document.querySelectorAll('#tab-list li[data-page-sha]').forEach(function (li) {
+                li.addEventListener('dragover', dragOver);
+                li.addEventListener('dragleave', dragLeave);
+                li.addEventListener('drop', dropOnTabIndex);
+            });
+
             function dragStart(e) {
                 var block = e.currentTarget.closest('.categoryBlock');
                 startZone = findColumnZone(block);
@@ -316,6 +328,32 @@
                     sendMoveEnd(from, pageSha, destSha, destCol);
                     updateColumnIndices(destPage);
                     removeEmptyColumn(startZone);
+                    startZone = null;
+                }
+            }
+
+            function dropOnPageIndex(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                if (id) {
+                    var from = parseInt(id.substring(3));
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    var destSha = e.currentTarget.dataset.pageSha;
+                    sendMoveEnd(from, pageSha, destSha, -1);
+                    startZone = null;
+                }
+            }
+
+            function dropOnTabIndex(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                if (id) {
+                    var from = parseInt(id.substring(3));
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    var destSha = e.currentTarget.dataset.pageSha;
+                    sendMoveEnd(from, pageSha, destSha, -1);
                     startZone = null;
                 }
             }

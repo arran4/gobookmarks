@@ -26,7 +26,7 @@
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range bookmarkTabs }}
-                                                       <li><span class="move-handle">&#9776;</span><a href="{{ .Href }}">{{ .IndexName }}</a></li>
+                                                       <li data-page-sha="{{ .LastPageSha }}"><span class="move-handle">&#9776;</span><a href="{{ .Href }}">{{ .IndexName }}</a></li>
                                                         {{- end }}
                                                         {{- if $.EditMode }}
                                                                 <li><a href="/editTab?ref={{ref}}&tab={{tab}}">+ Add Tab</a></li>
@@ -37,7 +37,7 @@
                                                 <b>Pages</b>
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
-                                                              <li><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?{{if tab}}tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">Page {{ if $p.IndexName }}{{$p.IndexName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
+                                                      <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?{{if tab}}tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">Page {{ if $p.IndexName }}{{$p.IndexName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
                                                         {{- end }}
                                                         {{- if $.EditMode }}
                                                                 <li><a href="/editPage?ref={{ref}}&tab={{tab}}">+ Add Page</a></li>
