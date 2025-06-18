@@ -10,8 +10,8 @@
         {{ if $.AutoRefresh }}
             <meta http-equiv="refresh" content="1">
         {{ end }}
-	</head>
-        <body>
+        </head>
+        <body{{if $.EditMode}} class="edit-mode"{{end}}>
                 <table border=0 id="layout">
                         <tr valign=top>
                                 <td width=200px id="nav">
@@ -20,7 +20,10 @@
                                         {{ if $.UserRef }}
                                                 <a href="/logout">Logout</a><br/>
                                                 <a href="/history">History</a><br/>
-                                                {{if ref}}<a href="/edit?ref={{ref}}">Edit</a>{{else}}<a href="/edit">Edit</a>{{end}}<br/>
+                                                <form method="post" action="/{{if $.EditMode}}stopEditMode{{else}}startEditMode{{end}}" style="display:inline">
+                                                        <button type="submit">{{if $.EditMode}}Stop Edit Mode{{else}}Edit Mode{{end}}</button>
+                                                </form><br/>
+                                                {{if ref}}<a href="/edit?ref={{ref}}">Edit All</a>{{else}}<a href="/edit">Edit All</a>{{end}}<br/>
                                                 <hr/>
                                                 <b>Tabs</b><br/>
                                                 <a href="/">Main</a><br/>
