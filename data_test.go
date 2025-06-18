@@ -134,11 +134,13 @@ func TestExecuteTemplates(t *testing.T) {
 		Index int
 		Text  string
 		Sha   string
+		Col   int
 	}{
 		CoreData: baseData.CoreData,
 		Index:    0,
 		Text:     "Category: Demo",
 		Sha:      "sha",
+		Col:      0,
 	}
 
 	pageData := struct {

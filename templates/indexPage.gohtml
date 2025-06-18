@@ -31,7 +31,9 @@
                             </ul>
                         </div>
                     {{- end }}
-                    <div class="columnEndDropZone" data-col="{{$ci}}"></div>
+                    <div class="columnEndDropZone" data-col="{{$ci}}">
+                        {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                    </div>
                     <div class="newColumnDropZone" data-col="{{$ci}}"></div>
                     {{- $first = false }}
                 {{- end }}
@@ -55,7 +57,9 @@
                                 </ul>
                             </div>
                         {{- end }}
-                        <div class="columnEndDropZone" data-col="{{$ci}}"></div>
+                        <div class="columnEndDropZone" data-col="{{$ci}}">
+                            {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                        </div>
                     </td>
                     <td class="newColumnDropZone" data-col="{{$ci}}"></td>
                     {{- end }}

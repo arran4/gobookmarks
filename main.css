@@ -185,6 +185,17 @@ body:not(.edit-mode) .edit-link {
     margin-top: 0.5em;
 }
 
+.add-category-link {
+    display: block;
+    text-align: center;
+    font-size: small;
+    text-decoration: none;
+}
+
+body:not(.edit-mode) .add-category-link {
+    display: none;
+}
+
 body:not(.edit-mode) .newColumnDropZone,
 body:not(.edit-mode) .columnEndDropZone {
     display: none;
