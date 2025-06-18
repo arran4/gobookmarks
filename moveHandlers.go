@@ -37,7 +37,7 @@ func MoveTabAction(w http.ResponseWriter, r *http.Request) error {
 func MovePageAction(w http.ResponseWriter, r *http.Request) error {
 	from, _ := strconv.Atoi(r.URL.Query().Get("from"))
 	to, _ := strconv.Atoi(r.URL.Query().Get("to"))
-	tabName := r.URL.Query().Get("tab")
+	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
@@ -54,11 +54,8 @@ func MovePageAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	list := ParseBookmarks(bookmarks)
-	for _, t := range list {
-		if t.DisplayName() == tabName || t.Name == tabName {
-			t.MovePage(from, to)
-			break
-		}
+	if tabIdx >= 0 && tabIdx < len(list) {
+		list[tabIdx].MovePage(from, to)
 	}
 	if err := UpdateBookmarks(r.Context(), login, token, ref, "main", list.String(), sha); err != nil {
 		return fmt.Errorf("updateBookmarks: %w", err)
@@ -70,7 +67,7 @@ func MoveEntryAction(w http.ResponseWriter, r *http.Request) error {
 	from, _ := strconv.Atoi(r.URL.Query().Get("from"))
 	to, _ := strconv.Atoi(r.URL.Query().Get("to"))
 	catIdx, _ := strconv.Atoi(r.URL.Query().Get("category"))
-	tabName := r.URL.Query().Get("tab")
+	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
 	pageIdx, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
@@ -88,22 +85,20 @@ func MoveEntryAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	list := ParseBookmarks(bookmarks)
-	for _, t := range list {
-		if t.DisplayName() == tabName || t.Name == tabName {
-			if pageIdx < len(t.Pages) {
-				page := t.Pages[pageIdx]
-				for _, blk := range page.Blocks {
-					for _, col := range blk.Columns {
-						for _, c := range col.Categories {
-							if c.Index == catIdx {
-								c.MoveEntry(from, to)
-								break
-							}
+	if tabIdx >= 0 && tabIdx < len(list) {
+		t := list[tabIdx]
+		if pageIdx >= 0 && pageIdx < len(t.Pages) {
+			page := t.Pages[pageIdx]
+			for _, blk := range page.Blocks {
+				for _, col := range blk.Columns {
+					for _, c := range col.Categories {
+						if c.Index == catIdx {
+							c.MoveEntry(from, to)
+							break
 						}
 					}
 				}
 			}
-			break
 		}
 	}
 	if err := UpdateBookmarks(r.Context(), login, token, ref, "main", list.String(), sha); err != nil {

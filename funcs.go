@@ -7,9 +7,16 @@ import (
 	"golang.org/x/oauth2"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
+
+// TabInfo is used by templates to display tab navigation with indexes.
+type TabInfo struct {
+	Index int
+	Name  string
+}
 
 var (
 	defaultBookmarks = "Category: Example 1\nhttp://www.google.com.au Google\nColumn\nCategory: Example 2\nhttp://www.google.com.au Google\nhttp://www.google.com.au Google\n"
@@ -159,29 +166,14 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
-			tabName := r.URL.Query().Get("tab")
-			var pages []*BookmarkPage
-			if tabName != "" {
-				for _, t := range tabs {
-					if t.Name == tabName {
-						pages = t.Pages
-						break
-					}
-				}
-			} else {
-				for _, t := range tabs {
-					if t.Name == "" {
-						pages = t.Pages
-						break
-					}
-				}
-				if pages == nil && len(tabs) > 0 {
-					pages = tabs[0].Pages
-				}
+			tabStr := r.URL.Query().Get("tab")
+			idx, err := strconv.Atoi(tabStr)
+			if err != nil || idx < 0 || idx >= len(tabs) {
+				idx = 0
 			}
-			return pages, nil
+			return tabs[idx].Pages, nil
 		},
-		"bookmarkTabs": func() ([]string, error) {
+		"bookmarkTabs": func() ([]TabInfo, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -203,17 +195,50 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
-			var tabs []string
+			var tabs []TabInfo
 			for i, t := range tabsData {
 				name := t.DisplayName()
 				if name == "" && i == 0 {
 					name = "Main"
 				}
 				if name != "" {
-					tabs = append(tabs, name)
+					tabs = append(tabs, TabInfo{Index: i, Name: name})
 				}
 			}
 			return tabs, nil
+		},
+		"tabName": func() string {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil {
+				login = githubUser.Login
+			}
+
+			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			var bookmark = defaultBookmarks
+			if err != nil {
+				if errors.Is(err, ErrRepoNotFound) {
+					bookmark = ""
+				} else {
+					return ""
+				}
+			} else {
+				bookmark = bookmarks
+			}
+			tabs := ParseBookmarks(bookmark)
+			tabStr := r.URL.Query().Get("tab")
+			idx, err := strconv.Atoi(tabStr)
+			if err != nil || idx < 0 || idx >= len(tabs) {
+				idx = 0
+			}
+			name := tabs[idx].DisplayName()
+			if name == "" && idx == 0 {
+				name = "Main"
+			}
+			return name
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
