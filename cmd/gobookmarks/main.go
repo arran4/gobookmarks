@@ -266,8 +266,8 @@ func main() {
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandler("/"))).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandler("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandler("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
