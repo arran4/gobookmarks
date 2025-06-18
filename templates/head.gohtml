@@ -28,12 +28,18 @@
                                                         {{- range bookmarkTabs }}
                                                                 <li><span class="move-handle">&#9776;</span><a href="{{ .Href }}">{{ .Name }}</a></li>
                                                         {{- end }}
+                                                        {{- if $.EditMode }}
+                                                                <li><a href="/editTab?ref={{ref}}&tab={{tab}}">+ Add Tab</a></li>
+                                                        {{- end }}
                                                 </ul>
                                                 <hr/>
                                                 <b>Pages</b>
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
                                                                 <li><span class="move-handle">&#9776;</span><a href="#page{{$i}}">Page {{ if $p.DisplayName }}{{$p.DisplayName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
+                                                        {{- end }}
+                                                        {{- if $.EditMode }}
+                                                                <li><a href="/editPage?ref={{ref}}&tab={{tab}}">+ Add Page</a></li>
                                                         {{- end }}
                                                 </ul>
                                         {{ else }}

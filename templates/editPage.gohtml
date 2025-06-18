@@ -2,15 +2,15 @@
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
-    <form method=post action="?index={{$.Index}}" class="edit-form category-form">
-        <label for="code">Category</label><br/>
+    <form method=post action="?" class="edit-form page-form">
+        <label for="name">Name</label>: <input id="name" type="text" name="name" value="{{$.Name}}" /><br>
+        <label for="code">Page Contents</label><br/>
         <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
         <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
         <input type=submit name="task" value="Save" /><br>
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
         <input type=hidden name="tab" value="{{tab}}" />
-        <input type=hidden name="page" value="{{page}}" />
     </form>
     {{ template "editNotes" $ }}
 {{ template "tail" $ }}
