@@ -17,7 +17,7 @@ function enableDragSort(list, buildUrl) {
         li.addEventListener('drop', e => {
             e.preventDefault();
             if (dragEl && dragEl !== li) {
-                const items = Array.from(list.children);
+                const items = Array.from(list.querySelectorAll('li'));
                 const from = items.indexOf(dragEl);
                 const to = items.indexOf(li);
                 if (from >= 0 && to >= 0) {
