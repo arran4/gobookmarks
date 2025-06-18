@@ -144,6 +144,28 @@
                         }
                     });
                 });
+                updateColumnIndices();
+            }
+
+            function updateColumnIndices() {
+                document.querySelectorAll('table tr').forEach(function(tr) {
+                    var idx = 0;
+                    tr.querySelectorAll('td').forEach(function(td) {
+                        if (td.classList.contains('newColumnDropZone') || td.classList.contains('betweenColumnDropZone')) return;
+                        var z = td.querySelector('.columnEndDropZone');
+                        if (z) {
+                            z.dataset.col = idx;
+                            idx++;
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.bookmarkColumns').forEach(function(container) {
+                    var idx = 0;
+                    container.querySelectorAll('.columnEndDropZone').forEach(function(zone) {
+                        zone.dataset.col = idx++;
+                    });
+                });
             }
 
             function sendMoveBefore(from, to, pageSha, destSha, destCol) {
@@ -259,7 +281,15 @@
                         e.currentTarget.parentNode.insertBefore(td, e.currentTarget);
                         if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
                             var nz = e.currentTarget.cloneNode(false);
+                            nz.className = 'betweenColumnDropZone';
                             e.currentTarget.parentNode.insertBefore(nz, td);
+                            var after = e.currentTarget.cloneNode(false);
+                            after.className = 'betweenColumnDropZone';
+                            e.currentTarget.parentNode.insertBefore(after, e.currentTarget.nextSibling);
+                        } else {
+                            var newZone = e.currentTarget.cloneNode(false);
+                            newZone.className = 'newColumnDropZone';
+                            e.currentTarget.parentNode.insertBefore(newZone, e.currentTarget.nextSibling);
                         }
                     } else {
                         var brk = document.createElement('div');
@@ -269,12 +299,23 @@
                         parent.insertBefore(el, e.currentTarget);
                         if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
                             var nz = e.currentTarget.cloneNode(false);
+                            nz.className = 'betweenColumnDropZone';
                             parent.insertBefore(nz, brk);
+                            var after = e.currentTarget.cloneNode(false);
+                            after.className = 'betweenColumnDropZone';
+                            parent.insertBefore(after, e.currentTarget.nextSibling);
+                        } else {
+                            var newZone = e.currentTarget.cloneNode(false);
+                            newZone.className = 'newColumnDropZone';
+                            parent.insertBefore(newZone, e.currentTarget.nextSibling);
                         }
                     }
+                    e.currentTarget.classList.remove('newColumnDropZone', 'betweenColumnDropZone');
+                    e.currentTarget.classList.add('columnEndDropZone');
                     sendMoveNewColumn(from, pageSha, destSha);
                     attachDropZones();
                     removeEmptyColumns();
+                    updateColumnIndices();
                 }
             }
 
