@@ -1,6 +1,9 @@
 body {
-	background-color: #FFFBF0;
-	color: #800000;
+        background-color: #FFFBF0;
+        color: #800000;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
 }
 a {
 	background-color: transparent;
@@ -148,4 +151,8 @@ body:not(.edit-mode) .edit-link {
 /* Offset main content to the right of the fixed nav */
 #layout {
     margin-left: 200px;
+}
+
+#bottom {
+    flex-grow: 1;
 }
