@@ -1,6 +1,9 @@
 package gobookmarks
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestTabOperationsImplicit(t *testing.T) {
 	input := "Category: A\nTab: Named\nCategory: B\n"
@@ -27,6 +30,24 @@ func TestTabOperationsImplicit(t *testing.T) {
 	round = deleteTab(round, 1)
 	if len(round) != 2 {
 		t.Fatalf("expected 2 tabs after delete got %d", len(round))
+	}
+}
+
+func TestMoveImplicitMainTabDown(t *testing.T) {
+	input := "Category:1\nhttp://a a\n\nTab: Tab2\nCategory\nhttp://a a"
+	tabs := PreprocessBookmarks(input)
+	if len(tabs) != 2 {
+		t.Fatalf("expected 2 tabs")
+	}
+	tabs = moveTab(tabs, 0, 1)
+	out := SerializeBookmarks(tabs)
+	expected := "Tab: Tab2\nCategory: Category\nhttp://a a\nTab:\nCategory: 1\nhttp://a a"
+	if strings.TrimSpace(out) != expected {
+		t.Fatalf("unexpected output:\n%s", out)
+	}
+	round := PreprocessBookmarks(out)
+	if round[0].Name != "Tab2" || round[1].Name != "" {
+		t.Fatalf("tab names wrong: %#v %#v", round[0].Name, round[1].Name)
 	}
 }
 

@@ -80,6 +80,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"add1": func(i int) int {
 			return i + 1
 		},
+		"sub1": func(i int) int {
+			return i - 1
+		},
 		"useCssColumns": func() bool {
 			return UseCssColumns
 		},

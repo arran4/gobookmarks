@@ -65,6 +65,9 @@ func EditEntryPage(w http.ResponseWriter, r *http.Request) error {
 	if entry == nil {
 		return fmt.Errorf("entry not found")
 	}
+	if entry.Url == "http://" && entry.Name == entry.Url {
+		entry.Name = ""
+	}
 	data := entryData{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
