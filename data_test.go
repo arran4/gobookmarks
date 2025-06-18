@@ -142,10 +142,12 @@ func TestExecuteTemplates(t *testing.T) {
 		*CoreData
 		Error string
 		Name  string
+		Text  string
 		Sha   string
 	}{
 		CoreData: baseData.CoreData,
 		Name:     "Demo",
+		Text:     "Category: Demo",
 		Sha:      "sha",
 	}
 

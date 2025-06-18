@@ -4,7 +4,9 @@
     {{ end }}
     <form method=post action="?" class="edit-form page-form">
         <label for="name">Name</label>: <input id="name" type="text" name="name" value="{{$.Name}}" /><br>
-        <label for="branch">Branch</label>: <input id="branch" type="text" name="branch" value="{{ branchOrEditBranch }}" /><br>
+        <label for="code">Page Contents</label><br/>
+        <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
+        <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
         <input type=submit name="task" value="Save" /><br>
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />

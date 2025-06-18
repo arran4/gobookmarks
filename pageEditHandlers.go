@@ -28,10 +28,13 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		*CoreData
 		Error string
 		Name  string
+		Text  string
 		Sha   string
 	}{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
+		Name:     r.URL.Query().Get("name"),
+		Text:     "",
 		Sha:      sha,
 	}
 
@@ -43,6 +46,7 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 
 func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	name := r.PostFormValue("name")
+	text := r.PostFormValue("text")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
@@ -69,7 +73,8 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	if tabIdx < 0 || tabIdx >= len(list) {
 		tabIdx = 0
 	}
-	p := &BookmarkPage{Name: name, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+	parsed := ParseBookmarks("Tab\nPage: " + name + "\n" + text)
+	p := parsed[0].Pages[0]
 	list[tabIdx].AddPage(p)
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, list.String(), curSha); err != nil {
