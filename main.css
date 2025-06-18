@@ -164,14 +164,18 @@ body:not(.edit-mode) .edit-link {
 .newColumnDropZone,
 .columnEndDropZone {
     display: inline-block;
-    width: 1em;
-    min-height: 2em;
     border: 2px dotted #800000;
+}
+
+.newColumnDropZone {
+    width: 100px;
+    min-height: 50vh;
     margin-left: 0.5em;
 }
 
 .columnEndDropZone {
     width: 100%;
+    min-height: 150px;
     margin-left: 0;
     margin-top: 0.5em;
 }
