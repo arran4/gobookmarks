@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"log"
@@ -82,7 +81,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	session, err := getSession(w, r)
-	if err != nil {
+	if session, err = sanitizeSession(w, r, session, err); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 
@@ -113,7 +112,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	session, err := getSession(w, r)
-	if err != nil {
+	if session, err = sanitizeSession(w, r, session, err); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 
@@ -166,7 +165,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
 func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 	session, err := getSession(w, r)
-	if err != nil {
+	if session, err = sanitizeSession(w, r, session, err); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 	user := r.FormValue("username")
@@ -234,21 +233,8 @@ func UserAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		// Get the session.
 		session, err := getSession(writer, request)
-		if err != nil {
-			// ignore common decode errors
-			if scErr := new(securecookie.MultiError); !(errors.As(err, scErr) && scErr.IsDecode() && !scErr.IsInternal() && !scErr.IsUsage()) &&
-				!errors.Is(err, securecookie.ErrMacInvalid) {
-				log.Printf("session error: %v", err)
-			}
-			if session != nil {
-				// invalidate the existing cookie
-				session.Options.MaxAge = -1
-				if saveErr := session.Save(request, writer); saveErr != nil {
-					log.Printf("session clear error: %v", saveErr)
-				}
-			}
-			// start with a fresh session so the request still succeeds
-			session, _ = SessionStore.New(request, SessionName)
+		if session, err = sanitizeSession(writer, request, session, err); err != nil {
+			log.Printf("session error: %v", err)
 		}
 
 		ctx := context.WithValue(request.Context(), ContextValues("session"), session)
