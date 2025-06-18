@@ -16,6 +16,7 @@ import (
 type TabInfo struct {
 	Index int
 	Name  string
+	Href  string
 }
 
 var (
@@ -202,7 +203,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					name = "Main"
 				}
 				if name != "" {
-					tabs = append(tabs, TabInfo{Index: i, Name: name})
+					href := "/"
+					if i != 0 {
+						href = fmt.Sprintf("/?tab=%d", i)
+					}
+					tabs = append(tabs, TabInfo{Index: i, Name: name, Href: href})
 				}
 			}
 			return tabs, nil
