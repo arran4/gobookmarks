@@ -30,6 +30,7 @@
                             </ul>
                         </div>
                     {{- end }}
+                    <div class="columnEndDropZone"></div>
                     {{- $first = false }}
                 {{- end }}
                 <div class="newColumnDropZone"></div>
@@ -78,6 +79,12 @@
                 zone.addEventListener('dragover', dragOver);
                 zone.addEventListener('dragleave', dragLeave);
                 zone.addEventListener('drop', dropNewColumn);
+            });
+
+            document.querySelectorAll('.columnEndDropZone').forEach(function (zone) {
+                zone.addEventListener('dragover', dragOver);
+                zone.addEventListener('dragleave', dragLeave);
+                zone.addEventListener('drop', dropEndColumn);
             });
 
             function dragStart(e) {
@@ -150,6 +157,25 @@
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
                     sendMove(from, -1, true, pageSha);
+                }
+            }
+
+            function dropEndColumn(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                var el = document.getElementById(id);
+                if (el) {
+                    var parent = e.currentTarget.parentNode;
+                    var next = e.currentTarget.nextElementSibling;
+                    while (next && !next.classList.contains('categoryBlock')) {
+                        next = next.nextElementSibling;
+                    }
+                    parent.insertBefore(el, e.currentTarget);
+                    var from = parseInt(id.substring(3));
+                    var to = next ? parseInt(next.id.substring(3)) : -1;
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    sendMove(from, to, false, pageSha);
                 }
             }
         });
