@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gorilla/sessions"
@@ -8,6 +9,28 @@ import (
 	"net/http"
 	"strconv"
 )
+
+func writeTabShas(w http.ResponseWriter, tabs BookmarkList, tabName string) {
+	var target *BookmarkTab
+	if tabName != "" {
+		target = FindTabByName(tabs, tabName)
+	}
+	if target == nil {
+		if len(tabs) > 0 {
+			target = tabs[0]
+		} else {
+			return
+		}
+	}
+	shas := make([]string, len(target.Pages))
+	for i, p := range target.Pages {
+		shas[i] = p.Sha()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		Shas []string `json:"shas"`
+	}{Shas: shas})
+}
 
 func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
@@ -107,6 +130,7 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
+
 	return nil
 }
 
@@ -158,6 +182,8 @@ func CategoryMoveBeforeAction(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
+
+	writeTabShas(w, tabs, r.PostFormValue("tab"))
 	return nil
 }
 
@@ -212,6 +238,8 @@ func CategoryMoveEndAction(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
+
+	writeTabShas(w, tabs, r.PostFormValue("tab"))
 	return nil
 }
 
@@ -264,5 +292,7 @@ func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
+
+	writeTabShas(w, tabs, r.PostFormValue("tab"))
 	return nil
 }

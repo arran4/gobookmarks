@@ -171,6 +171,7 @@
             function sendMoveBefore(from, to, pageSha, destSha, destCol) {
                 var params = new URLSearchParams(window.location.search);
                 var ref = params.get('ref') || 'refs/heads/main';
+                var tab = params.get('tab') || '';
                 var branch = '';
                 if (ref.startsWith('refs/heads/')) {
                     branch = ref.slice(11);
@@ -188,14 +189,18 @@
                 if (pageSha) fd.append('pageSha', pageSha);
                 fd.append('branch', branch);
                 fd.append('ref', ref);
+                fd.append('tab', tab);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(handleShaResponse)
+                    .catch(function(err){ console.error('moveCategory', err); });
             }
 
             function sendMoveEnd(from, pageSha, destSha, destCol) {
                 var params = new URLSearchParams(window.location.search);
                 var ref = params.get('ref') || 'refs/heads/main';
+                var tab = params.get('tab') || '';
                 var branch = '';
                 if (ref.startsWith('refs/heads/')) {
                     branch = ref.slice(11);
@@ -212,14 +217,18 @@
                 if (pageSha) fd.append('pageSha', pageSha);
                 fd.append('branch', branch);
                 fd.append('ref', ref);
+                fd.append('tab', tab);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(handleShaResponse)
+                    .catch(function(err){ console.error('moveCategoryEnd', err); });
             }
 
             function sendMoveNewColumn(from, pageSha, destSha) {
                 var params = new URLSearchParams(window.location.search);
                 var ref = params.get('ref') || 'refs/heads/main';
+                var tab = params.get('tab') || '';
                 var branch = '';
                 if (ref.startsWith('refs/heads/')) {
                     branch = ref.slice(11);
@@ -236,8 +245,24 @@
                 if (pageSha) fd.append('pageSha', pageSha);
                 fd.append('branch', branch);
                 fd.append('ref', ref);
+                fd.append('tab', tab);
                 if (destSha) fd.append('destPageSha', destSha);
-                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(handleShaResponse)
+                    .catch(function(err){ console.error('moveCategoryNewColumn', err); });
+            }
+
+            function handleShaResponse(resp) {
+                if (resp.ok && resp.headers.get('content-type') && resp.headers.get('content-type').includes('application/json')) {
+                    return resp.json().then(function(data){
+                        if (data && data.shas) {
+                            document.querySelectorAll('.bookmarkPage').forEach(function(pg, idx){
+                                if (idx < data.shas.length) pg.dataset.sha = data.shas[idx];
+                            });
+                        }
+                    });
+                }
+                return Promise.reject(new Error('unexpected response'));
             }
 
             function dragOver(e) {

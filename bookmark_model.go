@@ -494,3 +494,13 @@ func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
 	}
 	return idx
 }
+
+// FindTabByName returns the tab with the matching name.
+func FindTabByName(tabs BookmarkList, name string) *BookmarkTab {
+	for _, t := range tabs {
+		if t.Name == name {
+			return t
+		}
+	}
+	return nil
+}
