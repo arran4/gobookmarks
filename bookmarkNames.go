@@ -70,5 +70,5 @@ func (t *BookmarkTab) DisplayName() string {
 			return n1 + ", " + n2
 		}
 	}
-	return "Main"
+	return ""
 }

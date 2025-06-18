@@ -204,8 +204,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			tabsData := ParseBookmarks(bookmark)
 			var tabs []string
-			for _, t := range tabsData {
-				if name := t.DisplayName(); name != "" {
+			for i, t := range tabsData {
+				name := t.DisplayName()
+				if name == "" && i == 0 {
+					name = "Main"
+				}
+				if name != "" {
 					tabs = append(tabs, name)
 				}
 			}
