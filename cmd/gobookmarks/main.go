@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -15,6 +16,7 @@ import (
 	. "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"log"
 	"math/big"
@@ -22,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -73,6 +76,7 @@ func main() {
 		}(),
 		LocalGitPath: os.Getenv("LOCAL_GIT_PATH"),
 		NoFooter:     os.Getenv("GBM_NO_FOOTER") != "",
+		SessionKey:   os.Getenv("SESSION_KEY"),
 	}
 
 	configPath := DefaultConfigPath()
@@ -90,6 +94,7 @@ func main() {
 	var faviconDirFlag stringFlag
 	var faviconSizeFlag stringFlag
 	var localGitPathFlag stringFlag
+	var sessionKeyFlag stringFlag
 	var columnFlag boolFlag
 	var noFooterFlag boolFlag
 	var versionFlag bool
@@ -107,6 +112,7 @@ func main() {
 	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
 	flag.Var(&localGitPathFlag, "local-git-path", "directory for local git provider")
+	flag.Var(&sessionKeyFlag, "session-key", "session cookie key")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.Var(&noFooterFlag, "no-footer", "disable footer on pages")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
@@ -182,6 +188,9 @@ func main() {
 	if localGitPathFlag.set {
 		cfg.LocalGitPath = localGitPathFlag.value
 	}
+	if sessionKeyFlag.set {
+		cfg.SessionKey = sessionKeyFlag.value
+	}
 
 	if dumpConfig {
 		data, _ := json.MarshalIndent(cfg, "", "  ")
@@ -224,7 +233,7 @@ func main() {
 	OauthRedirectURL = redirectUrl
 
 	SessionName = "gobookmarks"
-	SessionStore = sessions.NewCookieStore([]byte("random-key")) // TODO random key
+	SessionStore = sessions.NewCookieStore(loadSessionKey(cfg))
 	if len(ProviderNames()) == 0 {
 		fmt.Println("no providers compiled")
 		os.Exit(-1)
@@ -560,4 +569,31 @@ func NoTask() mux.MatcherFunc {
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+func loadSessionKey(cfg Config) []byte {
+	if cfg.SessionKey != "" {
+		return []byte(cfg.SessionKey)
+	}
+
+	path := DefaultSessionKeyPath(false)
+	if b, err := os.ReadFile(path); err == nil {
+		return bytes.TrimSpace(b)
+	}
+
+	key := securecookie.GenerateRandomKey(32)
+	if key == nil {
+		log.Fatal("unable to generate session key")
+	}
+
+	path = DefaultSessionKeyPath(true)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err == nil {
+		if err := os.WriteFile(path, key, 0o600); err != nil {
+			log.Printf("unable to write session key file %s: %v; sessions will not persist", path, err)
+		}
+	} else {
+		log.Printf("unable to create session key directory %s: %v; sessions will not persist", filepath.Dir(path), err)
+	}
+
+	return key
 }

@@ -28,6 +28,7 @@ type Config struct {
 	FaviconCacheSize int64  `json:"favicon_cache_size"`
 	LocalGitPath     string `json:"local_git_path"`
 	NoFooter         bool   `json:"no_footer"`
+	SessionKey       string `json:"session_key"`
 }
 
 // LoadConfigFile loads configuration from the given path.
@@ -116,6 +117,9 @@ func MergeConfig(dst *Config, src Config) {
 	if src.NoFooter {
 		dst.NoFooter = true
 	}
+	if src.SessionKey != "" {
+		dst.SessionKey = src.SessionKey
+	}
 }
 
 // DefaultConfigPath returns the path to the config file depending on
@@ -136,6 +140,60 @@ func DefaultConfigPath() string {
 		}
 	}
 	return "/etc/gobookmarks/config.json"
+}
+
+// DefaultSessionKeyPath returns the location of the session key file.
+// User installs store it under XDG state or ~/.local/state. System-wide
+// installations use /var/lib/gobookmarks/session.key.
+// DefaultSessionKeyPath returns the path used to read or write the
+// session key depending on the value of writing. When writing it
+// chooses the path appropriate for the current user. When reading it
+// checks the usual locations and returns the first existing file,
+// falling back to the writing location if none are found.
+func DefaultSessionKeyPath(writing bool) string {
+	var userPaths []string
+	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
+		userPaths = append(userPaths, filepath.Join(xdg, "gobookmarks", "session.key"))
+	}
+	if home := os.Getenv("HOME"); home != "" {
+		userPaths = append(userPaths, filepath.Join(home, ".local", "state", "gobookmarks", "session.key"))
+	}
+
+	systemPath := "/var/lib/gobookmarks/session.key"
+
+	if !writing {
+		if os.Geteuid() == 0 {
+			if fileExists(systemPath) {
+				return systemPath
+			}
+			for _, p := range userPaths {
+				if fileExists(p) {
+					return p
+				}
+			}
+		} else {
+			for _, p := range userPaths {
+				if fileExists(p) {
+					return p
+				}
+			}
+			if fileExists(systemPath) {
+				return systemPath
+			}
+		}
+	}
+
+	if os.Geteuid() != 0 {
+		if len(userPaths) > 0 {
+			return userPaths[0]
+		}
+	}
+	return systemPath
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // Lines should be in KEY=VALUE format and may be commented with '#'.
