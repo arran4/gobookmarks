@@ -120,6 +120,30 @@
                         }
                     });
                 });
+
+                document.querySelectorAll('.bookmarkColumns').forEach(function(container) {
+                    Array.from(container.querySelectorAll('.columnEndDropZone')).forEach(function(zone) {
+                        var hasCategory = false;
+                        var node = zone.previousElementSibling;
+                        while (node && !node.classList.contains('columnBreak')) {
+                            if (node.classList.contains('categoryBlock')) {
+                                hasCategory = true;
+                                break;
+                            }
+                            node = node.previousElementSibling;
+                        }
+                        if (!hasCategory) {
+                            if (node && node.classList.contains('columnBreak')) {
+                                node.remove();
+                            }
+                            var next = zone.nextElementSibling;
+                            if (next && next.classList.contains('betweenColumnDropZone')) {
+                                next.remove();
+                            }
+                            zone.remove();
+                        }
+                    });
+                });
             }
 
             function sendMoveBefore(from, to, pageSha, destSha, destCol) {
@@ -250,6 +274,7 @@
                     }
                     sendMoveNewColumn(from, pageSha, destSha);
                     attachDropZones();
+                    removeEmptyColumns();
                 }
             }
 
