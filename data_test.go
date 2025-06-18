@@ -56,6 +56,7 @@ func testFuncMap() template.FuncMap {
 		"bookmarkTabs":       func() ([]TabInfo, error) { return []TabInfo{{Index: 0, Name: "Main", Href: "/"}}, nil },
 		"useCssColumns":      func() bool { return false },
 		"showFooter":         func() bool { return true },
+		"showPages":          func() bool { return true },
 		"loggedIn":           func() (bool, error) { return true, nil },
 		"commitShort": func() string {
 			short := commit
