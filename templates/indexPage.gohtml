@@ -65,7 +65,6 @@
             {{- end }}
         </div>
         {{- end }}
-        <p><a href="/editTab?ref={{ref}}&tab={{tab}}">Add Tab</a></p>
         {{ if $.EditMode }}
         <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -178,7 +177,8 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(() => location.reload());
             }
 
             function sendMoveEnd(from, pageSha, destSha, destCol) {
@@ -202,7 +202,8 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(() => location.reload());
             }
 
             function sendMoveNewColumn(from, pageSha, destSha, destCol) {
@@ -226,7 +227,8 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== undefined && destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(() => location.reload());
             }
 
             function dragOver(e) {
