@@ -497,6 +497,12 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 		u, _ := url.Parse(toUrl)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
+		if tab := r.PostFormValue("tab"); tab != "" {
+			qs.Set("tab", tab)
+		}
+		if page := r.PostFormValue("page"); page != "" {
+			u.Fragment = "page" + page
+		}
 		u.RawQuery = qs.Encode()
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
 	})

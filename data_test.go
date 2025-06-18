@@ -50,6 +50,7 @@ func testFuncMap() template.FuncMap {
 		"ref":                func() string { return "refs/heads/main" },
 		"add1":               func(i int) int { return i + 1 },
 		"tab":                func() string { return "" },
+		"page":               func() string { return "" },
 		"bookmarkTabs":       func() ([]string, error) { return []string{"tab"}, nil },
 		"useCssColumns":      func() bool { return false },
 		"showFooter":         func() bool { return true },

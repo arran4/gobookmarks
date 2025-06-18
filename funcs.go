@@ -77,6 +77,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"tab": func() string {
 			return r.URL.Query().Get("tab")
 		},
+		"page": func() string {
+			return r.URL.Query().Get("page")
+		},
 		"add1": func(i int) int {
 			return i + 1
 		},
