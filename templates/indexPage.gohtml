@@ -7,7 +7,7 @@
         {{- end }}
         {{- if tab }}<h1>{{ tab }} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}&tab={{tab}}" title="Edit">&#9998;</a></h1>{{ end }}
         {{- range $i, $p := bookmarkPages }}
-        <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}">
+        <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}" data-sha="{{$p.Sha}}">
             {{- if $p.DisplayName }}<h2>{{ $p.DisplayName }}</h2>{{ end }}
             {{- range .Blocks }}
             {{- if .HR }}
@@ -18,7 +18,7 @@
                 {{- range .Columns }}
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
                     {{- range .Categories }}
-                        <div class="categoryBlock">
+                        <div class="categoryBlock" id="cat{{ .Index }}">
                             <h2>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                             <ul  style="list-style-type: none;">
                                 {{- range .Entries }}
@@ -32,6 +32,7 @@
                     {{- end }}
                     {{- $first = false }}
                 {{- end }}
+                <div class="newColumnDropZone"></div>
             </div>
             {{- else }}
             <table>
@@ -39,15 +40,17 @@
                     {{- range .Columns }}
                     <td>
                         {{- range .Categories }}
-                            <ul  style="list-style-type: none;">
+                            <div class="categoryBlock" id="cat{{ .Index }}">
                                 <h2>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
-                                {{- range .Entries }}
-                                    <li>
-                                        <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
-                                        <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
-                                    </li>
-                                {{- end }}
-                            </ul>
+                                <ul  style="list-style-type: none;">
+                                    {{- range .Entries }}
+                                        <li>
+                                            <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                            <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
+                                        </li>
+                                    {{- end }}
+                                </ul>
+                            </div>
                         {{- end }}
                     </td>
                     {{- end }}
@@ -58,5 +61,99 @@
         </div>
         {{- end }}
         <p><a href="/editTab?ref={{ref}}&tab={{tab}}">Add Tab</a></p>
+        {{ if $.EditMode }}
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!document.body.classList.contains('edit-mode')) return;
+
+            document.querySelectorAll('.categoryBlock').forEach(function (el) {
+                el.setAttribute('draggable', 'true');
+                el.addEventListener('dragstart', dragStart);
+                el.addEventListener('dragover', dragOver);
+                el.addEventListener('dragleave', dragLeave);
+                el.addEventListener('drop', drop);
+            });
+
+            document.querySelectorAll('.newColumnDropZone').forEach(function (zone) {
+                zone.addEventListener('dragover', dragOver);
+                zone.addEventListener('dragleave', dragLeave);
+                zone.addEventListener('drop', dropNewColumn);
+            });
+
+            function dragStart(e) {
+                e.dataTransfer.setData('text/plain', e.currentTarget.id);
+                var page = e.currentTarget.closest('.bookmarkPage');
+                if (page) {
+                    e.dataTransfer.setData('pageSha', page.dataset.sha);
+                }
+                e.dataTransfer.effectAllowed = 'move';
+            }
+
+            function sendMove(from, to, newColumn, pageSha) {
+                var params = new URLSearchParams(window.location.search);
+                var ref = params.get('ref') || 'refs/heads/main';
+                var branch = '';
+                if (ref.startsWith('refs/heads/')) {
+                    branch = ref.slice(11);
+                } else if (ref.startsWith('refs/tags/')) {
+                    branch = 'New' + ref.slice(10);
+                } else if (ref) {
+                    branch = 'FromCommit' + ref;
+                } else {
+                    branch = 'main';
+                }
+
+                var fd = new FormData();
+                fd.append('from', from);
+                if (to !== null) fd.append('to', to);
+                if (newColumn) fd.append('newColumn', '1');
+                if (pageSha) fd.append('pageSha', pageSha);
+                fd.append('branch', branch);
+                fd.append('ref', ref);
+                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
+            }
+
+            function dragOver(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add('drag-over');
+            }
+
+            function dragLeave(e) {
+                e.currentTarget.classList.remove('drag-over');
+            }
+
+            function drop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                var el = document.getElementById(id);
+                if (el && el !== e.currentTarget) {
+                    e.currentTarget.parentNode.insertBefore(el, e.currentTarget);
+                    var from = parseInt(id.substring(3));
+                    var to = parseInt(e.currentTarget.id.substring(3));
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    sendMove(from, to, false, pageSha);
+                }
+            }
+
+            function dropNewColumn(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                var el = document.getElementById(id);
+                if (el) {
+                    var brk = document.createElement('div');
+                    brk.className = 'columnBreak';
+                    var parent = e.currentTarget.parentNode;
+                    parent.insertBefore(brk, e.currentTarget);
+                    parent.insertBefore(el, e.currentTarget);
+                    var from = parseInt(id.substring(3));
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    sendMove(from, -1, true, pageSha);
+                }
+            }
+        });
+        </script>
+        {{ end }}
     {{end}}
 {{ template "tail" $ }}

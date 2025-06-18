@@ -156,3 +156,19 @@ body:not(.edit-mode) .edit-link {
 #bottom {
     flex-grow: 1;
 }
+
+.categoryBlock.drag-over {
+    outline: 2px dotted #800000;
+}
+
+.newColumnDropZone {
+    display: inline-block;
+    width: 1em;
+    min-height: 2em;
+    border: 2px dotted #800000;
+    margin-left: 0.5em;
+}
+
+body:not(.edit-mode) .newColumnDropZone {
+    display: none;
+}
