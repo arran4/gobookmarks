@@ -323,5 +323,7 @@
         </script>
         {{ end }}
     {{end}}
+{{ if $.EditMode }}
 {{ template "dragdrop" $ }}
+{{ end }}
 {{ template "tail" $ }}

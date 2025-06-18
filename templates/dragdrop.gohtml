@@ -34,6 +34,7 @@ function enableDragSort(list, buildUrl) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (!document.body.classList.contains('edit-mode')) return;
     const tabList = document.getElementById('tab-list');
     enableDragSort(tabList, (f,t)=>`/moveTab?from=${f}&to=${t}`);
     const pageList = document.getElementById('page-list');
