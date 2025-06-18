@@ -184,3 +184,12 @@ body:not(.edit-mode) .newColumnDropZone,
 body:not(.edit-mode) .columnEndDropZone {
     display: none;
 }
+
+.moveIcon {
+    cursor: move;
+    margin-right: 0.2em;
+}
+
+body:not(.edit-mode) .moveIcon {
+    display: none;
+}

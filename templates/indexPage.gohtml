@@ -19,7 +19,7 @@
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
                     {{- range .Categories }}
                         <div class="categoryBlock" id="cat{{ .Index }}">
-                            <h2>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                            <h2><span class="moveIcon" title="Move">↕</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                             <ul  style="list-style-type: none;">
                                 {{- range .Entries }}
                                     <li>
@@ -42,7 +42,7 @@
                     <td>
                         {{- range .Categories }}
                             <div class="categoryBlock" id="cat{{ .Index }}">
-                                <h2>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                                <h2><span class="moveIcon" title="Move">↕</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                                 <ul  style="list-style-type: none;">
                                     {{- range .Entries }}
                                         <li>
@@ -53,8 +53,10 @@
                                 </ul>
                             </div>
                         {{- end }}
+                        <div class="columnEndDropZone"></div>
                     </td>
                     {{- end }}
+                    <td class="newColumnDropZone"></td>
                 </tr>
             </table>
             {{- end }}
@@ -149,13 +151,19 @@
                 var id = e.dataTransfer.getData('text/plain');
                 var el = document.getElementById(id);
                 if (el) {
-                    var brk = document.createElement('div');
-                    brk.className = 'columnBreak';
-                    var parent = e.currentTarget.parentNode;
-                    parent.insertBefore(brk, e.currentTarget);
-                    parent.insertBefore(el, e.currentTarget);
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
+                    if (e.currentTarget.tagName === 'TD') {
+                        var td = document.createElement('td');
+                        td.appendChild(el);
+                        e.currentTarget.parentNode.insertBefore(td, e.currentTarget);
+                    } else {
+                        var brk = document.createElement('div');
+                        brk.className = 'columnBreak';
+                        var parent = e.currentTarget.parentNode;
+                        parent.insertBefore(brk, e.currentTarget);
+                        parent.insertBefore(el, e.currentTarget);
+                    }
                     sendMove(from, -1, true, pageSha);
                 }
             }
