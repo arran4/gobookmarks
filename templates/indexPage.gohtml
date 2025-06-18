@@ -15,11 +15,11 @@
             {{- else if useCssColumns }}
             <div class="bookmarkColumns">
                 {{- $first := true }}
-                {{- range .Columns }}
+                {{- range $ci, $c := .Columns }}
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
-                    {{- range .Categories }}
+                    {{- range $c.Categories }}
                         <div class="categoryBlock" id="cat{{ .Index }}">
-                            <h2><span class="moveIcon" title="Move">⤢</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                            <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                             <ul  style="list-style-type: none;">
                                 {{- range .Entries }}
                                     <li>
@@ -30,7 +30,7 @@
                             </ul>
                         </div>
                     {{- end }}
-                    <div class="columnEndDropZone"></div>
+                    <div class="columnEndDropZone" data-col="{{$ci}}"></div>
                     {{- $first = false }}
                 {{- end }}
                 <div class="newColumnDropZone"></div>
@@ -38,11 +38,11 @@
             {{- else }}
             <table>
                 <tr valign="top">
-                    {{- range .Columns }}
+                    {{- range $ci, $c := .Columns }}
                     <td>
-                        {{- range .Categories }}
+                        {{- range $c.Categories }}
                             <div class="categoryBlock" id="cat{{ .Index }}">
-                                <h2><span class="moveIcon" title="Move">⤢</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                                <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                                 <ul  style="list-style-type: none;">
                                     {{- range .Entries }}
                                         <li>
@@ -53,7 +53,7 @@
                                 </ul>
                             </div>
                         {{- end }}
-                        <div class="columnEndDropZone"></div>
+                        <div class="columnEndDropZone" data-col="{{$ci}}"></div>
                     </td>
                     {{- end }}
                     <td class="newColumnDropZone"></td>
@@ -102,7 +102,7 @@
                 e.dataTransfer.effectAllowed = 'move';
             }
 
-            function sendMove(from, to, newColumn, pageSha) {
+            function sendMove(from, to, newColumn, pageSha, destSha, destCol) {
                 var params = new URLSearchParams(window.location.search);
                 var ref = params.get('ref') || 'refs/heads/main';
                 var branch = '';
@@ -123,6 +123,8 @@
                 if (pageSha) fd.append('pageSha', pageSha);
                 fd.append('branch', branch);
                 fd.append('ref', ref);
+                if (destSha) fd.append('destPageSha', destSha);
+                if (destCol !== null) fd.append('destCol', destCol);
                 fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
             }
 
@@ -145,7 +147,9 @@
                     var from = parseInt(id.substring(3));
                     var to = parseInt(e.currentTarget.id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
-                    sendMove(from, to, false, pageSha);
+                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
+                    var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
+                    sendMove(from, to, false, pageSha, destSha, destCol);
                 }
             }
 
@@ -157,6 +161,7 @@
                 if (el) {
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
+                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
                     if (e.currentTarget.tagName === 'TD') {
                         var td = document.createElement('td');
                         td.appendChild(el);
@@ -168,7 +173,7 @@
                         parent.insertBefore(brk, e.currentTarget);
                         parent.insertBefore(el, e.currentTarget);
                     }
-                    sendMove(from, -1, true, pageSha);
+                    sendMove(from, -1, true, pageSha, destSha, null);
                 }
             }
 
@@ -185,9 +190,20 @@
                     }
                     parent.insertBefore(el, e.currentTarget);
                     var from = parseInt(id.substring(3));
-                    var to = next ? parseInt(next.id.substring(3)) : -1;
+                    var to;
+                    if (next) {
+                        to = parseInt(next.id.substring(3));
+                    } else {
+                        var prev = e.currentTarget.previousElementSibling;
+                        while (prev && !prev.classList.contains('categoryBlock')) {
+                            prev = prev.previousElementSibling;
+                        }
+                        to = prev ? parseInt(prev.id.substring(3)) + 1 : 0;
+                    }
                     var pageSha = e.dataTransfer.getData('pageSha');
-                    sendMove(from, to, false, pageSha);
+                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
+                    var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
+                    sendMove(from, to, false, pageSha, destSha, destCol);
                 }
             }
         });

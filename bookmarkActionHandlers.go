@@ -115,6 +115,8 @@ func CategoryMoveAction(w http.ResponseWriter, r *http.Request) error {
 	toStr := r.PostFormValue("to")
 	newCol := r.PostFormValue("newColumn") != ""
 	pageSha := r.PostFormValue("pageSha")
+	destPageSha := r.PostFormValue("destPageSha")
+	destColStr := r.PostFormValue("destCol")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 
@@ -122,12 +124,16 @@ func CategoryMoveAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid from index: %w", err)
 	}
-	beforeIdx := -1
+	toIdx := -1
 	if toStr != "" {
-		beforeIdx, err = strconv.Atoi(toStr)
+		toIdx, err = strconv.Atoi(toStr)
 		if err != nil {
 			return fmt.Errorf("invalid to index: %w", err)
 		}
+	}
+	destCol := 0
+	if destColStr != "" {
+		destCol, _ = strconv.Atoi(destColStr)
 	}
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -154,7 +160,16 @@ func CategoryMoveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("bookmark page modified concurrently")
 	}
 
-	if err := tabs.MoveCategory(fromIdx, beforeIdx, newCol); err != nil {
+	var destPage *BookmarkPage
+	if toIdx == -1 {
+		destPage = FindPageBySha(tabs, destPageSha)
+		if destPage == nil {
+			destPage = tabs[len(tabs)-1].Pages[len(tabs[len(tabs)-1].Pages)-1]
+		}
+		toIdx = indexAfterColumn(tabs, destPage, destCol)
+	}
+
+	if err := tabs.MoveCategory(fromIdx, toIdx, newCol, destPage, destCol); err != nil {
 		return fmt.Errorf("MoveCategory: %w", err)
 	}
 	updated := tabs.String()

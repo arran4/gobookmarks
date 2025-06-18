@@ -33,9 +33,6 @@ func (p *BookmarkPage) DisplayName() string {
 	// gather category names
 	var cats []*BookmarkCategory
 	for _, b := range p.Blocks {
-		if b.HR {
-			continue
-		}
 		for _, col := range b.Columns {
 			cats = append(cats, col.Categories...)
 		}

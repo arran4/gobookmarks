@@ -1,6 +1,9 @@
 package gobookmarks
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // BookmarkEntry represents a single link.
 type BookmarkEntry struct {
@@ -328,4 +331,142 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 	}
 
 	return result
+}
+
+// MoveCategory moves the category at fromIndex so it appears before toIndex.
+// If toIndex equals the total number of categories, the item is moved to the end.
+// When newColumn is true a new column directive is inserted before the moved category.
+func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destPage *BookmarkPage, destCol int) error {
+	type loc struct {
+		block  *BookmarkBlock
+		column *BookmarkColumn
+		cat    *BookmarkCategory
+		colIdx int
+		catIdx int
+	}
+	var cats []loc
+	idx := 0
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			for _, b := range p.Blocks {
+				for ci, col := range b.Columns {
+					for cj, c := range col.Categories {
+						cats = append(cats, loc{b, col, c, ci, cj})
+						c.Index = idx
+						idx++
+					}
+				}
+			}
+		}
+	}
+
+	if fromIndex < 0 || fromIndex >= len(cats) {
+		return fmt.Errorf("category index %d not found", fromIndex)
+	}
+	var beforeLoc *loc
+	if toIndex >= 0 && toIndex < len(cats) {
+		beforeLoc = &cats[toIndex]
+	}
+
+	src := cats[fromIndex]
+	// remove from source column
+	src.column.Categories = append(src.column.Categories[:src.catIdx], src.column.Categories[src.catIdx+1:]...)
+	if beforeLoc != nil && toIndex > fromIndex && src.column == beforeLoc.column {
+		beforeLoc.catIdx--
+	}
+
+	if beforeLoc == nil { // append to end or specified column
+		destBlock := cats[len(cats)-1].block
+		destColObj := destBlock.Columns[len(destBlock.Columns)-1]
+		if destPage != nil {
+			for _, b := range destPage.Blocks {
+				if destCol < len(b.Columns) {
+					destBlock = b
+					destColObj = b.Columns[destCol]
+					break
+				}
+			}
+		}
+		if newColumn {
+			destColObj = &BookmarkColumn{}
+			destBlock.Columns = append(destBlock.Columns, destColObj)
+		}
+		destColObj.Categories = append(destColObj.Categories, src.cat)
+	} else {
+		dest := *beforeLoc
+		destCol := dest.column
+		insertIdx := dest.catIdx
+		if newColumn {
+			destCol = &BookmarkColumn{}
+			dest.block.Columns = append(dest.block.Columns, destCol)
+			insertIdx = 0
+		}
+		destCol.InsertCategory(insertIdx, src.cat)
+	}
+
+	// reindex
+	idx = 0
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			for _, b := range p.Blocks {
+				for _, col := range b.Columns {
+					for _, c := range col.Categories {
+						c.Index = idx
+						idx++
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// PageForCategory returns the page containing the category with the given index.
+func PageForCategory(tabs BookmarkList, index int) *BookmarkPage {
+	idx := 0
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			for _, b := range p.Blocks {
+				for _, col := range b.Columns {
+					for range col.Categories {
+						if idx == index {
+							return p
+						}
+						idx++
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// FindPageBySha returns the page matching the sha.
+func FindPageBySha(tabs BookmarkList, sha string) *BookmarkPage {
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			if p.Sha() == sha {
+				return p
+			}
+		}
+	}
+	return nil
+}
+
+// indexAfterColumn returns the global index after the last category in the specified column.
+func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
+	idx := 0
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			for _, b := range p.Blocks {
+				for ci, col := range b.Columns {
+					idx += len(col.Categories)
+					if p == page && ci == colIdx {
+						return idx
+					}
+				}
+			}
+		}
+	}
+	return idx
 }

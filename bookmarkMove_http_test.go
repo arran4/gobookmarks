@@ -32,7 +32,7 @@ func TestCategoryMoveAction(t *testing.T) {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}
 	tabs = ParseBookmarks(shaComplex)
-	if err := tabs.MoveCategory(0, 1, false); err != nil {
+	if err := tabs.MoveCategory(0, 1, false, nil, 0); err != nil {
 		t.Fatalf("MoveCategory local: %v", err)
 	}
 	expected := tabs.String()
