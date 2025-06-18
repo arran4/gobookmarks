@@ -102,7 +102,7 @@
                 e.dataTransfer.effectAllowed = 'move';
             }
 
-            function sendMove(from, to, newColumn, pageSha, destSha, destCol) {
+            function sendMoveBefore(from, to, pageSha, destSha, destCol) {
                 var params = new URLSearchParams(window.location.search);
                 var ref = params.get('ref') || 'refs/heads/main';
                 var branch = '';
@@ -118,14 +118,60 @@
 
                 var fd = new FormData();
                 fd.append('from', from);
-                if (to !== null) fd.append('to', to);
-                if (newColumn) fd.append('newColumn', '1');
+                fd.append('to', to);
                 if (pageSha) fd.append('pageSha', pageSha);
                 fd.append('branch', branch);
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
                 fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
+            }
+
+            function sendMoveEnd(from, pageSha, destSha, destCol) {
+                var params = new URLSearchParams(window.location.search);
+                var ref = params.get('ref') || 'refs/heads/main';
+                var branch = '';
+                if (ref.startsWith('refs/heads/')) {
+                    branch = ref.slice(11);
+                } else if (ref.startsWith('refs/tags/')) {
+                    branch = 'New' + ref.slice(10);
+                } else if (ref) {
+                    branch = 'FromCommit' + ref;
+                } else {
+                    branch = 'main';
+                }
+
+                var fd = new FormData();
+                fd.append('from', from);
+                if (pageSha) fd.append('pageSha', pageSha);
+                fd.append('branch', branch);
+                fd.append('ref', ref);
+                if (destSha) fd.append('destPageSha', destSha);
+                if (destCol !== null) fd.append('destCol', destCol);
+                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'});
+            }
+
+            function sendMoveNewColumn(from, pageSha, destSha) {
+                var params = new URLSearchParams(window.location.search);
+                var ref = params.get('ref') || 'refs/heads/main';
+                var branch = '';
+                if (ref.startsWith('refs/heads/')) {
+                    branch = ref.slice(11);
+                } else if (ref.startsWith('refs/tags/')) {
+                    branch = 'New' + ref.slice(10);
+                } else if (ref) {
+                    branch = 'FromCommit' + ref;
+                } else {
+                    branch = 'main';
+                }
+
+                var fd = new FormData();
+                fd.append('from', from);
+                if (pageSha) fd.append('pageSha', pageSha);
+                fd.append('branch', branch);
+                fd.append('ref', ref);
+                if (destSha) fd.append('destPageSha', destSha);
+                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'});
             }
 
             function dragOver(e) {
@@ -149,7 +195,7 @@
                     var pageSha = e.dataTransfer.getData('pageSha');
                     var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
                     var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
-                    sendMove(from, to, false, pageSha, destSha, destCol);
+                    sendMoveBefore(from, to, pageSha, destSha, destCol);
                 }
             }
 
@@ -173,7 +219,7 @@
                         parent.insertBefore(brk, e.currentTarget);
                         parent.insertBefore(el, e.currentTarget);
                     }
-                    sendMove(from, -1, true, pageSha, destSha, null);
+                    sendMoveNewColumn(from, pageSha, destSha);
                 }
             }
 
@@ -190,20 +236,10 @@
                     }
                     parent.insertBefore(el, e.currentTarget);
                     var from = parseInt(id.substring(3));
-                    var to;
-                    if (next) {
-                        to = parseInt(next.id.substring(3));
-                    } else {
-                        var prev = e.currentTarget.previousElementSibling;
-                        while (prev && !prev.classList.contains('categoryBlock')) {
-                            prev = prev.previousElementSibling;
-                        }
-                        to = prev ? parseInt(prev.id.substring(3)) + 1 : 0;
-                    }
                     var pageSha = e.dataTransfer.getData('pageSha');
                     var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
                     var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
-                    sendMove(from, to, false, pageSha, destSha, destCol);
+                    sendMoveEnd(from, pageSha, destSha, destCol);
                 }
             }
         });

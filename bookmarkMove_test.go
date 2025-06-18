@@ -18,7 +18,7 @@ var (
 
 func TestMoveCategory(t *testing.T) {
 	tabs := ParseBookmarks(moveComplexInput)
-	if err := tabs.MoveCategory(4, 1, false, nil, 0); err != nil {
+	if err := tabs.MoveCategoryBefore(4, 1); err != nil {
 		t.Fatalf("MoveCategory: %v", err)
 	}
 	got := tabs.String()
@@ -29,7 +29,7 @@ func TestMoveCategory(t *testing.T) {
 
 func TestMoveCategoryNewColumn(t *testing.T) {
 	tabs := ParseBookmarks(moveComplexInput)
-	if err := tabs.MoveCategory(0, -1, true, nil, 0); err != nil {
+	if err := tabs.MoveCategoryNewColumn(0, tabs[1].Pages[0]); err != nil {
 		t.Fatalf("MoveCategory: %v", err)
 	}
 	got := tabs.String()
@@ -40,7 +40,7 @@ func TestMoveCategoryNewColumn(t *testing.T) {
 
 func TestMoveCategoryEndColumn(t *testing.T) {
 	tabs := ParseBookmarks(moveComplexInput)
-	if err := tabs.MoveCategory(0, -1, false, tabs[0].Pages[0], 1); err != nil {
+	if err := tabs.MoveCategoryToEnd(0, tabs[0].Pages[0], 1); err != nil {
 		t.Fatalf("MoveCategory: %v", err)
 	}
 	got := tabs.String()

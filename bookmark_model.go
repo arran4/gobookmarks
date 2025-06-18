@@ -421,6 +421,26 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 	return nil
 }
 
+// MoveCategoryBefore moves the category at fromIndex so it appears before beforeIndex.
+func (tabs BookmarkList) MoveCategoryBefore(fromIndex, beforeIndex int) error {
+	return tabs.MoveCategory(fromIndex, beforeIndex, false, nil, 0)
+}
+
+// MoveCategoryToEnd moves the category to the end of the specified column.
+func (tabs BookmarkList) MoveCategoryToEnd(fromIndex int, page *BookmarkPage, colIdx int) error {
+	return tabs.MoveCategory(fromIndex, -1, false, page, colIdx)
+}
+
+// MoveCategoryNewColumn moves the category into a new column appended to the page.
+func (tabs BookmarkList) MoveCategoryNewColumn(fromIndex int, page *BookmarkPage) error {
+	if page == nil {
+		return tabs.MoveCategory(fromIndex, -1, true, nil, 0)
+	}
+	last := page.Blocks[len(page.Blocks)-1]
+	destCol := len(last.Columns) - 1
+	return tabs.MoveCategory(fromIndex, -1, true, page, destCol)
+}
+
 // PageForCategory returns the page containing the category with the given index.
 func PageForCategory(tabs BookmarkList, index int) *BookmarkPage {
 	idx := 0

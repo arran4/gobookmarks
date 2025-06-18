@@ -110,13 +110,10 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func CategoryMoveAction(w http.ResponseWriter, r *http.Request) error {
+func CategoryMoveBeforeAction(w http.ResponseWriter, r *http.Request) error {
 	fromStr := r.PostFormValue("from")
 	toStr := r.PostFormValue("to")
-	newCol := r.PostFormValue("newColumn") != ""
 	pageSha := r.PostFormValue("pageSha")
-	destPageSha := r.PostFormValue("destPageSha")
-	destColStr := r.PostFormValue("destCol")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 
@@ -124,16 +121,9 @@ func CategoryMoveAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid from index: %w", err)
 	}
-	toIdx := -1
-	if toStr != "" {
-		toIdx, err = strconv.Atoi(toStr)
-		if err != nil {
-			return fmt.Errorf("invalid to index: %w", err)
-		}
-	}
-	destCol := 0
-	if destColStr != "" {
-		destCol, _ = strconv.Atoi(destColStr)
+	toIdx, err := strconv.Atoi(toStr)
+	if err != nil {
+		return fmt.Errorf("invalid to index: %w", err)
 	}
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -160,16 +150,113 @@ func CategoryMoveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("bookmark page modified concurrently")
 	}
 
-	var destPage *BookmarkPage
-	if toIdx == -1 {
-		destPage = FindPageBySha(tabs, destPageSha)
-		if destPage == nil {
-			destPage = tabs[len(tabs)-1].Pages[len(tabs[len(tabs)-1].Pages)-1]
-		}
-		toIdx = indexAfterColumn(tabs, destPage, destCol)
+	if err := tabs.MoveCategoryBefore(fromIdx, toIdx); err != nil {
+		return fmt.Errorf("MoveCategory: %w", err)
+	}
+	updated := tabs.String()
+
+	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
+		return fmt.Errorf("updateBookmark error: %w", err)
+	}
+	return nil
+}
+
+func CategoryMoveEndAction(w http.ResponseWriter, r *http.Request) error {
+	fromStr := r.PostFormValue("from")
+	pageSha := r.PostFormValue("pageSha")
+	destPageSha := r.PostFormValue("destPageSha")
+	destColStr := r.PostFormValue("destCol")
+	branch := r.PostFormValue("branch")
+	ref := r.PostFormValue("ref")
+
+	fromIdx, err := strconv.Atoi(fromStr)
+	if err != nil {
+		return fmt.Errorf("invalid from index: %w", err)
+	}
+	destCol, _ := strconv.Atoi(destColStr)
+
+	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*User)
+	token, _ := session.Values["Token"].(*oauth2.Token)
+
+	login := ""
+	if githubUser != nil {
+		login = githubUser.Login
 	}
 
-	if err := tabs.MoveCategory(fromIdx, toIdx, newCol, destPage, destCol); err != nil {
+	currentBookmarks, curSha, err := GetBookmarks(r.Context(), login, ref, token)
+	if err != nil {
+		return fmt.Errorf("GetBookmarks: %w", err)
+	}
+
+	tabs := ParseBookmarks(currentBookmarks)
+
+	page := PageForCategory(tabs, fromIdx)
+	if page == nil {
+		return fmt.Errorf("category index %d not found", fromIdx)
+	}
+	if pageSha != "" && page.Sha() != pageSha {
+		return fmt.Errorf("bookmark page modified concurrently")
+	}
+
+	destPage := FindPageBySha(tabs, destPageSha)
+	if destPage == nil {
+		destPage = tabs[len(tabs)-1].Pages[len(tabs[len(tabs)-1].Pages)-1]
+	}
+
+	if err := tabs.MoveCategoryToEnd(fromIdx, destPage, destCol); err != nil {
+		return fmt.Errorf("MoveCategory: %w", err)
+	}
+	updated := tabs.String()
+
+	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
+		return fmt.Errorf("updateBookmark error: %w", err)
+	}
+	return nil
+}
+
+func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
+	fromStr := r.PostFormValue("from")
+	pageSha := r.PostFormValue("pageSha")
+	destPageSha := r.PostFormValue("destPageSha")
+	branch := r.PostFormValue("branch")
+	ref := r.PostFormValue("ref")
+
+	fromIdx, err := strconv.Atoi(fromStr)
+	if err != nil {
+		return fmt.Errorf("invalid from index: %w", err)
+	}
+
+	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*User)
+	token, _ := session.Values["Token"].(*oauth2.Token)
+
+	login := ""
+	if githubUser != nil {
+		login = githubUser.Login
+	}
+
+	currentBookmarks, curSha, err := GetBookmarks(r.Context(), login, ref, token)
+	if err != nil {
+		return fmt.Errorf("GetBookmarks: %w", err)
+	}
+
+	tabs := ParseBookmarks(currentBookmarks)
+
+	page := PageForCategory(tabs, fromIdx)
+	if page == nil {
+		return fmt.Errorf("category index %d not found", fromIdx)
+	}
+	if pageSha != "" && page.Sha() != pageSha {
+		return fmt.Errorf("bookmark page modified concurrently")
+	}
+
+	destPage := FindPageBySha(tabs, destPageSha)
+	if destPage == nil {
+		destPage = tabs[len(tabs)-1].Pages[len(tabs[len(tabs)-1].Pages)-1]
+	}
+
+	if err := tabs.MoveCategoryNewColumn(fromIdx, destPage); err != nil {
 		return fmt.Errorf("MoveCategory: %w", err)
 	}
 	updated := tabs.String()
