@@ -71,6 +71,53 @@
         document.addEventListener('DOMContentLoaded', function () {
             if (!document.body.classList.contains('edit-mode')) return;
 
+            var startZone = null;
+
+            function findColumnZone(block) {
+                if (!block) return null;
+                if (block.parentNode.tagName === 'TD') {
+                    return block.parentNode.querySelector('.columnEndDropZone');
+                }
+                var n = block.nextElementSibling;
+                while (n && !n.classList.contains('columnEndDropZone')) {
+                    n = n.nextElementSibling;
+                }
+                return n;
+            }
+
+            function removeEmptyColumn(zone) {
+                if (!zone) return;
+                var page = zone.closest('.bookmarkPage');
+                if (zone.parentNode.tagName === 'TD') {
+                    var td = zone.parentNode;
+                    if (!td.querySelector('.categoryBlock')) {
+                        td.remove();
+                        updateColumnIndices(page);
+                    }
+                } else {
+                    var prev = zone.previousElementSibling;
+                    while (prev && !prev.classList.contains('columnBreak')) {
+                        if (prev.classList.contains('categoryBlock')) {
+                            return;
+                        }
+                        prev = prev.previousElementSibling;
+                    }
+                    if (prev && prev.classList.contains('columnBreak')) {
+                        prev.remove();
+                    }
+                    zone.remove();
+                    updateColumnIndices(page);
+                }
+            }
+
+            function updateColumnIndices(page) {
+                if (!page) return;
+                var zones = page.querySelectorAll('.columnEndDropZone');
+                zones.forEach(function (z, i) {
+                    z.dataset.col = i;
+                });
+            }
+
             document.querySelectorAll('.categoryBlock').forEach(function (block) {
                 block.addEventListener('dragover', dragOver);
                 block.addEventListener('dragleave', dragLeave);
@@ -96,6 +143,7 @@
 
             function dragStart(e) {
                 var block = e.currentTarget.closest('.categoryBlock');
+                startZone = findColumnZone(block);
                 e.dataTransfer.setData('text/plain', block.id);
                 var page = block.closest('.bookmarkPage');
                 if (page) {
@@ -195,9 +243,13 @@
                     var from = parseInt(id.substring(3));
                     var to = parseInt(e.currentTarget.id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
-                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
+                    var destPage = e.currentTarget.closest('.bookmarkPage');
+                    var destSha = destPage.dataset.sha;
                     var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
                     sendMoveBefore(from, to, pageSha, destSha, destCol);
+                    updateColumnIndices(destPage);
+                    removeEmptyColumn(startZone);
+                    startZone = null;
                 }
             }
 
@@ -209,10 +261,15 @@
                 if (el) {
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
-                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
+                    var destPage = e.currentTarget.closest('.bookmarkPage');
+                    var destSha = destPage.dataset.sha;
+                    var zone;
                     if (e.currentTarget.tagName === 'TD') {
                         var td = document.createElement('td');
                         td.appendChild(el);
+                        zone = document.createElement('div');
+                        zone.className = 'columnEndDropZone';
+                        td.appendChild(zone);
                         e.currentTarget.parentNode.insertBefore(td, e.currentTarget);
                     } else {
                         var brk = document.createElement('div');
@@ -220,8 +277,14 @@
                         var parent = e.currentTarget.parentNode;
                         parent.insertBefore(brk, e.currentTarget);
                         parent.insertBefore(el, e.currentTarget);
+                        zone = document.createElement('div');
+                        zone.className = 'columnEndDropZone';
+                        parent.insertBefore(zone, e.currentTarget);
                     }
                     sendMoveNewColumn(from, pageSha, destSha);
+                    updateColumnIndices(destPage);
+                    removeEmptyColumn(startZone);
+                    startZone = null;
                 }
             }
 
@@ -239,9 +302,13 @@
                     parent.insertBefore(el, e.currentTarget);
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
-                    var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
+                    var destPage = e.currentTarget.closest('.bookmarkPage');
+                    var destSha = destPage.dataset.sha;
                     var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
                     sendMoveEnd(from, pageSha, destSha, destCol);
+                    updateColumnIndices(destPage);
+                    removeEmptyColumn(startZone);
+                    startZone = null;
                 }
             }
         });

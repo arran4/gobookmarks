@@ -11,7 +11,6 @@ http://c.com c
 --
 Category: D
 http://d.com d
-Column
 Tab
 Category: F
 http://f.com f
