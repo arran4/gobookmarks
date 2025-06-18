@@ -5,7 +5,7 @@
         {{- if not bookmarksExist }}
         <p>Your bookmarks repository was not found. Click <a href="/edit">here</a> to create it.</p>
         {{- end }}
-        {{- if tab }}<h1>{{ tab }} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}" title="Edit">&#9998;</a></h1>{{ end }}
+        {{- if tab }}<h1>{{ tab }} <a class="edit-link" href="/editTab?name={{ tab }}&ref={{ref}}&tab={{tab}}" title="Edit">&#9998;</a></h1>{{ end }}
         {{- range $i, $p := bookmarkPages }}
         <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}">
             {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
@@ -19,7 +19,7 @@
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
                     {{- range .Categories }}
                         <div class="categoryBlock">
-                            <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}" title="Edit">&#9998;</a></h2>
+                            <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                             <ul  style="list-style-type: none;">
                                 {{- range .Entries }}
                                     <li>
@@ -40,7 +40,7 @@
                     <td>
                         {{- range .Categories }}
                             <ul  style="list-style-type: none;">
-                                <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}" title="Edit">&#9998;</a></h2>
+                                <h2>{{ .Name }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                                 {{- range .Entries }}
                                     <li>
                                         <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
@@ -57,6 +57,6 @@
             {{- end }}
         </div>
         {{- end }}
-        <p><a href="/editTab?ref={{ref}}">Add Tab</a></p>
+        <p><a href="/editTab?ref={{ref}}&tab={{tab}}">Add Tab</a></p>
     {{end}}
 {{ template "tail" $ }}

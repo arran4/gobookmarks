@@ -23,7 +23,7 @@
                                                 <form method="post" action="/{{if $.EditMode}}stopEditMode{{else}}startEditMode{{end}}" style="display:inline">
                                                         <button type="submit">{{if $.EditMode}}Stop Edit Mode{{else}}Edit Mode{{end}}</button>
                                                 </form><br/>
-                                                {{if ref}}<a href="/edit?ref={{ref}}">Edit All</a>{{else}}<a href="/edit">Edit All</a>{{end}}<br/>
+                                                {{if ref}}<a href="/edit?ref={{ref}}{{if tab}}&tab={{tab}}{{end}}">Edit All</a>{{else}}<a href="/edit?{{if tab}}tab={{tab}}{{end}}">Edit All</a>{{end}}<br/>
                                                 <hr/>
                                                 <b>Tabs</b><br/>
                                                 <a href="/">Main</a><br/>
