@@ -11,7 +11,7 @@
             <meta http-equiv="refresh" content="1">
         {{ end }}
         </head>
-        <body{{if $.EditMode}} class="edit-mode"{{end}}>
+        <body{{if $.EditMode}} class="edit-mode"{{end}}{{if tab}} data-tab="{{tab}}"{{end}}>
                 <table border=0 id="layout">
                         <tr valign=top>
                                 <td width=200px id="nav">
@@ -23,16 +23,20 @@
                                                 <a href="/{{if $.EditMode}}stopEditMode{{else}}startEditMode{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
                                                 {{if $.EditMode}}{{if ref}}<a href="/edit?ref={{ref}}{{if tab}}&tab={{tab}}{{end}}">Edit All</a>{{else}}<a href="/edit?{{if tab}}tab={{tab}}{{end}}">Edit All</a>{{end}}<br/>{{end}}
                                                 <hr/>
-                                                <b>Tabs</b><br/>
-                                                <a href="/">Main</a><br/>
-                                                {{- range bookmarkTabs }}
-                                                        <a href="/?tab={{ . }}">{{ . }}</a><br/>
-                                                {{- end }}
+                                                <b>Tabs</b>
+                                                <ul id="tab-list" style="list-style-type:none;padding-left:0;">
+                                                        <li><span class="move-handle">&#9776;</span><a href="/">Main</a></li>
+                                                        {{- range bookmarkTabs }}
+                                                                <li><span class="move-handle">&#9776;</span><a href="/?tab={{ . }}">{{ . }}</a></li>
+                                                        {{- end }}
+                                                </ul>
                                                 <hr/>
-                                                <b>Pages</b><br/>
-                                                {{- range $i, $p := bookmarkPages }}
-                                                        <a href="#page{{$i}}">Page {{ if $p.DisplayName }}{{$p.DisplayName}}{{ else }}{{ add1 $i }}{{ end }}</a><br/>
-                                                {{- end }}
+                                                <b>Pages</b>
+                                                <ul id="page-list" style="list-style-type:none;padding-left:0;">
+                                                        {{- range $i, $p := bookmarkPages }}
+                                                                <li><span class="move-handle">&#9776;</span><a href="#page{{$i}}">Page {{ if $p.DisplayName }}{{$p.DisplayName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
+                                                        {{- end }}
+                                                </ul>
                                         {{ else }}
                                                 <a href="/login">Login</a><br/>
                                         {{ end }}

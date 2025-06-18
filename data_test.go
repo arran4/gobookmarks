@@ -25,8 +25,9 @@ func TestCompileGoHTML(t *testing.T) {
 		"historyCommits.gohtml",
 		"indexPage.gohtml",
 		"loginPage.gohtml",
-		"logoutPage.gohtml",
-		"tail.gohtml",
+               "logoutPage.gohtml",
+               "dragdrop.gohtml",
+               "tail.gohtml",
 		"taskDoneAutoRefreshPage.gohtml",
 		"statusPage.gohtml",
 	}

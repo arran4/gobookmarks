@@ -20,9 +20,10 @@
                     {{- range .Categories }}
                         <div class="categoryBlock">
                             <h2>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
-                            <ul  style="list-style-type: none;">
-                                {{- range .Entries }}
+                            <ul class="bookmark-entries" data-index="{{ .Index }}" data-page="{{$i}}" style="list-style-type: none;">
+                                {{- range $j, $e := .Entries }}
                                     <li>
+                                        <span class="move-handle">&#9776;</span>
                                         <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
                                         <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
                                     </li>
@@ -39,10 +40,11 @@
                     {{- range .Columns }}
                     <td>
                         {{- range .Categories }}
-                            <ul  style="list-style-type: none;">
+                            <ul class="bookmark-entries" data-index="{{ .Index }}" data-page="{{$i}}" style="list-style-type: none;">
                                 <h2>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
-                                {{- range .Entries }}
+                                {{- range $j, $e := .Entries }}
                                     <li>
+                                        <span class="move-handle">&#9776;</span>
                                         <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
                                         <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
                                     </li>
@@ -59,4 +61,5 @@
         {{- end }}
         <p><a href="/editTab?ref={{ref}}&tab={{tab}}">Add Tab</a></p>
     {{end}}
+{{ template "dragdrop" $ }}
 {{ template "tail" $ }}

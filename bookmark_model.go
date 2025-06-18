@@ -75,6 +75,20 @@ func (c *BookmarkColumn) SwitchCategories(i, j int) {
 	c.Categories[i], c.Categories[j] = c.Categories[j], c.Categories[i]
 }
 
+// MoveEntry moves an entry within the category from index i to j.
+func (c *BookmarkCategory) MoveEntry(i, j int) {
+	if i < 0 || j < 0 || i >= len(c.Entries) || j >= len(c.Entries) || i == j {
+		return
+	}
+	entry := c.Entries[i]
+	if i < j {
+		copy(c.Entries[i:j], c.Entries[i+1:j+1])
+	} else {
+		copy(c.Entries[j+1:i+1], c.Entries[j:i])
+	}
+	c.Entries[j] = entry
+}
+
 // BookmarkBlock groups columns and optional horizontal rule.
 type BookmarkBlock struct {
 	Columns []*BookmarkColumn
@@ -132,6 +146,20 @@ func (t *BookmarkTab) SwitchPages(i, j int) {
 		return
 	}
 	t.Pages[i], t.Pages[j] = t.Pages[j], t.Pages[i]
+}
+
+// MovePage moves a page from index i to j within the tab.
+func (t *BookmarkTab) MovePage(i, j int) {
+	if i < 0 || j < 0 || i >= len(t.Pages) || j >= len(t.Pages) || i == j {
+		return
+	}
+	page := t.Pages[i]
+	if i < j {
+		copy(t.Pages[i:j], t.Pages[i+1:j+1])
+	} else {
+		copy(t.Pages[j+1:i+1], t.Pages[j:i])
+	}
+	t.Pages[j] = page
 }
 
 // BookmarkTab represents a tab of pages.
@@ -210,6 +238,20 @@ func (b BookmarkList) SwitchTabs(i, j int) {
 		return
 	}
 	b[i], b[j] = b[j], b[i]
+}
+
+// MoveTab moves a tab from index i to j in the list.
+func (b BookmarkList) MoveTab(i, j int) {
+	if i < 0 || j < 0 || i >= len(b) || j >= len(b) || i == j {
+		return
+	}
+	tab := b[i]
+	if i < j {
+		copy(b[i:j], b[i+1:j+1])
+	} else {
+		copy(b[j+1:i+1], b[j:i])
+	}
+	b[j] = tab
 }
 
 // ParseBookmarks converts the textual bookmark representation into a

@@ -156,3 +156,8 @@ body:not(.edit-mode) .edit-link {
 #bottom {
     flex-grow: 1;
 }
+
+.move-handle {
+    cursor: move;
+    margin-right: 0.3em;
+}
