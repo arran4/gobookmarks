@@ -217,9 +217,6 @@ func Test_parseBookmarksIndices(t *testing.T) {
 	for _, t := range tabs {
 		for _, p := range t.Pages {
 			for _, b := range p.Blocks {
-				if b.HR {
-					continue
-				}
 				for _, c := range b.Columns {
 					for _, cat := range c.Categories {
 						got = append(got, cat.Index)

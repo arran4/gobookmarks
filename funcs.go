@@ -271,9 +271,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			for _, t := range tabsData {
 				for _, p := range t.Pages {
 					for _, b := range p.Blocks {
-						if b.HR {
-							continue
-						}
 						columns = append(columns, b.Columns...)
 					}
 				}

@@ -1,0 +1,17 @@
+Column
+Category: B
+http://b.com b
+Category: A
+http://a.com a
+Page
+Category: C
+http://c.com c
+--
+Category: D
+http://d.com d
+Column
+Category: E
+http://e.com e
+Tab
+Category: F
+http://f.com f
