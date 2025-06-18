@@ -157,6 +157,11 @@ body:not(.edit-mode) .edit-link {
     flex-grow: 1;
 }
 
+.move-handle {
+    cursor: move;
+    margin-right: 0.3em;
+}
+
 .categoryBlock.drag-over {
     outline: 2px dotted #800000;
 }

@@ -45,7 +45,7 @@ It's a basic file format. Every command must be on it's own line empty lines are
 | `<Link> <Name>`        | Will create a link to `<Link>` with the display name `<Name>` |
 | `Column`               | Will create a column |
 | `Page[: <name>]`       | Creates a new page and optionally names it |
-| `Tab[: <name>]`        | Starts a new tab. Without a name it reverts to the main tab (switch using `?tab=<name>`) |
+| `Tab[: <name>]`        | Starts a new tab. Without a name it reverts to the main tab (switch using `?tab=<index>`) |
 | `--`                   | Inserts a horizontal rule and resets columns |
 
 Tabs contain one or more pages. The first tab is implicit and does not need a `Tab` directive unless you want to name it. Each `Page` line begins a new page within the current tab.

@@ -56,7 +56,9 @@ func (t *BookmarkTab) DisplayName() string {
 		return t.Name
 	}
 	if len(t.Pages) == 1 {
-		return t.Pages[0].DisplayName()
+		if n := t.Pages[0].DisplayName(); n != "" {
+			return n
+		}
 	}
 	if len(t.Pages) == 2 {
 		n1 := t.Pages[0].DisplayName()

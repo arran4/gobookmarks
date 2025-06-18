@@ -53,4 +53,9 @@ func TestBookmarkTabDisplayName(t *testing.T) {
 	if t2.DisplayName() != "E" {
 		t.Fatalf("expected E got %q", t2.DisplayName())
 	}
+
+	empty := &BookmarkTab{}
+	if empty.DisplayName() != "" {
+		t.Fatalf("expected empty got %q", empty.DisplayName())
+	}
 }

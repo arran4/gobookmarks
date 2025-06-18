@@ -151,6 +151,34 @@ func TestSwitchTab(t *testing.T) {
 	}
 }
 
+func TestMoveTab(t *testing.T) {
+	tabs := ParseBookmarks(switchTabInput)
+	var list BookmarkList = tabs
+	list.MoveTab(0, 1)
+	got := list.String()
+	if got != switchTabExpected {
+		t.Fatalf("expected %q got %q", switchTabExpected, got)
+	}
+}
+
+func TestMovePage(t *testing.T) {
+	tabs := ParseBookmarks(switchPageInput)
+	tabs[0].MovePage(0, 1)
+	got := tabs.String()
+	if got != switchPageExpected {
+		t.Fatalf("expected %q got %q", switchPageExpected, got)
+	}
+}
+
+func TestMoveEntry(t *testing.T) {
+	cat := &BookmarkCategory{Name: "C", Entries: []*BookmarkEntry{{Url: "u1"}, {Url: "u2"}}}
+	cat.MoveEntry(0, 1)
+	expected := "Category: C\nu2\nu1\n"
+	if got := cat.String(); got != expected {
+		t.Fatalf("expected %q got %q", expected, got)
+	}
+}
+
 func TestInvalidOperations(t *testing.T) {
 	tabs := ParseBookmarks(insertCategoryInput)
 	col := tabs[0].Pages[0].Blocks[0].Columns[0]

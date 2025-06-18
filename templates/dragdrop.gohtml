@@ -1,0 +1,49 @@
+{{define "dragdrop"}}
+<script>
+function enableDragSort(list, buildUrl) {
+    if (!list) return;
+    let dragEl;
+    list.querySelectorAll('li').forEach(li => {
+        const handle = li.querySelector('.move-handle') || li;
+        handle.draggable = true;
+        handle.addEventListener('dragstart', e => {
+            dragEl = li;
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        li.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+        li.addEventListener('drop', e => {
+            e.preventDefault();
+            if (dragEl && dragEl !== li) {
+                const items = Array.from(list.querySelectorAll('li'));
+                const from = items.indexOf(dragEl);
+                const to = items.indexOf(li);
+                if (from >= 0 && to >= 0) {
+                    if (from < to) {
+                        li.after(dragEl);
+                    } else {
+                        li.before(dragEl);
+                    }
+                    fetch(buildUrl(from, to), {method:'POST'}).then(() => location.reload());
+                }
+            }
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tabList = document.getElementById('tab-list');
+    enableDragSort(tabList, (f,t)=>`/moveTab?from=${f}&to=${t}`);
+    const pageList = document.getElementById('page-list');
+    const currentTab = document.body.dataset.tab || '';
+    enableDragSort(pageList, (f,t)=>`/movePage?tab=${encodeURIComponent(currentTab)}&from=${f}&to=${t}`);
+    document.querySelectorAll('.bookmark-entries').forEach(ul => {
+        const cat = ul.dataset.index;
+        const page = ul.dataset.page;
+        enableDragSort(ul, (f,t)=>`/moveEntry?category=${cat}&page=${page}&tab=${encodeURIComponent(currentTab)}&from=${f}&to=${t}`);
+    });
+});
+</script>
+{{end}}
