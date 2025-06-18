@@ -2,6 +2,7 @@ package gobookmarks
 
 import (
 	"context"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -114,5 +115,37 @@ func TestGitSignupScenario(t *testing.T) {
 	}
 	if _, ok := session.Values["GithubUser"]; ok {
 		t.Fatalf("user not cleared")
+	}
+}
+
+func TestGitLoginIgnoresInvalidSession(t *testing.T) {
+	tmp := t.TempDir()
+	LocalGitPath = tmp
+	SessionName = "testsession"
+	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	version = "vtest"
+
+	// create user
+	p := GitProvider{}
+	ctx := context.Background()
+	if err := p.CreateUser(ctx, "alice", "secret"); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	form := url.Values{"username": {"alice"}, "password": {"secret"}}
+	req := httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: SessionName, Value: "invalid"})
+
+	w := httptest.NewRecorder()
+	if err := GitLoginAction(w, req); err != nil {
+		t.Fatalf("login action: %v", err)
+	}
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatalf("expected session cookie")
+	}
+	if cookies[len(cookies)-1].Value == "invalid" {
+		t.Fatalf("session cookie not replaced")
 	}
 }
