@@ -173,7 +173,8 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategory', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(() => location.reload());
             }
 
             function sendMoveEnd(from, pageSha, destSha, destCol) {
@@ -197,7 +198,8 @@
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
                 if (destCol !== null) fd.append('destCol', destCol);
-                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategoryEnd', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(() => location.reload());
             }
 
             function sendMoveNewColumn(from, pageSha, destSha) {
@@ -220,7 +222,8 @@
                 fd.append('branch', branch);
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
-                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'});
+                fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'})
+                    .then(() => location.reload());
             }
 
             function dragOver(e) {
