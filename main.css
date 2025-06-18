@@ -173,7 +173,7 @@ body:not(.edit-mode) .edit-link {
 }
 
 .newColumnDropZone {
-    width: 100px;
+    width: 1em;
     min-height: 50vh;
     margin-left: 0.5em;
 }
