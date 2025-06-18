@@ -30,7 +30,7 @@
                                                 <hr/>
                                                 <b>Pages</b><br/>
                                                 {{- range $i, $p := bookmarkPages }}
-                                                        <a href="#page{{$i}}">Page {{ if $p.Name }}{{$p.Name}}{{ else }}{{ add1 $i }}{{ end }}</a><br/>
+                                                        <a href="#page{{$i}}">Page {{ if $p.DisplayName }}{{$p.DisplayName}}{{ else }}{{ add1 $i }}{{ end }}</a><br/>
                                                 {{- end }}
                                         {{ else }}
                                                 <a href="/login">Login</a><br/>

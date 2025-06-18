@@ -202,8 +202,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			tabsData := PreprocessBookmarks(bookmark)
 			var tabs []string
 			for _, t := range tabsData {
-				if t.Name != "" {
-					tabs = append(tabs, t.Name)
+				if name := t.DisplayName(); name != "" {
+					tabs = append(tabs, name)
 				}
 			}
 			return tabs, nil
