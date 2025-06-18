@@ -33,7 +33,7 @@
                                                 <b>Pages</b>
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
-                                                                <li><span class="move-handle">&#9776;</span><a href="#page{{$i}}">Page {{ if $p.DisplayName }}{{$p.DisplayName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
+                                                                <li><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?{{if tab}}tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">Page {{ if $p.DisplayName }}{{$p.DisplayName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
                                                         {{- end }}
                                                 </ul>
                                         {{ else }}
