@@ -18,6 +18,7 @@ func TestCompileGoHTML(t *testing.T) {
 		"edit.gohtml",
 		"editCategory.gohtml",
 		"editTab.gohtml",
+		"editPage.gohtml",
 		"editNotes.gohtml",
 		"error.gohtml",
 		"head.gohtml",
@@ -137,6 +138,17 @@ func TestExecuteTemplates(t *testing.T) {
 		Sha:      "sha",
 	}
 
+	pageData := struct {
+		*CoreData
+		Error string
+		Name  string
+		Sha   string
+	}{
+		CoreData: baseData.CoreData,
+		Name:     "Demo",
+		Sha:      "sha",
+	}
+
 	pages := []struct {
 		name string
 		tmpl string
@@ -147,6 +159,7 @@ func TestExecuteTemplates(t *testing.T) {
 		{"logout", "logoutPage.gohtml", baseData},
 		{"edit", "edit.gohtml", baseData},
 		{"editCategory", "editCategory.gohtml", catData},
+		{"editPage", "editPage.gohtml", pageData},
 		{"history", "history.gohtml", baseData},
 		{"historyCommits", "historyCommits.gohtml", baseData},
 		{"taskDone", "taskDoneAutoRefreshPage.gohtml", baseData},
