@@ -417,6 +417,7 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 		beforeLoc.catIdx--
 	}
 
+	var destColumn *BookmarkColumn
 	if beforeLoc == nil { // append to end or specified column
 		destBlock := cats[len(cats)-1].block
 		destColObj := destBlock.Columns[len(destBlock.Columns)-1]
@@ -434,6 +435,7 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 			destBlock.Columns = append(destBlock.Columns, destColObj)
 		}
 		destColObj.Categories = append(destColObj.Categories, src.cat)
+		destColumn = destColObj
 	} else {
 		dest := *beforeLoc
 		destCol := dest.column
@@ -444,6 +446,11 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 			insertIdx = 0
 		}
 		destCol.InsertCategory(insertIdx, src.cat)
+		destColumn = destCol
+	}
+
+	if len(src.column.Categories) == 0 && src.column != destColumn {
+		src.block.Columns = append(src.block.Columns[:src.colIdx], src.block.Columns[src.colIdx+1:]...)
 	}
 
 	// reindex
