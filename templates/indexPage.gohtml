@@ -108,7 +108,7 @@
             }
 
             function removeEmptyColumns() {
-                document.querySelectorAll('table tr').forEach(function(tr) {
+                document.querySelectorAll('.bookmarkPage table tr').forEach(function(tr) {
                     tr.querySelectorAll('td').forEach(function(td) {
                         if (td.classList.contains('newColumnDropZone') || td.classList.contains('betweenColumnDropZone')) return;
                         if (!td.querySelector('.categoryBlock')) {
@@ -148,7 +148,7 @@
             }
 
             function updateColumnIndices() {
-                document.querySelectorAll('table tr').forEach(function(tr) {
+                document.querySelectorAll('.bookmarkPage table tr').forEach(function(tr) {
                     var idx = 0;
                     tr.querySelectorAll('td').forEach(function(td) {
                         if (td.classList.contains('newColumnDropZone') || td.classList.contains('betweenColumnDropZone')) return;
