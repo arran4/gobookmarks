@@ -19,7 +19,7 @@
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
                     {{- range .Categories }}
                         <div class="categoryBlock" id="cat{{ .Index }}">
-                            <h2><span class="moveIcon" title="Move">↕</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                            <h2><span class="moveIcon" title="Move">⤢</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                             <ul  style="list-style-type: none;">
                                 {{- range .Entries }}
                                     <li>
@@ -42,7 +42,7 @@
                     <td>
                         {{- range .Categories }}
                             <div class="categoryBlock" id="cat{{ .Index }}">
-                                <h2><span class="moveIcon" title="Move">↕</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                                <h2><span class="moveIcon" title="Move">⤢</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                                 <ul  style="list-style-type: none;">
                                     {{- range .Entries }}
                                         <li>
@@ -69,12 +69,15 @@
         document.addEventListener('DOMContentLoaded', function () {
             if (!document.body.classList.contains('edit-mode')) return;
 
-            document.querySelectorAll('.categoryBlock').forEach(function (el) {
-                el.setAttribute('draggable', 'true');
-                el.addEventListener('dragstart', dragStart);
-                el.addEventListener('dragover', dragOver);
-                el.addEventListener('dragleave', dragLeave);
-                el.addEventListener('drop', drop);
+            document.querySelectorAll('.categoryBlock').forEach(function (block) {
+                block.addEventListener('dragover', dragOver);
+                block.addEventListener('dragleave', dragLeave);
+                block.addEventListener('drop', drop);
+            });
+
+            document.querySelectorAll('.categoryBlock h2').forEach(function (title) {
+                title.setAttribute('draggable', 'true');
+                title.addEventListener('dragstart', dragStart);
             });
 
             document.querySelectorAll('.newColumnDropZone').forEach(function (zone) {
@@ -90,8 +93,9 @@
             });
 
             function dragStart(e) {
-                e.dataTransfer.setData('text/plain', e.currentTarget.id);
-                var page = e.currentTarget.closest('.bookmarkPage');
+                var block = e.currentTarget.closest('.categoryBlock');
+                e.dataTransfer.setData('text/plain', block.id);
+                var page = block.closest('.bookmarkPage');
                 if (page) {
                     e.dataTransfer.setData('pageSha', page.dataset.sha);
                 }

@@ -190,6 +190,14 @@ body:not(.edit-mode) .columnEndDropZone {
     margin-right: 0.2em;
 }
 
+.categoryBlock h2 {
+    cursor: move;
+}
+
+body:not(.edit-mode) .categoryBlock h2 {
+    cursor: default;
+}
+
 body:not(.edit-mode) .moveIcon {
     display: none;
 }
