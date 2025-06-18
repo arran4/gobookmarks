@@ -32,9 +32,9 @@
                         </div>
                     {{- end }}
                     <div class="columnEndDropZone" data-col="{{$ci}}"></div>
+                    <div class="newColumnDropZone" data-col="{{$ci}}"></div>
                     {{- $first = false }}
                 {{- end }}
-                <div class="newColumnDropZone"></div>
             </div>
             {{- else }}
             <table>
@@ -57,8 +57,8 @@
                         {{- end }}
                         <div class="columnEndDropZone" data-col="{{$ci}}"></div>
                     </td>
+                    <td class="newColumnDropZone" data-col="{{$ci}}"></td>
                     {{- end }}
-                    <td class="newColumnDropZone"></td>
                 </tr>
             </table>
             {{- end }}
@@ -113,6 +113,10 @@
                 if (!page) return;
                 var zones = page.querySelectorAll('.columnEndDropZone');
                 zones.forEach(function (z, i) {
+                    z.dataset.col = i;
+                });
+                var newZones = page.querySelectorAll('.newColumnDropZone');
+                newZones.forEach(function (z, i) {
                     z.dataset.col = i;
                 });
             }
@@ -202,7 +206,7 @@
                     .then(() => location.reload());
             }
 
-            function sendMoveNewColumn(from, pageSha, destSha) {
+            function sendMoveNewColumn(from, pageSha, destSha, destCol) {
                 var params = new URLSearchParams(window.location.search);
                 var ref = params.get('ref') || 'refs/heads/main';
                 var branch = '';
@@ -222,6 +226,7 @@
                 fd.append('branch', branch);
                 fd.append('ref', ref);
                 if (destSha) fd.append('destPageSha', destSha);
+                if (destCol !== undefined && destCol !== null) fd.append('destCol', destCol);
                 fetch('/moveCategoryNewColumn', {method: 'POST', body: fd, credentials: 'same-origin'})
                     .then(() => location.reload());
             }
@@ -265,6 +270,7 @@
                     var pageSha = e.dataTransfer.getData('pageSha');
                     var destPage = e.currentTarget.closest('.bookmarkPage');
                     var destSha = destPage.dataset.sha;
+                    var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : -1;
                     var zone;
                     if (e.currentTarget.tagName === 'TD') {
                         var td = document.createElement('td');
@@ -283,7 +289,7 @@
                         zone.className = 'columnEndDropZone';
                         parent.insertBefore(zone, e.currentTarget);
                     }
-                    sendMoveNewColumn(from, pageSha, destSha);
+                    sendMoveNewColumn(from, pageSha, destSha, destCol);
                     updateColumnIndices(destPage);
                     removeEmptyColumn(startZone);
                     startZone = null;

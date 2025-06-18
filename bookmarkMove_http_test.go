@@ -131,7 +131,7 @@ func TestCategoryMoveNewColumnAction(t *testing.T) {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}
 	tabs = ParseBookmarks(shaComplex)
-	if err := tabs.MoveCategoryNewColumn(0, tabs[1].Pages[0]); err != nil {
+	if err := tabs.MoveCategoryNewColumn(0, tabs[1].Pages[0], -1); err != nil {
 		t.Fatalf("MoveCategory local: %v", err)
 	}
 	expected := tabs.String()

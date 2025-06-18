@@ -219,6 +219,7 @@ func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
 	fromStr := r.PostFormValue("from")
 	pageSha := r.PostFormValue("pageSha")
 	destPageSha := r.PostFormValue("destPageSha")
+	destColStr := r.PostFormValue("destCol")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 
@@ -226,6 +227,7 @@ func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid from index: %w", err)
 	}
+	destCol, _ := strconv.Atoi(destColStr)
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
@@ -256,7 +258,7 @@ func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
 		destPage = tabs[len(tabs)-1].Pages[len(tabs[len(tabs)-1].Pages)-1]
 	}
 
-	if err := tabs.MoveCategoryNewColumn(fromIdx, destPage); err != nil {
+	if err := tabs.MoveCategoryNewColumn(fromIdx, destPage, destCol); err != nil {
 		return fmt.Errorf("MoveCategory: %w", err)
 	}
 	updated := tabs.String()

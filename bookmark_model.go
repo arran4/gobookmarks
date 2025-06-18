@@ -421,32 +421,44 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 	if beforeLoc == nil { // append to end or specified column
 		destBlock := cats[len(cats)-1].block
 		destColObj := destBlock.Columns[len(destBlock.Columns)-1]
+		destColIdx := len(destBlock.Columns) - 1
 		if destPage != nil {
 			for _, b := range destPage.Blocks {
 				if destCol < len(b.Columns) {
 					destBlock = b
 					destColObj = b.Columns[destCol]
+					destColIdx = destCol
 					break
 				}
 			}
 		}
 		if newColumn {
-			destColObj = &BookmarkColumn{}
-			destBlock.Columns = append(destBlock.Columns, destColObj)
+			destColIdx++
+			newCol := &BookmarkColumn{}
+			destBlock.Columns = append(destBlock.Columns, nil)
+			copy(destBlock.Columns[destColIdx+1:], destBlock.Columns[destColIdx:])
+			destBlock.Columns[destColIdx] = newCol
+			destColObj = newCol
 		}
 		destColObj.Categories = append(destColObj.Categories, src.cat)
 		destColumn = destColObj
 	} else {
 		dest := *beforeLoc
-		destCol := dest.column
+		destBlock := dest.block
+		destColObj := dest.column
+		destColIdx := dest.colIdx
 		insertIdx := dest.catIdx
 		if newColumn {
-			destCol = &BookmarkColumn{}
-			dest.block.Columns = append(dest.block.Columns, destCol)
+			destColIdx++
+			newCol := &BookmarkColumn{}
+			destBlock.Columns = append(destBlock.Columns, nil)
+			copy(destBlock.Columns[destColIdx+1:], destBlock.Columns[destColIdx:])
+			destBlock.Columns[destColIdx] = newCol
+			destColObj = newCol
 			insertIdx = 0
 		}
-		destCol.InsertCategory(insertIdx, src.cat)
-		destColumn = destCol
+		destColObj.InsertCategory(insertIdx, src.cat)
+		destColumn = destColObj
 	}
 
 	if len(src.column.Categories) == 0 && src.column != destColumn {
@@ -480,13 +492,18 @@ func (tabs BookmarkList) MoveCategoryToEnd(fromIndex int, page *BookmarkPage, co
 	return tabs.MoveCategory(fromIndex, -1, false, page, colIdx)
 }
 
-// MoveCategoryNewColumn moves the category into a new column appended to the page.
-func (tabs BookmarkList) MoveCategoryNewColumn(fromIndex int, page *BookmarkPage) error {
+// MoveCategoryNewColumn moves the category into a new column inserted after
+// the specified column index on the given page. When page is nil the category
+// is moved to a new column on the last page. If destCol is negative the column
+// is appended to the end of the page.
+func (tabs BookmarkList) MoveCategoryNewColumn(fromIndex int, page *BookmarkPage, destCol int) error {
 	if page == nil {
-		return tabs.MoveCategory(fromIndex, -1, true, nil, 0)
+		return tabs.MoveCategory(fromIndex, -1, true, nil, destCol)
 	}
-	last := page.Blocks[len(page.Blocks)-1]
-	destCol := len(last.Columns) - 1
+	if destCol < 0 {
+		last := page.Blocks[len(page.Blocks)-1]
+		destCol = len(last.Columns) - 1
+	}
 	return tabs.MoveCategory(fromIndex, -1, true, page, destCol)
 }
 
