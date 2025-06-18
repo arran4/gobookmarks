@@ -8,7 +8,7 @@
         {{- range $i, $p := bookmarkPages }}
         <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}" data-sha="{{$p.Sha}}">
             {{- if and (eq $i 0) tab }}<h1>{{ tabName }} <a class="edit-link" href="/editTab?name={{ tabName }}&ref={{ref}}&tab={{tab}}" title="Edit">&#9998;</a></h1>{{ end }}
-            {{- if $p.DisplayName }}<h2>{{ $p.DisplayName }}</h2>{{ end }}
+            {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
             {{- range .Blocks }}
             {{- if .HR }}
             <hr class="bookmarkHr" />
