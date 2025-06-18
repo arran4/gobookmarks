@@ -162,6 +162,7 @@ body:not(.edit-mode) .edit-link {
 }
 
 .newColumnDropZone,
+.betweenColumnDropZone,
 .columnEndDropZone {
     display: inline-block;
     border: 2px dotted #800000;
@@ -173,6 +174,12 @@ body:not(.edit-mode) .edit-link {
     margin-left: 0.5em;
 }
 
+.betweenColumnDropZone {
+    width: 5px;
+    min-height: 50vh;
+    margin-left: 0;
+}
+
 .columnEndDropZone {
     width: 100%;
     min-height: 150px;
@@ -181,6 +188,7 @@ body:not(.edit-mode) .edit-link {
 }
 
 body:not(.edit-mode) .newColumnDropZone,
+body:not(.edit-mode) .betweenColumnDropZone,
 body:not(.edit-mode) .columnEndDropZone {
     display: none;
 }

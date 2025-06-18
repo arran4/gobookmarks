@@ -404,6 +404,10 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 		destCol.InsertCategory(insertIdx, src.cat)
 	}
 
+	if len(src.column.Categories) == 0 {
+		src.block.Columns = append(src.block.Columns[:src.colIdx], src.block.Columns[src.colIdx+1:]...)
+	}
+
 	// reindex
 	idx = 0
 	for _, t := range tabs {

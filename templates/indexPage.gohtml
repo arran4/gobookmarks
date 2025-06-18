@@ -31,6 +31,7 @@
                         </div>
                     {{- end }}
                     <div class="columnEndDropZone" data-col="{{$ci}}"></div>
+                    <div class="betweenColumnDropZone"></div>
                     {{- $first = false }}
                 {{- end }}
                 <div class="newColumnDropZone"></div>
@@ -54,7 +55,7 @@
                             </div>
                         {{- end }}
                         <div class="columnEndDropZone" data-col="{{$ci}}"></div>
-                    </td>
+                    </td><td class="betweenColumnDropZone"></td>
                     {{- end }}
                     <td class="newColumnDropZone"></td>
                 </tr>
@@ -80,17 +81,21 @@
                 title.addEventListener('dragstart', dragStart);
             });
 
-            document.querySelectorAll('.newColumnDropZone').forEach(function (zone) {
-                zone.addEventListener('dragover', dragOver);
-                zone.addEventListener('dragleave', dragLeave);
-                zone.addEventListener('drop', dropNewColumn);
-            });
+            function attachDropZones() {
+                document.querySelectorAll('.newColumnDropZone, .betweenColumnDropZone').forEach(function (zone) {
+                    zone.addEventListener('dragover', dragOver);
+                    zone.addEventListener('dragleave', dragLeave);
+                    zone.addEventListener('drop', dropNewColumn);
+                });
 
-            document.querySelectorAll('.columnEndDropZone').forEach(function (zone) {
-                zone.addEventListener('dragover', dragOver);
-                zone.addEventListener('dragleave', dragLeave);
-                zone.addEventListener('drop', dropEndColumn);
-            });
+                document.querySelectorAll('.columnEndDropZone').forEach(function (zone) {
+                    zone.addEventListener('dragover', dragOver);
+                    zone.addEventListener('dragleave', dragLeave);
+                    zone.addEventListener('drop', dropEndColumn);
+                });
+            }
+
+            attachDropZones();
 
             function dragStart(e) {
                 var block = e.currentTarget.closest('.categoryBlock');
@@ -100,6 +105,21 @@
                     e.dataTransfer.setData('pageSha', page.dataset.sha);
                 }
                 e.dataTransfer.effectAllowed = 'move';
+            }
+
+            function removeEmptyColumns() {
+                document.querySelectorAll('table tr').forEach(function(tr) {
+                    tr.querySelectorAll('td').forEach(function(td) {
+                        if (td.classList.contains('newColumnDropZone') || td.classList.contains('betweenColumnDropZone')) return;
+                        if (!td.querySelector('.categoryBlock')) {
+                            var next = td.nextElementSibling;
+                            if (next && next.classList.contains('betweenColumnDropZone')) {
+                                next.remove();
+                            }
+                            td.remove();
+                        }
+                    });
+                });
             }
 
             function sendMoveBefore(from, to, pageSha, destSha, destCol) {
@@ -196,6 +216,7 @@
                     var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
                     var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
                     sendMoveBefore(from, to, pageSha, destSha, destCol);
+                    removeEmptyColumns();
                 }
             }
 
@@ -212,14 +233,23 @@
                         var td = document.createElement('td');
                         td.appendChild(el);
                         e.currentTarget.parentNode.insertBefore(td, e.currentTarget);
+                        if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
+                            var nz = e.currentTarget.cloneNode(false);
+                            e.currentTarget.parentNode.insertBefore(nz, td);
+                        }
                     } else {
                         var brk = document.createElement('div');
                         brk.className = 'columnBreak';
                         var parent = e.currentTarget.parentNode;
                         parent.insertBefore(brk, e.currentTarget);
                         parent.insertBefore(el, e.currentTarget);
+                        if (e.currentTarget.classList.contains('betweenColumnDropZone')) {
+                            var nz = e.currentTarget.cloneNode(false);
+                            parent.insertBefore(nz, brk);
+                        }
                     }
                     sendMoveNewColumn(from, pageSha, destSha);
+                    attachDropZones();
                 }
             }
 
@@ -240,6 +270,7 @@
                     var destSha = e.currentTarget.closest('.bookmarkPage').dataset.sha;
                     var destCol = e.currentTarget.dataset.col ? parseInt(e.currentTarget.dataset.col) : null;
                     sendMoveEnd(from, pageSha, destSha, destCol);
+                    removeEmptyColumns();
                 }
             }
         });
