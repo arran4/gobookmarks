@@ -25,9 +25,8 @@
                                                 <hr/>
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
-                                                        <li><span class="move-handle">&#9776;</span><a href="/">Main</a></li>
                                                         {{- range bookmarkTabs }}
-                                                                <li><span class="move-handle">&#9776;</span><a href="/?tab={{ . }}">{{ . }}</a></li>
+                                                                <li><span class="move-handle">&#9776;</span><a href="{{ if eq . "Main" }}/{{else}}/?tab={{ . }}{{ end }}">{{ . }}</a></li>
                                                         {{- end }}
                                                 </ul>
                                                 <hr/>
