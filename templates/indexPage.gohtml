@@ -330,14 +330,4 @@
 {{ if $.EditMode }}
 {{ template "dragdrop" $ }}
 {{ end }}
-{{ if eq (version) "dev" }}
-<div id="devtools" style="margin-top:1em;">
-    Devtools:
-    {{ if useCssColumns }}
-        <a href="/_table">switch to table view</a>
-    {{ else }}
-        <a href="/_css">switch to CSS view</a>
-    {{ end }}
-</div>
-{{ end }}
 {{ template "tail" $ }}
