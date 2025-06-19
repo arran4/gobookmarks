@@ -78,7 +78,7 @@ changed while you were editing.
 # How to setup for yourself
 
 You can run this yourself. Docker images are published to the [GitHub Container Registry](https://github.com/arran4/gobookmarks/pkgs/container/gobookmarks) as `ghcr.io/arran4/gobookmarks`.
-There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/StartHere/releases
+There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/gobookmarks/releases
 
 Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
