@@ -3,16 +3,16 @@
 ![logo.png](logo.png)
 
 The purpose of the site is to display a list of links for you to see every time you open your browser. I have tried to 
-move as much of the work into the app as possible with minimal effort but you will need to use github occasionally.
+move as much of the work into the app as possible with minimal effort but you will need to use GitHub occasionally.
 
 ![img_4.png](media/img_4.png)
 
-This project is a converstion of a project: [goa4web-bookmarks](https://github.com/arran4/goa4web-bookmarks) to remove
-the SQL and replace it with Github. Which itself is extract from [goa4web](https://github.com/arran4/goa4web), which is
+This project is a conversion of a project: [goa4web-bookmarks](https://github.com/arran4/goa4web-bookmarks) to remove
+the SQL and replace it with GitHub. Which itself is extracted from [goa4web](https://github.com/arran4/goa4web), which is
 a Go port of a C++ site I made in 2003. Ported using ChatGPT: [a4web](https://github.com/arran4/a4web). It's all been
 minimally modified and as close to the original as I could get but with the changes I required. I made modifications to
-this because [StartHere](https://github.com/arran4/StartHere) my SPA version using modern tech failed because of Github
-Oauth2 restrictions on SPA sites. You can read more about this here: https://arranubels.substack.com/p/quicklinks
+this because [StartHere](https://github.com/arran4/StartHere) my SPA version using modern tech failed because of GitHub
+OAuth2 restrictions on SPA sites. You can read more about this here: https://arranubels.substack.com/p/quicklinks
 
 # How to use
 
@@ -23,20 +23,20 @@ Oauth2 restrictions on SPA sites. You can read more about this here: https://arr
    ```text
    Category: Search
    http://www.google.com.au Google
-   Category: Wikies
+   Category: Wikis
    http://en.wikipedia.org/wiki/Main_Page Wikipedia
    http://mathworld.wolfram.com/ Math World
    http://gentoo-wiki.com/Main_Page Gentoo-wiki
    ```
 
    ![img_3.png](media/img_3.png)
-2. Goto the URL this app is deployed at, your private instance or:
+2. Go to the URL this app is deployed at, your private instance or:
    https://bookmarks.arran.net.au
 3. Enjoy
 
 ## File format
 
-It's a basic file format. Every command must be on it's own line empty lines are ignored.
+It's a basic file format. Every command must be on its own line; empty lines are ignored.
 
 | Code                   | Meaning |
 |------------------------|-----------------------------------------------------|
@@ -78,7 +78,7 @@ changed while you were editing.
 # How to setup for yourself
 
 You can run this yourself. Docker images are published to the [GitHub Container Registry](https://github.com/arran4/gobookmarks/pkgs/container/gobookmarks) as `ghcr.io/arran4/gobookmarks`.
-There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/StartHere/releases
+There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/gobookmarks/releases
 
 Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
@@ -97,6 +97,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
 | `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
 | `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image). |
+| `GBM_NO_FOOTER` | Hide the footer on pages. |
 | `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
@@ -109,6 +110,7 @@ The release packages do not install this file; create it manually if you want to
 Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration file is loaded.
 
 The `--title` flag or `GBM_TITLE` environment variable sets the browser page title.
+The `--no-footer` flag or `GBM_NO_FOOTER` environment variable hides the footer on pages.
 Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
@@ -118,11 +120,11 @@ config file and command line arguments.
 
 Sessions use the key from `SESSION_KEY` or the config file. When unset, a key is read from `session.key` in the state directory or generated on first start. If writing this file fails, sessions expire on restart. To keep sessions stable across restarts, provide a fixed key through configuration.
 
-## Oauth2 setup
+## OAuth2 setup
 
 For GitHub visit <https://github.com/settings/developers>. For GitLab visit <https://gitlab.com/-/profile/applications>.
 
-Create an application, call it what ever you like. Set the Callback URL what ever you put in `EXTERNAL_URL` and add: 
+Create an application, call it whatever you like. Set the Callback URL to whatever you put in `EXTERNAL_URL` and add:
 `/oauth2Callback` to the end, ie if you entered: `http://localhost:8080` it should be: `http://localhost:8080/oauth2Callback`
 
 Upload `logo.png` for the logo.
@@ -201,7 +203,8 @@ An example `config.json` looks like:
   "gitlab_server": "https://gitlab.com",
   "favicon_cache_dir": "/var/cache/gobookmarks/favcache",
   "favicon_cache_size": 20971520,
-  "local_git_path": "/var/lib/gobookmarks/localgit"
+  "local_git_path": "/var/lib/gobookmarks/localgit",
+  "no_footer": false
 }
 ```
 
