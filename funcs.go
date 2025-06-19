@@ -93,6 +93,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return i + 1
 		},
 		"useCssColumns": func() bool {
+			sessioni := r.Context().Value(ContextValues("session"))
+			if session, ok := sessioni.(*sessions.Session); ok && session != nil {
+				if v, ok := session.Values["useCssColumns"].(bool); ok {
+					return v
+				}
+			}
 			return UseCssColumns
 		},
 		"showFooter": func() bool {

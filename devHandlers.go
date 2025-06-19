@@ -1,15 +1,27 @@
 package gobookmarks
 
-import "net/http"
+import (
+	"fmt"
+	"github.com/gorilla/sessions"
+	"net/http"
+)
 
-// EnableCssColumnsAction sets the layout to use CSS columns.
+// EnableCssColumnsAction stores a session flag to use CSS column layout.
 func EnableCssColumnsAction(w http.ResponseWriter, r *http.Request) error {
-	UseCssColumns = true
+	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	session.Values["useCssColumns"] = true
+	if err := session.Save(r, w); err != nil {
+		return fmt.Errorf("session save: %w", err)
+	}
 	return nil
 }
 
-// DisableCssColumnsAction sets the layout to use table columns.
+// DisableCssColumnsAction stores a session flag to use table layout.
 func DisableCssColumnsAction(w http.ResponseWriter, r *http.Request) error {
-	UseCssColumns = false
+	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	session.Values["useCssColumns"] = false
+	if err := session.Save(r, w); err != nil {
+		return fmt.Errorf("session save: %w", err)
+	}
 	return nil
 }
