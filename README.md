@@ -2,7 +2,7 @@
 
 ![logo.png](logo.png)
 
-The purpose of the site is to display a list of links for you to see every time you open your browser. I have tried to 
+The purpose of the site is to display a list of links for you to see every time you open your browser. I have tried to
 move as much of the work into the app as possible with minimal effort but you will need to use GitHub occasionally.
 
 ![img_4.png](media/img_4.png)
