@@ -119,6 +119,18 @@ type BookmarkPage struct {
 	Name   string
 }
 
+// IsEmpty returns true if the page contains no categories.
+func (p *BookmarkPage) IsEmpty() bool {
+	for _, blk := range p.Blocks {
+		for _, col := range blk.Columns {
+			if len(col.Categories) > 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // String serializes the page (excluding the Page line).
 func (p *BookmarkPage) String() string {
 	var sb strings.Builder

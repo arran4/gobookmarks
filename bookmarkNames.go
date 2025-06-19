@@ -60,14 +60,20 @@ func (t *BookmarkTab) DisplayName() string {
 	if strings.TrimSpace(t.Name) != "" {
 		return t.Name
 	}
-	if len(t.Pages) == 1 {
-		if n := t.Pages[0].DisplayName(); n != "" {
+	var pages []*BookmarkPage
+	for _, p := range t.Pages {
+		if !p.IsEmpty() {
+			pages = append(pages, p)
+		}
+	}
+	if len(pages) == 1 {
+		if n := pages[0].DisplayName(); n != "" {
 			return n
 		}
 	}
-	if len(t.Pages) == 2 {
-		n1 := t.Pages[0].DisplayName()
-		n2 := t.Pages[1].DisplayName()
+	if len(pages) == 2 {
+		n1 := pages[0].DisplayName()
+		n2 := pages[1].DisplayName()
 		if n1 != "" && n2 != "" && len(n1) <= 15 && len(n2) <= 15 {
 			return n1 + ", " + n2
 		}
