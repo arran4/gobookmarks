@@ -24,7 +24,7 @@ func TestCompileGoHTML(t *testing.T) {
 		"head.gohtml",
 		"history.gohtml",
 		"historyCommits.gohtml",
-		"indexPage.gohtml",
+		"mainPage.gohtml",
 		"loginPage.gohtml",
 		"logoutPage.gohtml",
 		"dragdrop.gohtml",
@@ -161,7 +161,7 @@ func TestExecuteTemplates(t *testing.T) {
 		tmpl string
 		data any
 	}{
-		{"index", "indexPage.gohtml", baseData},
+		{"main", "mainPage.gohtml", baseData},
 		{"login", "loginPage.gohtml", baseData},
 		{"logout", "logoutPage.gohtml", baseData},
 		{"edit", "edit.gohtml", baseData},
