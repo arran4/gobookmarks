@@ -423,14 +423,12 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 		destColObj := destBlock.Columns[len(destBlock.Columns)-1]
 		destColIdx := len(destBlock.Columns) - 1
 		if destPage != nil {
-			for _, b := range destPage.Blocks {
-				if destCol < len(b.Columns) {
-					destBlock = b
-					destColObj = b.Columns[destCol]
-					destColIdx = destCol
-					break
-				}
+			destBlock = destPage.Blocks[len(destPage.Blocks)-1]
+			if destCol >= len(destBlock.Columns) {
+				destCol = len(destBlock.Columns) - 1
 			}
+			destColObj = destBlock.Columns[destCol]
+			destColIdx = destCol
 		}
 		if newColumn {
 			destColIdx++
