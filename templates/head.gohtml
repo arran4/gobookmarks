@@ -20,7 +20,7 @@
                                         {{ if $.UserRef }}
                                                 <a href="/logout">Logout</a><br/>
                                                 <a href="/history">History</a><br/>
-                                                <a href="/{{if $.EditMode}}stopEditMode{{else}}startEditMode{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
+                                                <a id="toggle-edit" href="/{{if $.EditMode}}stopEditMode{{else}}startEditMode{{end}}{{if tab}}?tab={{tab}}{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
                                                 {{if $.EditMode}}{{if ref}}<a href="/edit?ref={{ref}}{{if tab}}&tab={{tab}}{{end}}">Edit All</a>{{else}}<a href="/edit?{{if tab}}tab={{tab}}{{end}}">Edit All</a>{{end}}<br/>{{end}}
                                                 <hr/>
                                                 <b>Tabs</b>
@@ -29,7 +29,7 @@
                                                        <li data-page-sha="{{ .LastPageSha }}"><span class="move-handle">&#9776;</span><a href="{{ .Href }}">{{ .IndexName }}</a></li>
                                                         {{- end }}
                                                         {{- if $.EditMode }}
-                                                                <li><a href="/editTab?ref={{ref}}&tab={{tab}}">+ Add Tab</a></li>
+                                                                <li><a href="/editTab?ref={{ref}}">+ Add Tab</a></li>
                                                         {{- end }}
                                                 </ul>
                                                 <hr/>
@@ -37,7 +37,7 @@
                                                 <b>Pages</b>
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
-                                                      <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?{{if tab}}tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">Page {{ if $p.IndexName }}{{$p.IndexName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
+                                                              <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?{{if tab}}tab={{tab}}&{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">Page {{ if $p.IndexName }}{{$p.IndexName}}{{ else }}{{ add1 $i }}{{ end }}</a></li>
                                                         {{- end }}
                                                         {{- if $.EditMode }}
                                                                 <li><a href="/editPage?ref={{ref}}&tab={{tab}}">+ Add Page</a></li>

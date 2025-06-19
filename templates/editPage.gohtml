@@ -11,6 +11,7 @@
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
         <input type=hidden name="tab" value="{{tab}}" />
+        {{if page}}<input type=hidden name="page" value="{{page}}" />{{end}}
     </form>
     {{ template "editNotes" $ }}
 {{ template "tail" $ }}

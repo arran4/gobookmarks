@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
@@ -73,6 +74,7 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	if tabIdx < 0 || tabIdx >= len(list) {
 		tabIdx = 0
 	}
+	newIndex := len(list[tabIdx].Pages)
 	parsed := ParseBookmarks("Tab\nPage: " + name + "\n" + text)
 	p := parsed[0].Pages[0]
 	list[tabIdx].AddPage(p)
@@ -80,5 +82,10 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, list.String(), curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
+
+	ctx := context.WithValue(r.Context(), ContextValues("redirectTab"), strconv.Itoa(tabIdx))
+	ctx = context.WithValue(ctx, ContextValues("redirectPage"), strconv.Itoa(newIndex))
+	*r = *r.WithContext(ctx)
+
 	return nil
 }

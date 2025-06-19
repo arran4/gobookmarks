@@ -14,8 +14,44 @@
                                        <br><a href="/status">Status</a>
                                </i>
                        </div>
-                </footer>
+</footer>
                 {{ end }}
+                <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var toggleEdit = document.getElementById('toggle-edit');
+
+                    function currentPage() {
+                        var pages = document.querySelectorAll('.bookmarkPage[id^="page"]');
+                        var closest = -1;
+                        var closestDist = Infinity;
+                        pages.forEach(function (p, idx) {
+                            var rect = p.getBoundingClientRect();
+                            var dist = Math.abs(rect.top);
+                            if (dist < closestDist) {
+                                closestDist = dist;
+                                closest = idx;
+                            }
+                        });
+                        return closest;
+                    }
+
+                    function attach(link) {
+                        if (!link) return;
+                        link.addEventListener('click', function (e) {
+                            var page = currentPage();
+                            if (page >= 0) {
+                                var url = new URL(link.getAttribute('href'), window.location);
+                                url.searchParams.set('page', page);
+                                url.hash = 'page' + page;
+                                e.preventDefault();
+                                window.location.href = url.toString();
+                            }
+                        });
+                    }
+
+                    attach(toggleEdit);
+                });
+                </script>
                  </body>
 </html>
 {{end}}

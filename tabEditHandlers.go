@@ -1,10 +1,12 @@
 package gobookmarks
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -85,6 +87,7 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var updated string
+	newIndex := len(ParseBookmarks(currentBookmarks))
 	if oldName == "" {
 		updated = AppendTab(currentBookmarks, name, text)
 	} else {
@@ -96,6 +99,11 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, updated, curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
+	}
+	if oldName == "" {
+		ctx := context.WithValue(r.Context(), ContextValues("redirectTab"), strconv.Itoa(newIndex))
+		ctx = context.WithValue(ctx, ContextValues("redirectPage"), "0")
+		*r = *r.WithContext(ctx)
 	}
 	return nil
 }

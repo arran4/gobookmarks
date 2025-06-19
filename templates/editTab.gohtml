@@ -10,7 +10,8 @@
         <input type=submit name="task" value="Save" /><br>
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
-        <input type=hidden name="tab" value="{{tab}}" />
+        {{if tab}}<input type=hidden name="tab" value="{{tab}}" />{{end}}
+        {{if page}}<input type=hidden name="page" value="{{page}}" />{{end}}
     </form>
     {{ template "editNotes" $ }}
 {{ template "tail" $ }}

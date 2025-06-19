@@ -266,8 +266,8 @@ func main() {
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandler("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandler("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -522,10 +522,33 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 		u, _ := url.Parse(toUrl)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
-		if tab := r.PostFormValue("tab"); tab != "" {
+		tab := r.PostFormValue("tab")
+		if v, ok := r.Context().Value(ContextValues("redirectTab")).(string); ok {
+			tab = v
+		}
+		if tab != "" {
 			qs.Set("tab", tab)
 		}
-		if page := r.PostFormValue("page"); page != "" {
+		page := r.PostFormValue("page")
+		if v, ok := r.Context().Value(ContextValues("redirectPage")).(string); ok {
+			page = v
+		}
+		if page != "" {
+			u.Fragment = "page" + page
+		}
+		u.RawQuery = qs.Encode()
+		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
+	})
+}
+
+func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, _ := url.Parse(toUrl)
+		qs := u.Query()
+		if tab := r.URL.Query().Get("tab"); tab != "" {
+			qs.Set("tab", tab)
+		}
+		if page := r.URL.Query().Get("page"); page != "" {
 			u.Fragment = "page" + page
 		}
 		u.RawQuery = qs.Encode()
