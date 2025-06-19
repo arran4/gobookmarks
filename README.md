@@ -23,7 +23,7 @@ OAuth2 restrictions on SPA sites. You can read more about this here: https://arr
    ```text
    Category: Search
    http://www.google.com.au Google
-   Category: Wikies
+   Category: Wikis
    http://en.wikipedia.org/wiki/Main_Page Wikipedia
    http://mathworld.wolfram.com/ Math World
    http://gentoo-wiki.com/Main_Page Gentoo-wiki
@@ -78,7 +78,7 @@ changed while you were editing.
 # How to setup for yourself
 
 You can run this yourself. Docker images are published to the [GitHub Container Registry](https://github.com/arran4/gobookmarks/pkgs/container/gobookmarks) as `ghcr.io/arran4/gobookmarks`.
-There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/StartHere/releases
+There are also precompiled versions under the releases section of this git repo: https://github.com/arran4/gobookmarks/releases
 
 Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
@@ -97,6 +97,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
 | `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
 | `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image). |
+| `GBM_NO_FOOTER` | Hide the footer on pages. |
 | `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
@@ -109,6 +110,7 @@ The release packages do not install this file; create it manually if you want to
 Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration file is loaded.
 
 The `--title` flag or `GBM_TITLE` environment variable sets the browser page title.
+The `--no-footer` flag or `GBM_NO_FOOTER` environment variable hides the footer on pages.
 Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
@@ -122,7 +124,7 @@ Sessions use the key from `SESSION_KEY` or the config file. When unset, a key is
 
 For GitHub visit <https://github.com/settings/developers>. For GitLab visit <https://gitlab.com/-/profile/applications>.
 
-Create an application, call it whatever you like. Set the Callback URL whatever you put in `EXTERNAL_URL` and add:
+Create an application, call it whatever you like. Set the Callback URL to whatever you put in `EXTERNAL_URL` and add:
 `/oauth2Callback` to the end, ie if you entered: `http://localhost:8080` it should be: `http://localhost:8080/oauth2Callback`
 
 Upload `logo.png` for the logo.
@@ -201,7 +203,8 @@ An example `config.json` looks like:
   "gitlab_server": "https://gitlab.com",
   "favicon_cache_dir": "/var/cache/gobookmarks/favcache",
   "favicon_cache_size": 20971520,
-  "local_git_path": "/var/lib/gobookmarks/localgit"
+  "local_git_path": "/var/lib/gobookmarks/localgit",
+  "no_footer": false
 }
 ```
 
