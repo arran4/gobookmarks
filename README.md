@@ -2,17 +2,17 @@
 
 ![logo.png](logo.png)
 
-The purpose of the site is to display a list of links for you to see every time you open your browser. I have tried to 
-move as much of the work into the app as possible with minimal effort but you will need to use github occasionally.
+The purpose of the site is to display a list of links for you to see every time you open your browser. I have tried to
+move as much of the work into the app as possible with minimal effort but you will need to use GitHub occasionally.
 
 ![img_4.png](media/img_4.png)
 
-This project is a converstion of a project: [goa4web-bookmarks](https://github.com/arran4/goa4web-bookmarks) to remove
-the SQL and replace it with Github. Which itself is extract from [goa4web](https://github.com/arran4/goa4web), which is
+This project is a conversion of a project: [goa4web-bookmarks](https://github.com/arran4/goa4web-bookmarks) to remove
+the SQL and replace it with GitHub. Which itself is extracted from [goa4web](https://github.com/arran4/goa4web), which is
 a Go port of a C++ site I made in 2003. Ported using ChatGPT: [a4web](https://github.com/arran4/a4web). It's all been
 minimally modified and as close to the original as I could get but with the changes I required. I made modifications to
-this because [StartHere](https://github.com/arran4/StartHere) my SPA version using modern tech failed because of Github
-Oauth2 restrictions on SPA sites. You can read more about this here: https://arranubels.substack.com/p/quicklinks
+this because [StartHere](https://github.com/arran4/StartHere) my SPA version using modern tech failed because of GitHub
+OAuth2 restrictions on SPA sites. You can read more about this here: https://arranubels.substack.com/p/quicklinks
 
 # How to use
 
@@ -30,13 +30,13 @@ Oauth2 restrictions on SPA sites. You can read more about this here: https://arr
    ```
 
    ![img_3.png](media/img_3.png)
-2. Goto the URL this app is deployed at, your private instance or:
+2. Go to the URL this app is deployed at, your private instance or:
    https://bookmarks.arran.net.au
 3. Enjoy
 
 ## File format
 
-It's a basic file format. Every command must be on it's own line empty lines are ignored.
+It's a basic file format. Every command must be on its own line; empty lines are ignored.
 
 | Code                   | Meaning |
 |------------------------|-----------------------------------------------------|
@@ -118,11 +118,11 @@ config file and command line arguments.
 
 Sessions use the key from `SESSION_KEY` or the config file. When unset, a key is read from `session.key` in the state directory or generated on first start. If writing this file fails, sessions expire on restart. To keep sessions stable across restarts, provide a fixed key through configuration.
 
-## Oauth2 setup
+## OAuth2 setup
 
 For GitHub visit <https://github.com/settings/developers>. For GitLab visit <https://gitlab.com/-/profile/applications>.
 
-Create an application, call it what ever you like. Set the Callback URL what ever you put in `EXTERNAL_URL` and add: 
+Create an application, call it whatever you like. Set the Callback URL whatever you put in `EXTERNAL_URL` and add:
 `/oauth2Callback` to the end, ie if you entered: `http://localhost:8080` it should be: `http://localhost:8080/oauth2Callback`
 
 Upload `logo.png` for the logo.
