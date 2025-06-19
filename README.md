@@ -92,6 +92,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
 | `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
 | `GBM_TITLE` | Overrides the page title shown in the browser. |
+| `GBM_NO_FOOTER` | Hide footer on pages. |
 | `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/var/cache/gobookmarks/favcache` when installed system‑wide (including the Docker image). |
 | `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
@@ -112,6 +113,7 @@ Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration f
 The `--title` flag or `GBM_TITLE` environment variable sets the browser page title.
 The `--no-footer` flag or `GBM_NO_FOOTER` environment variable hides the footer on pages.
 Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
+Use `--no-footer` or `GBM_NO_FOOTER` to hide the footer on pages.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
 When no OAuth2 credentials are configured the login buttons are hidden. Visit `/status` to see which providers are available.
@@ -199,6 +201,7 @@ An example `config.json` looks like:
   "css_columns": false,
   "namespace": "",
   "title": "",
+  "no_footer": false,
   "github_server": "https://github.com",
   "gitlab_server": "https://gitlab.com",
   "favicon_cache_dir": "/var/cache/gobookmarks/favcache",
