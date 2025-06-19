@@ -166,6 +166,11 @@ body:not(.edit-mode) .edit-link {
     outline: 2px dotted #800000;
 }
 
+#tab-list li.drag-over,
+#page-list li.drag-over {
+    outline: 2px dotted #800000;
+}
+
 .newColumnDropZone,
 .columnEndDropZone {
     display: inline-block;
@@ -183,6 +188,17 @@ body:not(.edit-mode) .edit-link {
     min-height: 150px;
     margin-left: 0;
     margin-top: 0.5em;
+}
+
+.add-category-link {
+    display: block;
+    text-align: center;
+    font-size: small;
+    text-decoration: none;
+}
+
+body:not(.edit-mode) .add-category-link {
+    display: none;
 }
 
 body:not(.edit-mode) .newColumnDropZone,

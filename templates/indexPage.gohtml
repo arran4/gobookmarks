@@ -31,7 +31,9 @@
                             </ul>
                         </div>
                     {{- end }}
-                    <div class="columnEndDropZone" data-col="{{$ci}}"></div>
+                    <div class="columnEndDropZone" data-col="{{$ci}}">
+                        {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                    </div>
                     <div class="newColumnDropZone" data-col="{{$ci}}"></div>
                     {{- $first = false }}
                 {{- end }}
@@ -55,7 +57,9 @@
                                 </ul>
                             </div>
                         {{- end }}
-                        <div class="columnEndDropZone" data-col="{{$ci}}"></div>
+                        <div class="columnEndDropZone" data-col="{{$ci}}">
+                            {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                        </div>
                     </td>
                     <td class="newColumnDropZone" data-col="{{$ci}}"></td>
                     {{- end }}
@@ -142,6 +146,18 @@
                 zone.addEventListener('dragover', dragOver);
                 zone.addEventListener('dragleave', dragLeave);
                 zone.addEventListener('drop', dropEndColumn);
+            });
+
+            document.querySelectorAll('#page-list li[data-page-sha]').forEach(function (li) {
+                li.addEventListener('dragover', dragOver);
+                li.addEventListener('dragleave', dragLeave);
+                li.addEventListener('drop', dropOnPageIndex);
+            });
+
+            document.querySelectorAll('#tab-list li[data-page-sha]').forEach(function (li) {
+                li.addEventListener('dragover', dragOver);
+                li.addEventListener('dragleave', dragLeave);
+                li.addEventListener('drop', dropOnTabIndex);
             });
 
             function dragStart(e) {
@@ -316,6 +332,32 @@
                     sendMoveEnd(from, pageSha, destSha, destCol);
                     updateColumnIndices(destPage);
                     removeEmptyColumn(startZone);
+                    startZone = null;
+                }
+            }
+
+            function dropOnPageIndex(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                if (id) {
+                    var from = parseInt(id.substring(3));
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    var destSha = e.currentTarget.dataset.pageSha;
+                    sendMoveEnd(from, pageSha, destSha, -1);
+                    startZone = null;
+                }
+            }
+
+            function dropOnTabIndex(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                var id = e.dataTransfer.getData('text/plain');
+                if (id) {
+                    var from = parseInt(id.substring(3));
+                    var pageSha = e.dataTransfer.getData('pageSha');
+                    var destSha = e.currentTarget.dataset.pageSha;
+                    sendMoveEnd(from, pageSha, destSha, -1);
                     startZone = null;
                 }
             }

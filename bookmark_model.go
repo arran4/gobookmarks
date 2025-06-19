@@ -119,6 +119,18 @@ type BookmarkPage struct {
 	Name   string
 }
 
+// IsEmpty returns true if the page contains no categories.
+func (p *BookmarkPage) IsEmpty() bool {
+	for _, blk := range p.Blocks {
+		for _, col := range blk.Columns {
+			if len(col.Categories) > 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // String serializes the page (excluding the Page line).
 func (p *BookmarkPage) String() string {
 	var sb strings.Builder
@@ -423,14 +435,12 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 		destColObj := destBlock.Columns[len(destBlock.Columns)-1]
 		destColIdx := len(destBlock.Columns) - 1
 		if destPage != nil {
-			for _, b := range destPage.Blocks {
-				if destCol < len(b.Columns) {
-					destBlock = b
-					destColObj = b.Columns[destCol]
-					destColIdx = destCol
-					break
-				}
+			destBlock = destPage.Blocks[len(destPage.Blocks)-1]
+			if destCol >= len(destBlock.Columns) {
+				destCol = len(destBlock.Columns) - 1
 			}
+			destColObj = destBlock.Columns[destCol]
+			destColIdx = destCol
 		}
 		if newColumn {
 			destColIdx++

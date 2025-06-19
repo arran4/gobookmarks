@@ -59,7 +59,7 @@ func testFuncMap() template.FuncMap {
 		"showPages":          func() bool { return true },
 		"loggedIn":           func() (bool, error) { return true, nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
-			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/"}}, nil
+			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", LastPageSha: ""}}, nil
 		},
 		"commitShort": func() string {
 			short := commit
@@ -134,11 +134,13 @@ func TestExecuteTemplates(t *testing.T) {
 		Index int
 		Text  string
 		Sha   string
+		Col   int
 	}{
 		CoreData: baseData.CoreData,
 		Index:    0,
 		Text:     "Category: Demo",
 		Sha:      "sha",
+		Col:      0,
 	}
 
 	pageData := struct {

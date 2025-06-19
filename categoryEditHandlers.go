@@ -33,18 +33,22 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("ExtractCategory: %w", err)
 	}
 
+	col, _ := strconv.Atoi(r.URL.Query().Get("col"))
+
 	data := struct {
 		*CoreData
 		Error string
 		Index int
 		Text  string
 		Sha   string
+		Col   int
 	}{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Index:    idx,
 		Text:     text,
 		Sha:      sha,
+		Col:      col,
 	}
 
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editCategory.gohtml", data); err != nil {

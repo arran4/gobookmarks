@@ -14,6 +14,8 @@ var (
 	moveNewColumnExpected string
 	//go:embed testdata/move_category_end_expected.txt
 	moveEndExpected string
+	//go:embed testdata/move_category_end_lastpage_expected.txt
+	moveEndLastPageExpected string
 )
 
 func TestMoveCategory(t *testing.T) {
@@ -46,5 +48,20 @@ func TestMoveCategoryEndColumn(t *testing.T) {
 	got := tabs.String()
 	if got != moveEndExpected {
 		t.Fatalf("expected %q got %q", moveEndExpected, got)
+	}
+}
+
+func TestMoveCategoryEndLastPage(t *testing.T) {
+	tabs := ParseBookmarks(moveComplexInput)
+	destPage := tabs[0].Pages[len(tabs[0].Pages)-1]
+	lastBlock := destPage.Blocks[len(destPage.Blocks)-1]
+	destCol := len(lastBlock.Columns) - 1
+	if err := tabs.MoveCategoryToEnd(0, destPage, destCol); err != nil {
+		t.Fatalf("MoveCategory: %v", err)
+	}
+	got := tabs.String()
+	expected := moveEndLastPageExpected
+	if got != expected {
+		t.Fatalf("expected %q got %q", expected, got)
 	}
 }

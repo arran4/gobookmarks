@@ -14,10 +14,11 @@ import (
 
 // TabInfo is used by templates to display tab navigation with indexes.
 type TabInfo struct {
-	Index     int
-	Name      string
-	IndexName string
-	Href      string
+	Index       int
+	Name        string
+	IndexName   string
+	Href        string
+	LastPageSha string
 }
 
 var (
@@ -226,7 +227,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					if i != 0 {
 						href = fmt.Sprintf("/?tab=%d", i)
 					}
-					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href})
+					lastSha := ""
+					if len(t.Pages) > 0 {
+						lastSha = t.Pages[len(t.Pages)-1].Sha()
+					}
+					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, LastPageSha: lastSha})
 				}
 			}
 			return tabs, nil

@@ -59,3 +59,64 @@ func TestBookmarkTabDisplayName(t *testing.T) {
 		t.Fatalf("expected empty got %q", empty.DisplayName())
 	}
 }
+
+func TestBookmarkTabDisplayNameIgnoreEmptyPages(t *testing.T) {
+	p1 := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{Categories: []*BookmarkCategory{{Name: "A"}}}}}}}
+	p2 := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+	t1 := &BookmarkTab{Pages: []*BookmarkPage{p1, p2}}
+	if t1.DisplayName() != "A" {
+		t.Fatalf("expected A got %q", t1.DisplayName())
+	}
+}
+
+const exampleFailureText = `Column
+Category: Category
+http://www.google.com.au Google1
+http://www.google.com.au Google2
+http://www.google.com.au Google3
+http://www.google.com.au Google4
+http://www.google.com.au Google5
+http://www.google.com.au Google6
+Page
+Category: Category
+http://www.google.com.au Google
+http://www.google.com.au Google1
+http://www.google.com.au Google2
+http://www.google.com.au Google3
+http://www.google.com.au Google4
+http://www.google.com.au Google5
+http://www.google.com.au Google6
+Tab
+Category: hi
+http://b.com b
+Category: Example
+http://www.google.com.au Google1
+http://www.google.com.au Google2
+http://www.google.com.au Google3
+http://www.google.com.au Google4
+http://www.google.com.au Google5
+http://www.google.com.au Google6
+Page
+Tab
+Category: hi
+http://b.com b
+Tab
+Category: hii
+http://b.com b
+Column
+Category: Test
+https://hi.com hi
+Page`
+
+func TestBookmarkTabDisplayNameExampleFailure(t *testing.T) {
+	tabs := ParseBookmarks(exampleFailureText)
+	if len(tabs) != 4 {
+		t.Fatalf("expected 4 tabs got %d", len(tabs))
+	}
+	names := []string{"Category, Category", "hi, Example", "hi", "hii, Test"}
+	for i, name := range names {
+		if tabs[i].DisplayName() != name {
+			t.Fatalf("tab %d expected %q got %q", i, name, tabs[i].DisplayName())
+		}
+	}
+}
