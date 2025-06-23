@@ -2,7 +2,7 @@
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
-    <form method=post action="?name={{$.OldName}}" class="edit-form tab-form">
+    <form method=post action="?{{if $.EditMode}}edit=1&{{end}}name={{$.OldName}}" class="edit-form tab-form">
         <label for="name">Name</label>: <input id="name" type="text" name="name" value="{{$.Name}}" /><br>
         <label for="code">Tab Contents</label><br/>
         <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>

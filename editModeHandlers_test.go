@@ -27,8 +27,8 @@ func TestEditModeToggle(t *testing.T) {
 	if err := StartEditMode(w, req); err != nil {
 		t.Fatalf("StartEditMode: %v", err)
 	}
-	if v, ok := session.Values["editMode"].(bool); !ok || !v {
-		t.Fatalf("edit mode not enabled in session")
+	if req.URL.Query().Get("edit") != "1" {
+		t.Fatalf("edit mode query not set")
 	}
 
 	var cd *CoreData
@@ -46,7 +46,7 @@ func TestEditModeToggle(t *testing.T) {
 	if err := StopEditMode(w, req); err != nil {
 		t.Fatalf("StopEditMode: %v", err)
 	}
-	if v, ok := session.Values["editMode"].(bool); ok && v {
+	if req.URL.Query().Get("edit") != "" {
 		t.Fatalf("edit mode flag should be cleared")
 	}
 

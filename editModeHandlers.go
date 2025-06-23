@@ -1,27 +1,21 @@
 package gobookmarks
 
 import (
-	"fmt"
-	"github.com/gorilla/sessions"
 	"net/http"
 )
 
-// StartEditMode enables edit mode by storing a flag in the user's session.
+// StartEditMode enables edit mode by adding an "edit=1" query parameter.
 func StartEditMode(w http.ResponseWriter, r *http.Request) error {
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	session.Values["editMode"] = true
-	if err := session.Save(r, w); err != nil {
-		return fmt.Errorf("session save: %w", err)
-	}
+	qs := r.URL.Query()
+	qs.Set("edit", "1")
+	r.URL.RawQuery = qs.Encode()
 	return nil
 }
 
-// StopEditMode disables edit mode and clears the flag from the session.
+// StopEditMode disables edit mode by removing the "edit" query parameter.
 func StopEditMode(w http.ResponseWriter, r *http.Request) error {
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	delete(session.Values, "editMode")
-	if err := session.Save(r, w); err != nil {
-		return fmt.Errorf("session save: %w", err)
-	}
+	qs := r.URL.Query()
+	qs.Del("edit")
+	r.URL.RawQuery = qs.Encode()
 	return nil
 }
