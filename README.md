@@ -171,16 +171,9 @@ The optional SQL provider stores bookmarks and passwords in a database when `DB_
 
 ### Legacy migration
 
-The repository includes a small helper `legacymigrate` that converts the
-original `goa4web-bookmarks` tables into this schema. The command embeds
-`sql/legacy_migrate.sql` and executes it on the provided database connection.
-
-```bash
-legacymigrate -provider mysql -conn "user:pass@/dbname"
-```
-
-You may also run the SQL file manually on your database to perform the same
-migration.
+The `sql/legacy_migrate.sql` file contains SQL statements that convert the
+original `goa4web-bookmarks` tables into the schema used here. Execute the
+script manually on your database before enabling the SQL provider.
 You can run the container entirely via environment variables:
 
 ```bash
