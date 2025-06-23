@@ -542,6 +542,9 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 		if page != "" {
 			u.Fragment = "page" + page
 		}
+		if edit := r.URL.Query().Get("edit"); edit != "" {
+			qs.Set("edit", edit)
+		}
 		u.RawQuery = qs.Encode()
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
 	})
@@ -556,6 +559,9 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 		}
 		if page := r.URL.Query().Get("page"); page != "" {
 			u.Fragment = "page" + page
+		}
+		if edit := r.URL.Query().Get("edit"); edit != "" {
+			qs.Set("edit", edit)
 		}
 		u.RawQuery = qs.Encode()
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)

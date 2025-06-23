@@ -2,7 +2,7 @@
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
-    <form method=post action="?index={{$.Index}}" class="edit-form category-form">
+    <form method=post action="?{{if $.EditMode}}edit=1&{{end}}index={{$.Index}}" class="edit-form category-form">
         <label for="code">Category</label><br/>
         <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
         <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />

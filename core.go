@@ -37,7 +37,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
-		editMode, _ := session.Values["editMode"].(bool)
+		editMode := request.URL.Query().Get("edit") == "1"
 		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
 			UserRef:  login,
 			Title:    title,

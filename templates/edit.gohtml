@@ -4,7 +4,7 @@
             Error: {{ $.Error }}
         </p>
     {{ end }}
-    <form method=post action="?" class="edit-form">
+    <form method=post action="?{{if $.EditMode}}edit=1{{end}}" class="edit-form">
         <label for="code">Code</label><br/>
         <textarea id="code" name="text" rows="30">{{bookmarksOrEditBookmarks}}</textarea><br>
         <label for="branch">Branch</label>: <input id="branch" type="text" name="branch" value="{{ branchOrEditBranch }}" /><br>

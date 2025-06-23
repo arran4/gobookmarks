@@ -7,7 +7,7 @@
         {{- end }}
         {{- range $i, $p := bookmarkPages }}
         <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}" data-sha="{{$p.Sha}}">
-            {{- if and (eq $i 0) tab }}<h1>{{ tabName }} <a class="edit-link" href="/editTab?name={{ tabName }}&ref={{ref}}&tab={{tab}}" title="Edit">&#9998;</a></h1>{{ end }}
+            {{- if and (eq $i 0) tab }}<h1>{{ tabName }} <a class="edit-link" href="/editTab?edit=1&name={{ tabName }}&ref={{ref}}&tab={{tab}}" title="Edit">&#9998;</a></h1>{{ end }}
             {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
             {{- range .Blocks }}
             {{- if .HR }}
@@ -19,7 +19,7 @@
                     {{- if not $first }}<div class="columnBreak"></div>{{ end }}
                     {{- range $c.Categories }}
                         <div class="categoryBlock" id="cat{{ .Index }}">
-                            <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                            <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?edit=1&index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                             <ul class="bookmark-entries" data-index="{{ .Index }}" data-page="{{$i}}" style="list-style-type: none;">
                                 {{- range $j, $e := .Entries }}
                                     <li>
@@ -32,7 +32,7 @@
                         </div>
                     {{- end }}
                     <div class="columnEndDropZone" data-col="{{$ci}}">
-                        {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                        {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?edit=1&ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
                     </div>
                     <div class="newColumnDropZone" data-col="{{$ci}}"></div>
                     {{- $first = false }}
@@ -45,7 +45,7 @@
                     <td>
                         {{- range $c.Categories }}
                             <div class="categoryBlock" id="cat{{ .Index }}">
-                                <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                                <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?edit=1&index={{ .Index }}&ref={{ref}}&tab={{tab}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                                 <ul class="bookmark-entries" data-index="{{ .Index }}" data-page="{{$i}}" style="list-style-type: none;">
                                   {{- range $j, $e := .Entries }}
                                       <li>
@@ -58,7 +58,7 @@
                             </div>
                         {{- end }}
                         <div class="columnEndDropZone" data-col="{{$ci}}">
-                            {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                            {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?edit=1&ref={{ref}}&tab={{tab}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
                         </div>
                     </td>
                     <td class="newColumnDropZone" data-col="{{$ci}}"></td>
