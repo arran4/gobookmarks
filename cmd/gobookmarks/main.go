@@ -74,9 +74,11 @@ func main() {
 			}
 			return 0
 		}(),
-		LocalGitPath: os.Getenv("LOCAL_GIT_PATH"),
-		NoFooter:     os.Getenv("GBM_NO_FOOTER") != "",
-		SessionKey:   os.Getenv("SESSION_KEY"),
+		LocalGitPath:         os.Getenv("LOCAL_GIT_PATH"),
+		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
+		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
+		NoFooter:             os.Getenv("GBM_NO_FOOTER") != "",
+		SessionKey:           os.Getenv("SESSION_KEY"),
 	}
 
 	configPath := DefaultConfigPath()
@@ -94,6 +96,8 @@ func main() {
 	var faviconDirFlag stringFlag
 	var faviconSizeFlag stringFlag
 	var localGitPathFlag stringFlag
+	var dbProviderFlag stringFlag
+	var dbConnFlag stringFlag
 	var sessionKeyFlag stringFlag
 	var columnFlag boolFlag
 	var noFooterFlag boolFlag
@@ -112,6 +116,8 @@ func main() {
 	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
 	flag.Var(&localGitPathFlag, "local-git-path", "directory for local git provider")
+	flag.Var(&dbProviderFlag, "db-provider", "SQL driver name")
+	flag.Var(&dbConnFlag, "db-conn", "SQL connection string")
 	flag.Var(&sessionKeyFlag, "session-key", "session cookie key")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.Var(&noFooterFlag, "no-footer", "disable footer on pages")
@@ -188,6 +194,12 @@ func main() {
 	if localGitPathFlag.set {
 		cfg.LocalGitPath = localGitPathFlag.value
 	}
+	if dbProviderFlag.set {
+		cfg.DBConnectionProvider = dbProviderFlag.value
+	}
+	if dbConnFlag.set {
+		cfg.DBConnectionString = dbConnFlag.value
+	}
 	if sessionKeyFlag.set {
 		cfg.SessionKey = sessionKeyFlag.value
 	}
@@ -219,6 +231,12 @@ func main() {
 	}
 	if cfg.LocalGitPath != "" {
 		LocalGitPath = cfg.LocalGitPath
+	}
+	if cfg.DBConnectionProvider != "" {
+		DBConnectionProvider = cfg.DBConnectionProvider
+	}
+	if cfg.DBConnectionString != "" {
+		DBConnectionString = cfg.DBConnectionString
 	}
 	githubID := cfg.GithubClientID
 	githubSecret := cfg.GithubSecret
@@ -312,6 +330,9 @@ func main() {
 	r.HandleFunc("/login/git", runTemplate("gitLoginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/git", runHandlerChain(GitLoginAction, redirectToHandler("/"))).Methods("POST")
 	r.HandleFunc("/signup/git", runHandlerChain(GitSignupAction, redirectToHandler("/login/git"))).Methods("POST")
+	r.HandleFunc("/login/sql", runTemplate("gitLoginPage.gohtml")).Methods("GET")
+	r.HandleFunc("/login/sql", runHandlerChain(SqlLoginAction, redirectToHandler("/"))).Methods("POST")
+	r.HandleFunc("/signup/sql", runHandlerChain(SqlSignupAction, redirectToHandler("/login/sql"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")

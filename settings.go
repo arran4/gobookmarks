@@ -21,6 +21,9 @@ var (
 	FaviconCacheSize int64
 
 	LocalGitPath string
+
+	DBConnectionProvider string
+	DBConnectionString   string
 )
 
 const (

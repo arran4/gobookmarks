@@ -229,6 +229,72 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
+	session, err := getSession(w, r)
+	if session, err = sanitizeSession(w, r, session, err); err != nil {
+		return fmt.Errorf("session error: %w", err)
+	}
+	user := r.FormValue("username")
+	pass := r.FormValue("password")
+	p := GetProvider("sql")
+	ph, ok := p.(PasswordHandler)
+	if !ok {
+		return fmt.Errorf("password handler not available")
+	}
+	okPass, err := ph.CheckPassword(r.Context(), user, pass)
+	if err != nil {
+		log.Printf("sql login check error for %s: %v", user, err)
+	}
+	if err != nil || !okPass {
+		if !okPass {
+			log.Printf("sql login failed for %s: invalid password", user)
+		}
+		http.Redirect(w, r, "/login/sql?error=invalid", http.StatusSeeOther)
+		return nil
+	}
+	session.Values["Provider"] = "sql"
+	session.Values["GithubUser"] = &User{Login: user}
+	session.Values["Token"] = nil
+	session.Values["version"] = version
+	if err := session.Save(r, w); err != nil {
+		return fmt.Errorf("session save: %w", err)
+	}
+	return nil
+}
+
+func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
+	user := r.FormValue("username")
+	pass := r.FormValue("password")
+	prov := GetProvider("sql")
+	ph, ok := prov.(PasswordHandler)
+	if !ok {
+		return fmt.Errorf("password handler not available")
+	}
+	if err := ph.CreateUser(r.Context(), user, pass); err != nil {
+		if errors.Is(err, ErrUserExists) {
+			log.Printf("sql signup for %s failed: user exists", user)
+			http.Redirect(w, r, "/login/sql?error=exists", http.StatusSeeOther)
+			return nil
+		}
+		log.Printf("sql signup create user error for %s: %v", user, err)
+		return err
+	}
+	if exists, err := prov.RepoExists(r.Context(), user, nil, RepoName); err == nil && !exists {
+		if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
+			log.Printf("sql signup create repo error for %s: %v", user, err)
+			return err
+		}
+	} else if err != nil {
+		log.Printf("sql signup repo check error for %s: %v", user, err)
+		return err
+	}
+	if err := prov.CreateBookmarks(r.Context(), user, nil, "main", defaultBookmarks); err != nil {
+		log.Printf("sql signup create sample bookmarks error for %s: %v", user, err)
+		return fmt.Errorf("create sample bookmarks: %w", err)
+	}
+	return nil
+}
+
 func UserAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		// Get the session.

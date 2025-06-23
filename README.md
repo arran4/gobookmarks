@@ -98,6 +98,8 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
 | `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
 | `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image). |
+| `DB_CONNECTION_PROVIDER` | SQL driver name for the SQL provider. |
+| `DB_CONNECTION_STRING` | Connection string for the SQL provider. |
 | `GBM_NO_FOOTER` | Hide the footer on pages. |
 | `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
@@ -165,6 +167,7 @@ echo -n alice | sha256sum
 The output hash forms the path `$LOCAL_GIT_PATH/<hash>/.password`.
 Favicons are cached on disk under `/var/cache/gobookmarks/favcache` by default when the program is installed system‑wide or run in Docker. Set
 `FAVICON_CACHE_DIR` to an empty string to disable disk caching.
+The optional SQL provider stores bookmarks and passwords in a database when `DB_CONNECTION_PROVIDER` and `DB_CONNECTION_STRING` are set. Accounts are created through `/signup/sql` and log in via `/login/sql`. Only the latest bookmarks are returned; commit history is maintained in the `history` table.
 You can run the container entirely via environment variables:
 
 ```bash
@@ -176,6 +179,8 @@ docker run -p 8080:8080 \
            -e GITHUB_SECRET=def \
            -e FAVICON_CACHE_DIR=/var/cache/gobookmarks/favcache \
            -e LOCAL_GIT_PATH=/var/lib/gobookmarks/localgit \
+           -e DB_CONNECTION_PROVIDER=sqlite3 \
+           -e DB_CONNECTION_STRING=/var/lib/gobookmarks/bookmarks.db \
            ghcr.io/arran4/gobookmarks
 ```
 
@@ -207,6 +212,8 @@ An example `config.json` looks like:
   "favicon_cache_dir": "/var/cache/gobookmarks/favcache",
   "favicon_cache_size": 20971520,
   "local_git_path": "/var/lib/gobookmarks/localgit",
+  "db_connection_provider": "sqlite3",
+  "db_connection_string": "/var/lib/gobookmarks/bookmarks.db",
   "no_footer": false
 }
 ```
@@ -231,6 +238,8 @@ services:
       GITHUB_SECRET: def
       FAVICON_CACHE_DIR: /var/cache/gobookmarks/favcache
       LOCAL_GIT_PATH: /var/lib/gobookmarks/localgit
+      DB_CONNECTION_PROVIDER: sqlite3
+      DB_CONNECTION_STRING: /var/lib/gobookmarks/bookmarks.db
 volumes:
   cache:
   db:

@@ -82,6 +82,11 @@ func providerCreds(name string) *ProviderCreds {
 			return nil
 		}
 		return &ProviderCreds{}
+	case "sql":
+		if DBConnectionProvider == "" {
+			return nil
+		}
+		return &ProviderCreds{}
 	default:
 		return nil
 	}
