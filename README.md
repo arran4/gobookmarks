@@ -168,6 +168,19 @@ The output hash forms the path `$LOCAL_GIT_PATH/<hash>/.password`.
 Favicons are cached on disk under `/var/cache/gobookmarks/favcache` by default when the program is installed system‑wide or run in Docker. Set
 `FAVICON_CACHE_DIR` to an empty string to disable disk caching.
 The optional SQL provider stores bookmarks and passwords in a database when `DB_CONNECTION_PROVIDER` and `DB_CONNECTION_STRING` are set. Accounts are created through `/signup/sql` and log in via `/login/sql`. Only the latest bookmarks are returned; commit history is maintained in the `history` table.
+
+### Legacy migration
+
+The repository includes a small helper `legacymigrate` that converts the
+original `goa4web-bookmarks` tables into this schema. The command embeds
+`sql/legacy_migrate.sql` and executes it on the provided database connection.
+
+```bash
+legacymigrate -provider mysql -conn "user:pass@/dbname"
+```
+
+You may also run the SQL file manually on your database to perform the same
+migration.
 You can run the container entirely via environment variables:
 
 ```bash
