@@ -82,25 +82,27 @@ There are also precompiled versions under the releases section of this git repo:
 
 Configuration values can be supplied as environment variables, via a JSON configuration file or using command line arguments. Environment variables are the lowest priority, followed by the configuration file and finally command line arguments. If `/etc/gobookmarks/gobookmarks.env` exists it will be loaded before reading the environment.
 
-| Name | Description |
-| --- | --- |
-| `GITHUB_CLIENT_ID` | GitHub OAuth2 client ID |
-| `GITHUB_SECRET` | GitHub OAuth2 client secret |
-| `GITLAB_CLIENT_ID` | GitLab OAuth2 client ID |
-| `GITLAB_SECRET` | GitLab OAuth2 client secret |
-| `EXTERNAL_URL` | Fully qualified URL the service is reachable on, e.g. `http://localhost:8080` |
-| `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells. |
-| `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name. |
-| `GBM_TITLE` | Overrides the page title shown in the browser. |
-| `GBM_NO_FOOTER` | Hide footer on pages. |
-| `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/var/cache/gobookmarks/favcache` when installed system‑wide (including the Docker image). |
-| `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
-| `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise). |
-| `GITLAB_SERVER` | Base URL for GitLab (self-hosted). |
-| `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image). |
-| `GBM_NO_FOOTER` | Hide the footer on pages. |
-| `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`. |
-| `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
+| Name | Description                                                                                                                                                                                                                                  |
+| --- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `GITHUB_CLIENT_ID` | GitHub OAuth2 client ID                                                                                                                                                                                                                      |
+| `GITHUB_SECRET` | GitHub OAuth2 client secret                                                                                                                                                                                                                  |
+| `GITLAB_CLIENT_ID` | GitLab OAuth2 client ID                                                                                                                                                                                                                      |
+| `GITLAB_SECRET` | GitLab OAuth2 client secret                                                                                                                                                                                                                  |
+| `EXTERNAL_URL` | Fully qualified URL the service is reachable on, e.g. `http://localhost:8080`                                                                                                                                                                |
+| `GBM_CSS_COLUMNS` | If set (to any value) the `Column` keyword in your bookmarks will create CSS multi-column breaks rather than table cells.                                                                                                                    |
+| `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name.                                                                                                                                                                                      |
+| `GBM_TITLE` | Overrides the page title shown in the browser.                                                                                                                                                                                               |
+| `GBM_NO_FOOTER` | Hide footer on pages.                                                                                                                                                                                                                        |
+| `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/var/cache/gobookmarks/favcache` when installed system‑wide (including the Docker image).                                                  |
+| `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`.                                                                                                                                             |
+| `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise).                                                                                                                                                                                             |
+| `GITLAB_SERVER` | Base URL for GitLab (self-hosted).                                                                                                                                                                                                           |
+| `LOCAL_GIT_PATH` | Directory used for the local git provider. Defaults to `/var/lib/gobookmarks/localgit` when installed system‑wide (including the Docker image).                                                                                              |
+| `DB_CONNECTION_PROVIDER` | SQL driver name for the SQL provider. `mysql` or `sqlite`                                                                                                                                                                                    |
+| `DB_CONNECTION_STRING` | Connection string for the SQL provider. File path for `sqlite` or `user:pass@/database?multiStatements=true` See https://github.com/go-sql-driver/mysql                                                                                      |
+| `GBM_NO_FOOTER` | Hide the footer on pages.                                                                                                                                                                                                                    |
+| `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`.                                                    |
+| `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`.                                                                                                                           |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
 
 Favicons fetched for your bookmarks are cached on disk when `FAVICON_CACHE_DIR` is set. The `/proxy/favicon` endpoint also accepts a `size` parameter to scale icons on the fly.
@@ -165,6 +167,13 @@ echo -n alice | sha256sum
 The output hash forms the path `$LOCAL_GIT_PATH/<hash>/.password`.
 Favicons are cached on disk under `/var/cache/gobookmarks/favcache` by default when the program is installed system‑wide or run in Docker. Set
 `FAVICON_CACHE_DIR` to an empty string to disable disk caching.
+The optional SQL provider stores bookmarks and passwords in a database when `DB_CONNECTION_PROVIDER` and `DB_CONNECTION_STRING` are set. Accounts are created through `/signup/sql` and log in via `/login/sql`. Only the latest bookmarks are returned; commit history is maintained in the `history` table.
+
+### Legacy migration
+
+The `sql/legacy_migrate.sql` file contains SQL statements that convert the
+original `goa4web-bookmarks` tables into the schema used here. Execute the
+script manually on your database before enabling the SQL provider.
 You can run the container entirely via environment variables:
 
 ```bash
@@ -176,6 +185,8 @@ docker run -p 8080:8080 \
            -e GITHUB_SECRET=def \
            -e FAVICON_CACHE_DIR=/var/cache/gobookmarks/favcache \
            -e LOCAL_GIT_PATH=/var/lib/gobookmarks/localgit \
+           -e DB_CONNECTION_PROVIDER=sqlite3 \
+           -e DB_CONNECTION_STRING=/var/lib/gobookmarks/bookmarks.db \
            ghcr.io/arran4/gobookmarks
 ```
 
@@ -207,6 +218,8 @@ An example `config.json` looks like:
   "favicon_cache_dir": "/var/cache/gobookmarks/favcache",
   "favicon_cache_size": 20971520,
   "local_git_path": "/var/lib/gobookmarks/localgit",
+  "db_connection_provider": "sqlite3",
+  "db_connection_string": "/var/lib/gobookmarks/bookmarks.db",
   "no_footer": false
 }
 ```
@@ -231,6 +244,8 @@ services:
       GITHUB_SECRET: def
       FAVICON_CACHE_DIR: /var/cache/gobookmarks/favcache
       LOCAL_GIT_PATH: /var/lib/gobookmarks/localgit
+      DB_CONNECTION_PROVIDER: sqlite3
+      DB_CONNECTION_STRING: /var/lib/gobookmarks/bookmarks.db
 volumes:
   cache:
   db:

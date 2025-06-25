@@ -8,6 +8,8 @@
   "namespace": "",
   "title": "",
   "github_server": "https://github.com",
-  "gitlab_server": "https://gitlab.com"
-  ,"local_git_path": ""
+  "gitlab_server": "https://gitlab.com",
+  "local_git_path": "",
+  "db_connection_provider": "",
+  "db_connection_string": ""
 }

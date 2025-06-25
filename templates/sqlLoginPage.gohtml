@@ -1,0 +1,9 @@
+{{ template "head" $ }}
+<form method="POST" action="/login/sql">
+    {{- if .Error }}<p style="color:red">{{ errorMsg .Error }}</p>{{ end }}
+    Username: <input type="text" name="username"><br>
+    Password: <input type="password" name="password"><br>
+    <input type="submit" value="Login">
+    <input type="submit" formaction="/signup/sql" value="Sign Up">
+</form>
+{{ template "tail" $ }}
