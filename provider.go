@@ -3,6 +3,7 @@ package gobookmarks
 import (
 	"context"
 	"golang.org/x/oauth2"
+	"sort"
 	"time"
 )
 
@@ -54,17 +55,64 @@ type PasswordHandler interface {
 	CheckPassword(ctx context.Context, user, password string) (bool, error)
 }
 
-var providers = map[string]Provider{}
+var (
+	providers     = map[string]Provider{}
+	providerOrder []string
+)
 
-func RegisterProvider(p Provider) { providers[p.Name()] = p }
+// RegisterProvider registers a Provider by name. The order providers are
+// registered is tracked but the final ordering returned by ProviderNames may
+// be modified via SetProviderOrder.
+func RegisterProvider(p Provider) {
+	name := p.Name()
+	providers[name] = p
+	for _, n := range providerOrder {
+		if n == name {
+			return
+		}
+	}
+	providerOrder = append(providerOrder, name)
+}
+
+// SetProviderOrder updates the order in which providers are returned by
+// ProviderNames. Names not recognized are ignored. Any registered providers not
+// mentioned remain at the end in alphabetical order.
+func SetProviderOrder(order []string) {
+	if len(order) == 0 {
+		names := make([]string, 0, len(providers))
+		for n := range providers {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		providerOrder = names
+		return
+	}
+
+	seen := make(map[string]bool)
+	var final []string
+	for _, n := range order {
+		if _, ok := providers[n]; ok && !seen[n] {
+			final = append(final, n)
+			seen[n] = true
+		}
+	}
+	var rest []string
+	for n := range providers {
+		if !seen[n] {
+			rest = append(rest, n)
+		}
+	}
+	sort.Strings(rest)
+	providerOrder = append(final, rest...)
+}
 
 func GetProvider(name string) Provider { return providers[name] }
 
+// ProviderNames returns the list of registered provider names in the order set
+// by SetProviderOrder. The returned slice should not be modified.
 func ProviderNames() []string {
-	names := make([]string, 0, len(providers))
-	for n := range providers {
-		names = append(names, n)
-	}
+	names := make([]string, len(providerOrder))
+	copy(names, providerOrder)
 	return names
 }
 

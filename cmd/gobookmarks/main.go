@@ -32,6 +32,20 @@ import (
 	"time"
 )
 
+func splitList(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	var out []string
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 var (
 	externalUrl string
 	redirectUrl string
@@ -79,6 +93,7 @@ func main() {
 		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
 		NoFooter:             os.Getenv("GBM_NO_FOOTER") != "",
 		SessionKey:           os.Getenv("SESSION_KEY"),
+		ProviderOrder:        splitList(os.Getenv("PROVIDER_ORDER")),
 	}
 
 	configPath := DefaultConfigPath()
@@ -99,6 +114,7 @@ func main() {
 	var dbProviderFlag stringFlag
 	var dbConnFlag stringFlag
 	var sessionKeyFlag stringFlag
+	var providerOrderFlag stringFlag
 	var columnFlag boolFlag
 	var noFooterFlag boolFlag
 	var versionFlag bool
@@ -119,6 +135,7 @@ func main() {
 	flag.Var(&dbProviderFlag, "db-provider", "SQL driver name")
 	flag.Var(&dbConnFlag, "db-conn", "SQL connection string")
 	flag.Var(&sessionKeyFlag, "session-key", "session cookie key")
+	flag.Var(&providerOrderFlag, "provider-order", "comma-separated provider order")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.Var(&noFooterFlag, "no-footer", "disable footer on pages")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
@@ -203,6 +220,9 @@ func main() {
 	if sessionKeyFlag.set {
 		cfg.SessionKey = sessionKeyFlag.value
 	}
+	if providerOrderFlag.set {
+		cfg.ProviderOrder = splitList(providerOrderFlag.value)
+	}
 
 	if dumpConfig {
 		data, _ := json.MarshalIndent(cfg, "", "  ")
@@ -249,6 +269,8 @@ func main() {
 	GitlabClientID = gitlabID
 	GitlabClientSecret = gitlabSecret
 	OauthRedirectURL = redirectUrl
+
+	SetProviderOrder(cfg.ProviderOrder)
 
 	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore(loadSessionKey(cfg))

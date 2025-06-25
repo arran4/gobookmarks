@@ -14,23 +14,24 @@ import (
 
 // Config holds runtime configuration values.
 type Config struct {
-	GithubClientID       string `json:"github_client_id"`
-	GithubSecret         string `json:"github_secret"`
-	GitlabClientID       string `json:"gitlab_client_id"`
-	GitlabSecret         string `json:"gitlab_secret"`
-	ExternalURL          string `json:"external_url"`
-	CssColumns           bool   `json:"css_columns"`
-	Namespace            string `json:"namespace"`
-	Title                string `json:"title"`
-	GithubServer         string `json:"github_server"`
-	GitlabServer         string `json:"gitlab_server"`
-	FaviconCacheDir      string `json:"favicon_cache_dir"`
-	FaviconCacheSize     int64  `json:"favicon_cache_size"`
-	LocalGitPath         string `json:"local_git_path"`
-	NoFooter             bool   `json:"no_footer"`
-	SessionKey           string `json:"session_key"`
-	DBConnectionProvider string `json:"db_connection_provider"`
-	DBConnectionString   string `json:"db_connection_string"`
+	GithubClientID       string   `json:"github_client_id"`
+	GithubSecret         string   `json:"github_secret"`
+	GitlabClientID       string   `json:"gitlab_client_id"`
+	GitlabSecret         string   `json:"gitlab_secret"`
+	ExternalURL          string   `json:"external_url"`
+	CssColumns           bool     `json:"css_columns"`
+	Namespace            string   `json:"namespace"`
+	Title                string   `json:"title"`
+	GithubServer         string   `json:"github_server"`
+	GitlabServer         string   `json:"gitlab_server"`
+	FaviconCacheDir      string   `json:"favicon_cache_dir"`
+	FaviconCacheSize     int64    `json:"favicon_cache_size"`
+	LocalGitPath         string   `json:"local_git_path"`
+	NoFooter             bool     `json:"no_footer"`
+	SessionKey           string   `json:"session_key"`
+	DBConnectionProvider string   `json:"db_connection_provider"`
+	DBConnectionString   string   `json:"db_connection_string"`
+	ProviderOrder        []string `json:"provider_order"`
 }
 
 // LoadConfigFile loads configuration from the given path.
@@ -127,6 +128,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.DBConnectionString != "" {
 		dst.DBConnectionString = src.DBConnectionString
+	}
+	if len(src.ProviderOrder) > 0 {
+		dst.ProviderOrder = append([]string(nil), src.ProviderOrder...)
 	}
 }
 
