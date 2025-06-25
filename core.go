@@ -30,7 +30,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 
 		title := SiteTitle
 		if title == "" {
-			title = "Arran4's Bookmarks Website"
+			title = "gobookmarks"
 		}
 		if version == "dev" && !strings.HasPrefix(title, "dev: ") {
 			title = "dev: " + title
