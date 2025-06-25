@@ -102,6 +102,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `DB_CONNECTION_STRING` | Connection string for the SQL provider. File path for `sqlite` or `user:pass@/database?multiStatements=true` See https://github.com/go-sql-driver/mysql                                                                                      |
 | `GBM_NO_FOOTER` | Hide the footer on pages.                                                                                                                                                                                                                    |
 | `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`.                                                    |
+| `PROVIDER_ORDER` | Comma-separated list controlling the order login options are shown. Unrecognized names are ignored. Defaults to alphabetical order. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`.                                                                                                                           |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
 
@@ -116,13 +117,12 @@ The `--title` flag or `GBM_TITLE` environment variable sets the browser page tit
 The `--no-footer` flag or `GBM_NO_FOOTER` environment variable hides the footer on pages.
 Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
 Use `--no-footer` or `GBM_NO_FOOTER` to hide the footer on pages.
+Use `--provider-order` or `PROVIDER_ORDER` to customize the login button order.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
 When no OAuth2 credentials are configured the login buttons are hidden. Visit `/status` to see which providers are available.
 Use `--dump-config` to print the final configuration after merging the environment,
 config file and command line arguments.
-
-Sessions use the key from `SESSION_KEY` or the config file. When unset, a key is read from `session.key` in the state directory or generated on first start. If writing this file fails, sessions expire on restart. To keep sessions stable across restarts, provide a fixed key through configuration.
 
 ## OAuth2 setup
 
