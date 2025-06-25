@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/sha1"
 	"database/sql"
-	_ "embed"
+	"embed"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -21,10 +22,12 @@ type SQLProvider struct{}
 
 const sqlSchemaVersion = 1
 
-//go:embed sql/schema.sql
-var sqlSchema string
+//go:embed sql/schema*.sql
+var sqlSchemas embed.FS
 
-func init() { RegisterProvider(SQLProvider{}) }
+func init() {
+	RegisterProvider(SQLProvider{})
+}
 
 func (SQLProvider) Name() string                                                     { return "sql" }
 func (SQLProvider) DefaultServer() string                                            { return "" }
@@ -39,7 +42,7 @@ func openDB() (*sql.DB, error) {
 	}
 	db, err := sql.Open(DBConnectionProvider, DBConnectionString)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open db: %v", err)
 	}
 	if err := db.Ping(); err != nil {
 		db.Close()
@@ -47,44 +50,60 @@ func openDB() (*sql.DB, error) {
 	}
 	if err := ensureSQLSchema(db); err != nil {
 		db.Close()
-		return nil, err
+		return nil, fmt.Errorf("failed to ensure schema: %v", err)
 	}
 	return db, nil
 }
 
 func ensureSQLSchema(db *sql.DB) error {
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS meta (version INTEGER)"); err != nil {
-		return err
-	}
-	var ver int
-	err := db.QueryRow("SELECT version FROM meta LIMIT 1").Scan(&ver)
-	if err == sql.ErrNoRows {
-		if _, err := db.Exec(sqlSchema); err != nil {
-			return err
-		}
-		_, err = db.Exec("INSERT INTO meta(version) VALUES(?)", sqlSchemaVersion)
-		return err
-	}
+	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
+	sqlSchema, err := sqlSchemas.ReadFile(schemaFile)
 	if err != nil {
-		return err
+		log.Printf("failed to find sql schema %s: %v", schemaFile, err)
+		sqlSchema, err = sqlSchemas.ReadFile("sql/schema.sql")
+		if err != nil {
+			return fmt.Errorf("failed to find default sql schema: %w", err)
+		}
+		log.Printf("using default sql schema file")
 	}
+
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS meta (version INTEGER)"); err != nil {
+		return fmt.Errorf("failed to create meta table: %v", err)
+	}
+
+	var ver int
+	row := db.QueryRow("SELECT version FROM meta LIMIT 1")
+	switch err := row.Scan(&ver); {
+	case err == sql.ErrNoRows:
+		if _, err := db.Exec(string(sqlSchema)); err != nil {
+			return fmt.Errorf("failed to import schema: %w", err)
+		}
+		if _, err := db.Exec("INSERT INTO meta(version) VALUES(?)", sqlSchemaVersion); err != nil {
+			return fmt.Errorf("failed to set schema version: %w", err)
+		}
+	case err != nil:
+		return fmt.Errorf("failed to query schema version: %w", err)
+	}
+
 	if ver != sqlSchemaVersion {
 		return fmt.Errorf("unsupported schema version %d", ver)
 	}
 	return nil
 }
 
-func (SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
 	db, err := openDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
+
 	rows, err := db.QueryContext(ctx, "SELECT name FROM tags WHERE user=? ORDER BY name", user)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	var tags []*Tag
 	for rows.Next() {
 		var n string
@@ -96,17 +115,19 @@ func (SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token
 	return tags, rows.Err()
 }
 
-func (SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
 	db, err := openDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
+
 	rows, err := db.QueryContext(ctx, "SELECT name FROM branches WHERE user=? ORDER BY name", user)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	var branches []*Branch
 	for rows.Next() {
 		var n string
@@ -121,17 +142,19 @@ func (SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.T
 	return branches, rows.Err()
 }
 
-func (SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
+func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
 	db, err := openDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
+
 	rows, err := db.QueryContext(ctx, "SELECT sha, message, date FROM history WHERE user=? ORDER BY id DESC", user)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query history: %v", err)
 	}
 	defer rows.Close()
+
 	var commits []*Commit
 	for rows.Next() {
 		var sha, msg string
@@ -150,7 +173,7 @@ func (SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.To
 	return commits, rows.Err()
 }
 
-func (SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
 	db, err := openDB()
 	if err != nil {
 		return "", "", err
@@ -160,22 +183,17 @@ func (SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oa
 	if ref == "" {
 		ref = "refs/heads/main"
 	}
-
 	if strings.HasPrefix(ref, "refs/heads/") {
 		ref = strings.TrimPrefix(ref, "refs/heads/")
 	} else if strings.HasPrefix(ref, "heads/") {
 		ref = strings.TrimPrefix(ref, "heads/")
 	}
 
-	var sha string
-	var text string
-
+	var sha, text string
 	switch {
-	case ref == "main" || strings.Contains(ref, "/") == false:
-		// treat as branch
+	case ref == "main" || !strings.Contains(ref, "/"):
 		err = db.QueryRowContext(ctx, "SELECT sha FROM branches WHERE user=? AND name=?", user, ref).Scan(&sha)
 		if err == sql.ErrNoRows {
-			// fall back to latest
 			err = db.QueryRowContext(ctx, "SELECT list FROM bookmarks WHERE user=?", user).Scan(&text)
 			if err == sql.ErrNoRows {
 				return "", "", nil
@@ -201,7 +219,7 @@ func (SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oa
 	return text, sha, nil
 }
 
-func (SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	if branch == "" {
 		branch = "main"
 	}
@@ -228,24 +246,52 @@ func (SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oaut
 	}
 
 	sum := sha1.Sum([]byte(time.Now().String() + text))
-	sha := hex.EncodeToString(sum[:])
-	if _, err := tx.ExecContext(ctx, "INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)", user, sha, "update", text, time.Now()); err != nil {
+	newSha := hex.EncodeToString(sum[:])
+
+	if _, err := tx.ExecContext(ctx,
+		"INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)",
+		user, newSha, "update", text, time.Now(),
+	); err != nil {
 		tx.Rollback()
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "UPDATE bookmarks SET list=? WHERE user=?", text, user); err != nil {
+
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE bookmarks SET list=? WHERE user=?", text, user,
+	); err != nil {
 		tx.Rollback()
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT INTO branches(user, name, sha) VALUES(?,?,?) ON CONFLICT(user,name) DO UPDATE SET sha=excluded.sha", user, branch, sha); err != nil {
+
+	// dialect-specific insert/update for branches
+	switch strings.ToLower(DBConnectionProvider) {
+	case "mysql":
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO branches(user, name, sha)
+			VALUES (?, ?, ?)
+			ON DUPLICATE KEY UPDATE sha = VALUES(sha)
+		`, user, branch, newSha); err != nil {
+			tx.Rollback()
+			return err
+		}
+	case "sqlite":
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO branches(user, name, sha)
+			VALUES (?, ?, ?)
+			ON CONFLICT(user, name) DO UPDATE SET sha = excluded.sha
+		`, user, branch, newSha); err != nil {
+			tx.Rollback()
+			return err
+		}
+	default:
 		tx.Rollback()
-		return err
+		return errors.New("unsupported connection provider")
 	}
 
 	return tx.Commit()
 }
 
-func (SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
 	if branch == "" {
 		branch = "main"
 	}
@@ -259,72 +305,156 @@ func (SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oaut
 	if err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')", user); err != nil {
+
+	// ensure a bookmarks row exists
+	switch strings.ToLower(DBConnectionProvider) {
+	case "mysql":
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
+			user,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+	case "sqlite":
+		if _, err := tx.ExecContext(ctx,
+			"INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')",
+			user,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+	default:
 		tx.Rollback()
-		return err
+		return errors.New("unsupported connection provider")
 	}
+
 	sum := sha1.Sum([]byte(time.Now().String() + text))
-	sha := hex.EncodeToString(sum[:])
-	if _, err := tx.ExecContext(ctx, "INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)", user, sha, "create", text, time.Now()); err != nil {
+	newSha := hex.EncodeToString(sum[:])
+
+	if _, err := tx.ExecContext(ctx,
+		"INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)",
+		user, newSha, "create", text, time.Now(),
+	); err != nil {
 		tx.Rollback()
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "UPDATE bookmarks SET list=? WHERE user=?", text, user); err != nil {
+
+	if _, err := tx.ExecContext(ctx,
+		"UPDATE bookmarks SET list=? WHERE user=?", text, user,
+	); err != nil {
 		tx.Rollback()
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT INTO branches(user, name, sha) VALUES(?,?,?) ON CONFLICT(user,name) DO UPDATE SET sha=excluded.sha", user, branch, sha); err != nil {
+
+	// ensure a branch pointer
+	switch strings.ToLower(DBConnectionProvider) {
+	case "mysql":
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO branches(user, name, sha)
+			VALUES (?, ?, ?)
+			ON DUPLICATE KEY UPDATE sha=VALUES(sha)
+		`, user, branch, newSha); err != nil {
+			tx.Rollback()
+			return err
+		}
+	case "sqlite":
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO branches(user, name, sha)
+			VALUES (?, ?, ?)
+			ON CONFLICT(user, name) DO UPDATE SET sha = excluded.sha
+		`, user, branch, newSha); err != nil {
+			tx.Rollback()
+			return err
+		}
+	default:
 		tx.Rollback()
-		return err
+		return errors.New("unsupported connection provider")
 	}
+
 	return tx.Commit()
 }
 
-func (SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
+func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
 	db, err := openDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
+
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')", user); err != nil {
+
+	switch strings.ToLower(DBConnectionProvider) {
+	case "mysql":
+		// bookmarks row
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
+			user,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+		// default branch
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO branches(user, name, sha) VALUES(?, 'main', '') ON DUPLICATE KEY UPDATE sha=sha",
+			user,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+	case "sqlite":
+		if _, err := tx.ExecContext(ctx,
+			"INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')",
+			user,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if _, err := tx.ExecContext(ctx,
+			"INSERT OR IGNORE INTO branches(user, name, sha) VALUES(?, 'main', '')",
+			user,
+		); err != nil {
+			tx.Rollback()
+			return err
+		}
+	default:
 		tx.Rollback()
-		return err
+		return errors.New("unsupported connection provider")
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT OR IGNORE INTO branches(user, name, sha) VALUES(?, 'main', '')", user); err != nil {
-		tx.Rollback()
-		return err
-	}
+
 	return tx.Commit()
 }
 
-func (SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+func (p SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
 	db, err := openDB()
 	if err != nil {
 		return false, err
 	}
 	defer db.Close()
-	var c int
-	err = db.QueryRowContext(ctx, "SELECT COUNT(1) FROM bookmarks WHERE user=?", user).Scan(&c)
-	return c > 0, err
+
+	var count int
+	err = db.QueryRowContext(ctx, "SELECT COUNT(1) FROM bookmarks WHERE user=?", user).Scan(&count)
+	return count > 0, err
 }
 
-func (SQLProvider) CreateUser(ctx context.Context, user, password string) error {
+func (p SQLProvider) CreateUser(ctx context.Context, user, password string) error {
 	db, err := openDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-	var c int
-	if err := db.QueryRowContext(ctx, "SELECT COUNT(1) FROM passwords WHERE user=?", user).Scan(&c); err != nil {
+
+	var count int
+	if err := db.QueryRowContext(ctx, "SELECT COUNT(1) FROM passwords WHERE user=?", user).Scan(&count); err != nil {
 		return err
 	}
-	if c > 0 {
+	if count > 0 {
 		return ErrUserExists
 	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -333,12 +463,13 @@ func (SQLProvider) CreateUser(ctx context.Context, user, password string) error 
 	return err
 }
 
-func (SQLProvider) SetPassword(ctx context.Context, user, password string) error {
+func (p SQLProvider) SetPassword(ctx context.Context, user, password string) error {
 	db, err := openDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -347,19 +478,20 @@ func (SQLProvider) SetPassword(ctx context.Context, user, password string) error
 	if err != nil {
 		return err
 	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
 		return ErrUserNotFound
 	}
 	return nil
 }
 
-func (SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
+func (p SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
 	db, err := openDB()
 	if err != nil {
 		return false, err
 	}
 	defer db.Close()
+
 	var hash []byte
 	err = db.QueryRowContext(ctx, "SELECT hash FROM passwords WHERE user=?", user).Scan(&hash)
 	if err == sql.ErrNoRows {

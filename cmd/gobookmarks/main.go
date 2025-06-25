@@ -330,7 +330,7 @@ func main() {
 	r.HandleFunc("/login/git", runTemplate("gitLoginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/git", runHandlerChain(GitLoginAction, redirectToHandler("/"))).Methods("POST")
 	r.HandleFunc("/signup/git", runHandlerChain(GitSignupAction, redirectToHandler("/login/git"))).Methods("POST")
-	r.HandleFunc("/login/sql", runTemplate("gitLoginPage.gohtml")).Methods("GET")
+	r.HandleFunc("/login/sql", runTemplate("sqlLoginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/sql", runHandlerChain(SqlLoginAction, redirectToHandler("/"))).Methods("POST")
 	r.HandleFunc("/signup/sql", runHandlerChain(SqlSignupAction, redirectToHandler("/login/sql"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
