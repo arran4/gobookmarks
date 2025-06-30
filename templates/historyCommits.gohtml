@@ -10,7 +10,7 @@
         <tbody>
             {{- range commits }}
                 <tr>
-                    <td><a href="/?ref={{ .SHA }}">{{ .SHA }}</a></td>
+                    <td><a href="/?ref={{ .SHA }}{{ if ref }}&historyRef={{ ref }}{{ end }}">{{ .SHA }}</a></td>
                     <td>{{ .Message }}</td>
                     <td>{{ .CommitterDate }}</td>
                     <td>{{ .CommitterName }} / {{ .CommitterEmail }}</td>
@@ -18,5 +18,10 @@
             {{- end }}
         </tbody>
     </table>
-    
+    <div class="pagination">
+        {{ $p := atoi (page) }}
+        {{ if gt $p 1 }}<a href="/history/commits?page={{ sub1 $p }}{{ if ref }}&ref={{ ref }}{{ end }}">Previous</a>{{ end }}
+        <a href="/history/commits?page={{ add1 $p }}{{ if ref }}&ref={{ ref }}{{ end }}">Next</a>
+    </div>
+
 {{ template "tail" $ }}

@@ -142,14 +142,20 @@ func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2
 	return branches, rows.Err()
 }
 
-func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
+func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
 	db, err := openDB()
 	if err != nil {
 		return nil, err
 	}
 	defer db.Close()
 
-	rows, err := db.QueryContext(ctx, "SELECT sha, message, date FROM history WHERE user=? ORDER BY id DESC", user)
+	query := "SELECT sha, message, date FROM history WHERE user=? ORDER BY id DESC"
+	args := []any{user}
+	if perPage > 0 {
+		query += " LIMIT ? OFFSET ?"
+		args = append(args, perPage, (page-1)*perPage)
+	}
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query history: %v", err)
 	}
@@ -171,6 +177,33 @@ func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.
 		})
 	}
 	return commits, rows.Err()
+}
+
+func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
+	db, err := openDB()
+	if err != nil {
+		return "", "", err
+	}
+	defer db.Close()
+
+	var id int
+	err = db.QueryRowContext(ctx, "SELECT id FROM history WHERE user=? AND sha=?", user, sha).Scan(&id)
+	if err == sql.ErrNoRows {
+		return "", "", nil
+	}
+	if err != nil {
+		return "", "", err
+	}
+	var prev, next sql.NullString
+	err = db.QueryRowContext(ctx, "SELECT sha FROM history WHERE user=? AND id < ? ORDER BY id DESC LIMIT 1", user, id).Scan(&prev)
+	if err != nil && err != sql.ErrNoRows {
+		return "", "", err
+	}
+	err = db.QueryRowContext(ctx, "SELECT sha FROM history WHERE user=? AND id > ? ORDER BY id ASC LIMIT 1", user, id).Scan(&next)
+	if err != nil && err != sql.ErrNoRows {
+		return "", "", err
+	}
+	return prev.String, next.String, nil
 }
 
 func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {

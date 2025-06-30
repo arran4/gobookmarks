@@ -16,6 +16,7 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"golang.org/x/oauth2"
 )
 
@@ -90,7 +91,7 @@ func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.T
 	return branches, err
 }
 
-func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
+func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
 	r, err := openRepo(user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
@@ -98,16 +99,28 @@ func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.To
 		}
 		return nil, err
 	}
-	ref, err := r.Reference(plumbing.NewBranchReferenceName("main"), true)
+	if ref == "" {
+		ref = "refs/heads/main"
+	}
+	h, err := r.ResolveRevision(plumbing.Revision(ref))
 	if err != nil {
 		return nil, nil
 	}
-	iter, err := r.Log(&git.LogOptions{From: ref.Hash()})
+	iter, err := r.Log(&git.LogOptions{From: *h})
 	if err != nil {
 		return nil, err
 	}
+	start := (page - 1) * perPage
+	i := 0
 	var commits []*Commit
 	err = iter.ForEach(func(c *object.Commit) error {
+		if i < start {
+			i++
+			return nil
+		}
+		if len(commits) >= perPage {
+			return storer.ErrStop
+		}
 		commits = append(commits, &Commit{
 			SHA:            c.Hash.String(),
 			Message:        c.Message,
@@ -115,9 +128,52 @@ func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.To
 			CommitterEmail: c.Committer.Email,
 			CommitterDate:  c.Committer.When,
 		})
+		i++
 		return nil
 	})
+	if err == storer.ErrStop {
+		err = nil
+	}
 	return commits, err
+}
+
+func (GitProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
+	r, err := openRepo(user)
+	if err != nil {
+		return "", "", err
+	}
+	if ref == "" {
+		ref = "refs/heads/main"
+	}
+	h, err := r.ResolveRevision(plumbing.Revision(ref))
+	if err != nil {
+		return "", "", err
+	}
+	iter, err := r.Log(&git.LogOptions{From: *h})
+	if err != nil {
+		return "", "", err
+	}
+	var prev, next string
+	var last string
+	err = iter.ForEach(func(c *object.Commit) error {
+		if c.Hash.String() == sha {
+			// previous commit in history (older)
+			if c.NumParents() > 0 {
+				p, err := c.Parent(0)
+				if err == nil {
+					prev = p.Hash.String()
+				}
+			}
+			next = last
+			return storer.ErrStop
+		}
+		last = c.Hash.String()
+		return nil
+	})
+	if err == storer.ErrStop {
+		err = nil
+	}
+	return prev, next, err
 }
 
 func (GitProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {

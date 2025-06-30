@@ -96,8 +96,9 @@ func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oau
 	return res, nil
 }
 
-func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
-	cs, _, err := p.client(ctx, token).Repositories.ListCommits(ctx, user, RepoName, &github.CommitsListOptions{})
+func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+	opts := &github.CommitsListOptions{SHA: ref, ListOptions: github.ListOptions{Page: page, PerPage: perPage}}
+	cs, _, err := p.client(ctx, token).Repositories.ListCommits(ctx, user, RepoName, opts)
 	if err != nil {
 		log.Printf("github GetCommits: %v", err)
 		return nil, fmt.Errorf("ListCommits: %w", err)
