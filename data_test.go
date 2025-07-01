@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -51,13 +52,21 @@ func testFuncMap() template.FuncMap {
 		"errorMsg":           func(s string) string { return s },
 		"ref":                func() string { return "refs/heads/main" },
 		"add1":               func(i int) int { return i + 1 },
-		"tab":                func() string { return "0" },
-		"tabName":            func() string { return "Main" },
-		"page":               func() string { return "" },
-		"useCssColumns":      func() bool { return false },
-		"showFooter":         func() bool { return true },
-		"showPages":          func() bool { return true },
-		"loggedIn":           func() (bool, error) { return true, nil },
+		"sub1": func(i int) int {
+			if i > 0 {
+				return i - 1
+			}
+			return 0
+		},
+		"atoi":          func(s string) int { i, _ := strconv.Atoi(s); return i },
+		"tab":           func() string { return "0" },
+		"tabName":       func() string { return "Main" },
+		"page":          func() string { return "" },
+		"historyRef":    func() string { return "refs/heads/main" },
+		"useCssColumns": func() bool { return false },
+		"showFooter":    func() bool { return true },
+		"showPages":     func() bool { return true },
+		"loggedIn":      func() (bool, error) { return true, nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
 			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", LastPageSha: ""}}, nil
 		},
@@ -113,6 +122,8 @@ func testFuncMap() template.FuncMap {
 				CommitterDate:  time.Unix(0, 0),
 			}}, nil
 		},
+		"prevCommit": func() string { return "prev" },
+		"nextCommit": func() string { return "next" },
 	}
 }
 

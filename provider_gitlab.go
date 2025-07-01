@@ -117,13 +117,13 @@ func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth
 	return res, nil
 }
 
-func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
+func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
 	c, err := GitLabProvider{}.client(token)
 	if err != nil {
 		log.Printf("gitlab GetCommits client: %v", err)
 		return nil, err
 	}
-	cs, _, err := c.Commits.ListCommits(user+"/"+RepoName, &gitlab.ListCommitsOptions{})
+	cs, _, err := c.Commits.ListCommits(user+"/"+RepoName, &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: page, PerPage: perPage}})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut

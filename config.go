@@ -32,6 +32,7 @@ type Config struct {
 	DBConnectionProvider string   `json:"db_connection_provider"`
 	DBConnectionString   string   `json:"db_connection_string"`
 	ProviderOrder        []string `json:"provider_order"`
+	CommitsPerPage       int      `json:"commits_per_page"`
 }
 
 // LoadConfigFile loads configuration from the given path.
@@ -128,6 +129,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.DBConnectionString != "" {
 		dst.DBConnectionString = src.DBConnectionString
+	}
+	if src.CommitsPerPage != 0 {
+		dst.CommitsPerPage = src.CommitsPerPage
 	}
 	if len(src.ProviderOrder) > 0 {
 		dst.ProviderOrder = append([]string(nil), src.ProviderOrder...)

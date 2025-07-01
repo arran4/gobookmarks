@@ -90,8 +90,21 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		"page": func() string {
 			return r.URL.Query().Get("page")
 		},
+		"historyRef": func() string {
+			return r.URL.Query().Get("historyRef")
+		},
 		"add1": func(i int) int {
 			return i + 1
+		},
+		"sub1": func(i int) int {
+			if i > 0 {
+				return i - 1
+			}
+			return 0
+		},
+		"atoi": func(s string) int {
+			i, _ := strconv.Atoi(s)
+			return i
 		},
 		"useCssColumns": func() bool {
 			sessioni := r.Context().Value(ContextValues("session"))
@@ -347,11 +360,56 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			if githubUser != nil {
 				login = githubUser.Login
 			}
-			commits, err := GetCommits(r.Context(), login, token)
+			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+			if page < 1 {
+				page = 1
+			}
+			ref := r.URL.Query().Get("ref")
+			commits, err := GetCommits(r.Context(), login, token, ref, page, CommitsPerPage)
 			if err != nil {
 				return nil, fmt.Errorf("GetCommits: %w", err)
 			}
 			return commits, nil
+		},
+		"prevCommit": func() string {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil {
+				login = githubUser.Login
+			}
+			ref := r.URL.Query().Get("historyRef")
+			sha := r.URL.Query().Get("ref")
+			if ref == "" || sha == "" {
+				return ""
+			}
+			prev, _, err := GetAdjacentCommits(r.Context(), login, token, ref, sha)
+			if err != nil {
+				return ""
+			}
+			return prev
+		},
+		"nextCommit": func() string {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil {
+				login = githubUser.Login
+			}
+			ref := r.URL.Query().Get("historyRef")
+			sha := r.URL.Query().Get("ref")
+			if ref == "" || sha == "" {
+				return ""
+			}
+			_, next, err := GetAdjacentCommits(r.Context(), login, token, ref, sha)
+			if err != nil {
+				return ""
+			}
+			return next
 		},
 	}
 }

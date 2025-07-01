@@ -94,6 +94,14 @@ func main() {
 		NoFooter:             os.Getenv("GBM_NO_FOOTER") != "",
 		SessionKey:           os.Getenv("SESSION_KEY"),
 		ProviderOrder:        splitList(os.Getenv("PROVIDER_ORDER")),
+		CommitsPerPage: func() int {
+			if v := os.Getenv("COMMITS_PER_PAGE"); v != "" {
+				if i, err := strconv.Atoi(v); err == nil {
+					return i
+				}
+			}
+			return 0
+		}(),
 	}
 
 	configPath := DefaultConfigPath()
@@ -110,6 +118,7 @@ func main() {
 	var glServerFlag stringFlag
 	var faviconDirFlag stringFlag
 	var faviconSizeFlag stringFlag
+	var commitsPerPageFlag stringFlag
 	var localGitPathFlag stringFlag
 	var dbProviderFlag stringFlag
 	var dbConnFlag stringFlag
@@ -129,6 +138,7 @@ func main() {
 	flag.Var(&titleFlag, "title", "site title")
 	flag.Var(&faviconDirFlag, "favicon-cache-dir", "directory for cached favicons")
 	flag.Var(&faviconSizeFlag, "favicon-cache-size", "max size of favicon cache in bytes")
+	flag.Var(&commitsPerPageFlag, "commits-per-page", "commits per page")
 	flag.Var(&ghServerFlag, "github-server", "GitHub base URL")
 	flag.Var(&glServerFlag, "gitlab-server", "GitLab base URL")
 	flag.Var(&localGitPathFlag, "local-git-path", "directory for local git provider")
@@ -205,6 +215,11 @@ func main() {
 			cfg.FaviconCacheSize = i
 		}
 	}
+	if commitsPerPageFlag.set {
+		if i, err := strconv.Atoi(commitsPerPageFlag.value); err == nil {
+			cfg.CommitsPerPage = i
+		}
+	}
 	if glServerFlag.set {
 		cfg.GitlabServer = glServerFlag.value
 	}
@@ -248,6 +263,11 @@ func main() {
 		FaviconCacheSize = cfg.FaviconCacheSize
 	} else {
 		FaviconCacheSize = DefaultFaviconCacheSize
+	}
+	if cfg.CommitsPerPage != 0 {
+		CommitsPerPage = cfg.CommitsPerPage
+	} else {
+		CommitsPerPage = DefaultCommitsPerPage
 	}
 	if cfg.LocalGitPath != "" {
 		LocalGitPath = cfg.LocalGitPath

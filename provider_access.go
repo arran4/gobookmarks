@@ -116,16 +116,31 @@ func GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Bran
 	return bs, err
 }
 
-func GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error) {
+func GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
 	p := providerFromContext(ctx)
 	if p == nil {
 		return nil, ErrNoProvider
 	}
-	cs, err := p.GetCommits(ctx, user, token)
+	cs, err := p.GetCommits(ctx, user, token, ref, page, perPage)
 	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return nil, ErrSignedOut
 	}
 	return cs, err
+}
+
+func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
+	p := providerFromContext(ctx)
+	if p == nil {
+		return "", "", ErrNoProvider
+	}
+	if ap, ok := p.(AdjacentCommitProvider); ok {
+		prev, next, err := ap.AdjacentCommits(ctx, user, token, ref, sha)
+		if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
+			return "", "", ErrSignedOut
+		}
+		return prev, next, err
+	}
+	return "", "", nil
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {

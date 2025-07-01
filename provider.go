@@ -33,13 +33,18 @@ type Provider interface {
 	CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error)
 	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error)
 	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)
-	GetCommits(ctx context.Context, user string, token *oauth2.Token) ([]*Commit, error)
+	GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error)
 	GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error)
 	UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error
 	CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error
 	CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error
 	RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error)
 	DefaultServer() string
+}
+
+// AdjacentCommitProvider optionally provides methods to navigate commit history.
+type AdjacentCommitProvider interface {
+	AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error)
 }
 
 // PasswordHandler is implemented by providers that manage passwords.
