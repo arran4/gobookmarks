@@ -125,7 +125,7 @@ body:not(.edit-mode) .edit-link {
 
 .cssColumns .bookmarkColumns {
         column-width: 18em;
-        column-gap: 1em;
+        column-gap: 2em;
 }
 
 .cssColumns .columnBreak {
@@ -155,6 +155,10 @@ body:not(.edit-mode) .edit-link {
 
 #bottom {
     flex-grow: 1;
+}
+
+.bookmarkPage table td {
+    padding-right: 1em;
 }
 
 .move-handle {
