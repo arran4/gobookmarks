@@ -540,13 +540,23 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 						}
 						return
 					}
+
+					var uerr UserError
+					display := "Internal error"
+					if errors.As(err, &uerr) {
+						display = uerr.Msg
+						err = uerr.Err
+					}
+
+					log.Printf("handler error: %v", err)
+
 					type ErrorData struct {
 						*CoreData
 						Error string
 					}
 					if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 						CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-						Error:    err.Error(),
+						Error:    display,
 					}); err != nil {
 						log.Printf("Error Template Error: %s", err)
 						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -560,7 +570,7 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
+func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
 			*CoreData
@@ -572,10 +582,26 @@ func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
 			Error:    r.URL.Query().Get("error"),
 		}
 
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, template, data); err != nil {
-			log.Printf("Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmpl, data)
+		if err == nil {
 			return
+		}
+
+		log.Printf("Template %s error: %v", tmpl, err)
+
+		userErr := UserError{Msg: "Internal error", Err: err}
+
+		type ErrorData struct {
+			*CoreData
+			Error string
+		}
+
+		if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+			CoreData: data.CoreData,
+			Error:    userErr.Msg,
+		}); tplErr != nil {
+			log.Printf("Error Template Error: %v", tplErr)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	})
 }
