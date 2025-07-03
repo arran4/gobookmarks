@@ -123,13 +123,22 @@ body:not(.edit-mode) .edit-link {
         height: 30vh;
 }
 
+
 .cssColumns .bookmarkColumns {
-        column-width: 18em;
-        column-gap: 2em;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
 }
 
-.cssColumns .columnBreak {
-        break-before: column;
+.cssColumns .bookmarkColumn {
+        width: 18em;
+        margin-right: 2em;
+        display: flex;
+        flex-direction: column;
+}
+
+.cssColumns .bookmarkColumn:last-child {
+        margin-right: 0;
 }
 
 .cssColumns .categoryBlock {
