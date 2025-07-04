@@ -609,14 +609,10 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		var serr SystemError
-		var uerr UserError
 		display := "Internal error"
 		if errors.As(err, &serr) {
 			display = serr.Msg
 			err = serr.Err
-		} else if errors.As(err, &uerr) {
-			display = uerr.Msg
-			err = uerr.Err
 		}
 
 		log.Printf("Template %s error: %v", tmpl, err)
