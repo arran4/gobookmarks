@@ -48,3 +48,26 @@ func (e UserError) Unwrap() error { return e.Err }
 func NewUserError(msg string, err error) error {
 	return UserError{Msg: msg, Err: err}
 }
+
+// SystemError represents a server-side failure that prevents the request
+// from completing. The message is shown on a dedicated error page while the
+// underlying error is logged for debugging.
+type SystemError struct {
+	Msg string // message shown to the user
+	Err error  // underlying error
+}
+
+func (e SystemError) Error() string {
+	if e.Err == nil {
+		return e.Msg
+	}
+	return e.Err.Error()
+}
+
+func (e SystemError) Unwrap() error { return e.Err }
+
+// NewSystemError creates a SystemError with the provided display message and
+// underlying cause.
+func NewSystemError(msg string, err error) error {
+	return SystemError{Msg: msg, Err: err}
+}

@@ -542,10 +542,31 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 					}
 
 					var uerr UserError
-					display := "Internal error"
 					if errors.As(err, &uerr) {
-						display = uerr.Msg
-						err = uerr.Err
+						dest := r.Referer()
+						if dest == "" {
+							dest = r.URL.Path
+							if q := r.URL.Query(); len(q) > 0 {
+								dest += "?" + q.Encode()
+							}
+						}
+						u, parseErr := url.Parse(dest)
+						if parseErr != nil {
+							log.Printf("user error parse referer: %v", parseErr)
+						} else {
+							q := u.Query()
+							q.Set("error", uerr.Msg)
+							u.RawQuery = q.Encode()
+							http.Redirect(w, r, u.String(), http.StatusSeeOther)
+							return
+						}
+					}
+
+					var serr SystemError
+					display := "Internal error"
+					if errors.As(err, &serr) {
+						display = serr.Msg
+						err = serr.Err
 					}
 
 					log.Printf("handler error: %v", err)
@@ -587,9 +608,13 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		var serr SystemError
 		var uerr UserError
 		display := "Internal error"
-		if errors.As(err, &uerr) {
+		if errors.As(err, &serr) {
+			display = serr.Msg
+			err = serr.Err
+		} else if errors.As(err, &uerr) {
 			display = uerr.Msg
 			err = uerr.Err
 		}

@@ -38,22 +38,22 @@ func (SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User,
 
 func openDB() (*sql.DB, error) {
 	if DBConnectionProvider == "" {
-		return nil, NewUserError("Database error", errors.New("db provider not configured"))
+		return nil, NewSystemError("Database error", errors.New("db provider not configured"))
 	}
 
 	db, err := sql.Open(DBConnectionProvider, DBConnectionString)
 	if err != nil {
-		return nil, NewUserError("Database error", fmt.Errorf("failed to open db: %w", err))
+		return nil, NewSystemError("Database error", fmt.Errorf("failed to open db: %w", err))
 	}
 
 	if err := db.Ping(); err != nil {
 		db.Close()
-		return nil, NewUserError("Database error", err)
+		return nil, NewSystemError("Database error", err)
 	}
 
 	if err := ensureSQLSchema(db); err != nil {
 		db.Close()
-		return nil, NewUserError("Database error", fmt.Errorf("failed to ensure schema: %w", err))
+		return nil, NewSystemError("Database error", fmt.Errorf("failed to ensure schema: %w", err))
 	}
 	return db, nil
 }
