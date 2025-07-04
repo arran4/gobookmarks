@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"io"
 	"log"
 	"math/big"
 	"net/http"
@@ -540,13 +541,44 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 						}
 						return
 					}
+
+					var uerr UserError
+					if errors.As(err, &uerr) {
+						dest := r.Referer()
+						if dest == "" {
+							dest = r.URL.Path
+							if q := r.URL.Query(); len(q) > 0 {
+								dest += "?" + q.Encode()
+							}
+						}
+						u, parseErr := url.Parse(dest)
+						if parseErr != nil {
+							log.Printf("user error parse referer: %v", parseErr)
+						} else {
+							q := u.Query()
+							q.Set("error", uerr.Msg)
+							u.RawQuery = q.Encode()
+							http.Redirect(w, r, u.String(), http.StatusSeeOther)
+							return
+						}
+					}
+
+					var serr SystemError
+					display := "Internal error"
+					if errors.As(err, &serr) {
+						display = serr.Msg
+						err = serr.Err
+					}
+
+					log.Printf("handler error: %v", err)
+
 					type ErrorData struct {
 						*CoreData
 						Error string
 					}
 					if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 						CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-						Error:    err.Error(),
+						Error:    display,
 					}); err != nil {
 						log.Printf("Error Template Error: %s", err)
 						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -560,7 +592,7 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
+func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
 			*CoreData
@@ -572,10 +604,33 @@ func runTemplate(template string) func(http.ResponseWriter, *http.Request) {
 			Error:    r.URL.Query().Get("error"),
 		}
 
-		if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, template, data); err != nil {
-			log.Printf("Template Error: %s", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		var buf bytes.Buffer
+		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
+		if err == nil {
+			_, _ = io.Copy(w, &buf)
 			return
+		}
+
+		var serr SystemError
+		display := "Internal error"
+		if errors.As(err, &serr) {
+			display = serr.Msg
+			err = serr.Err
+		}
+
+		log.Printf("Template %s error: %v", tmpl, err)
+
+		type ErrorData struct {
+			*CoreData
+			Error string
+		}
+
+		if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+			CoreData: data.CoreData,
+			Error:    display,
+		}); tplErr != nil {
+			log.Printf("Error Template Error: %v", tplErr)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	})
 }
