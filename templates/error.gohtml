@@ -1,7 +1,19 @@
 <!DOCTYPE html>
 <html>
-<head><title>Error</title></head>
+<head>
+    <title>Error</title>
+    <link rel="stylesheet" type="text/css" href="/main.css">
+</head>
 <body>
-<p>Error: {{.Error}}</p>
+    <table border=0 id="layout">
+        <tr valign=top>
+            <td width=200px id="nav">
+                <strong>gobookmarks</strong><br>
+            </td>
+            <td>
+                <p>Error: {{.Error}}</p>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
