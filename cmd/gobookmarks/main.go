@@ -587,9 +587,14 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		log.Printf("Template %s error: %v", tmpl, err)
+		var uerr UserError
+		display := "Internal error"
+		if errors.As(err, &uerr) {
+			display = uerr.Msg
+			err = uerr.Err
+		}
 
-		userErr := UserError{Msg: "Internal error", Err: err}
+		log.Printf("Template %s error: %v", tmpl, err)
 
 		type ErrorData struct {
 			*CoreData
@@ -598,7 +603,7 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 
 		if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: data.CoreData,
-			Error:    userErr.Msg,
+			Error:    display,
 		}); tplErr != nil {
 			log.Printf("Error Template Error: %v", tplErr)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
