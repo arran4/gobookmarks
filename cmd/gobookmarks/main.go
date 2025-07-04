@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"io"
 	"log"
 	"math/big"
 	"net/http"
@@ -603,8 +604,10 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 			Error:    r.URL.Query().Get("error"),
 		}
 
-		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmpl, data)
+		var buf bytes.Buffer
+		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
 		if err == nil {
+			_, _ = io.Copy(w, &buf)
 			return
 		}
 
