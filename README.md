@@ -201,7 +201,7 @@ You can quickly search for any link on the same Tab you're on. (Tabs contain pag
 
 There is keyboard navigation, see keyboard shortcuts for details.
 
-![media/simplescreenrecorder-2025-07-16_16.23.20.gif](media/simplescreenrecorder-2025-07-16_16.23.20.gif)
+[![media/simplescreenrecorder-2025-07-16_16.23.20.gif](media/simplescreenrecorder-2025-07-16_16.23.20.gif)](media/simplescreenrecorder-2025-07-16_16.23.20.gif)
 
 ## Keyboard Shortcuts
 
