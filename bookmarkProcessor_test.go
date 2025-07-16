@@ -16,13 +16,14 @@ type (
 	Tabs = BookmarkList
 )
 
-func e(u, n string) *Ent               { return &Ent{Url: u, Name: n} }
-func cat(name string, es ...*Ent) *Cat { return &Cat{Name: name, Entries: es} }
-func col(cs ...*Cat) *Col              { return &Col{Categories: cs} }
-func colsBlock(cs ...*Col) *Blk        { return &Blk{Columns: cs} }
-func hrBlock() *Blk                    { return &Blk{HR: true} }
-func page(bs ...*Blk) *Pg              { return &Pg{Blocks: bs} }
-func tab(name string, ps ...*Pg) *T    { return &T{Name: name, Pages: ps} }
+func e(u, n string) *Ent                    { return &Ent{Url: u, Name: n} }
+func cat(name string, es ...*Ent) *Cat      { return &Cat{Name: name, Entries: es} }
+func col(cs ...*Cat) *Col                   { return &Col{Categories: cs} }
+func colsBlock(cs ...*Col) *Blk             { return &Blk{Columns: cs} }
+func hrBlock() *Blk                         { return &Blk{HR: true} }
+func page(bs ...*Blk) *Pg                   { return &Pg{Blocks: bs} }
+func pageNamed(name string, bs ...*Blk) *Pg { return &Pg{Name: name, Blocks: bs} }
+func tab(name string, ps ...*Pg) *T         { return &T{Name: name, Pages: ps} }
 
 const complexBookmarkText = `Category: Example 1
 http://www.google.com.au Google
@@ -135,6 +136,13 @@ func Test_parseBookmarks(t *testing.T) {
 			},
 		},
 		{
+			name:  "tab first page named",
+			input: "Tab: Example\nPage: First\nCategory: A\nhttp://a.com a\n",
+			want: Tabs{
+				tab("Example", pageNamed("First", colsBlock(col(cat("A", e("http://a.com", "a")))))),
+			},
+		},
+		{
 			name:  "anonymous tab",
 			input: "Tab: F\nCategory: A\nTab\nCategory: B\n",
 			want: Tabs{
@@ -153,7 +161,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "page name no colon",
 			input: "Page Start\nCategory: A\nPage End\nCategory: B\n",
 			want: Tabs{
-				tab("", page(colsBlock(col(cat("A")))), page(colsBlock(col(cat("B"))))),
+				tab("", pageNamed("Start", colsBlock(col(cat("A")))), pageNamed("End", colsBlock(col(cat("B"))))),
 			},
 		},
 		{
@@ -183,10 +191,10 @@ func Test_parseBookmarks(t *testing.T) {
 							),
 						),
 					)),
-					&Pg{Name: "Test", Blocks: []*Blk{colsBlock(col(
+					pageNamed("Test", colsBlock(col(
 						cat("Category", e("http://www.google.com.au", "Google")),
 						cat("Example", e("http://www.google.com.au", "Google"), e("http://www.google.com.au", "Google")),
-					))}},
+					))),
 				),
 				tab("", page(colsBlock(
 					col(cat("Category", e("http://www.google.com.au", "Google"))),
@@ -199,11 +207,10 @@ func Test_parseBookmarks(t *testing.T) {
 	}
 
 	ignore := cmpopts.IgnoreFields(BookmarkCategory{}, "Index")
-	ignorePage := cmpopts.IgnoreFields(BookmarkPage{}, "Name")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ParseBookmarks(tt.input)
-			if diff := cmp.Diff(tt.want, got, ignore, ignorePage); diff != "" {
+			if diff := cmp.Diff(tt.want, got, ignore); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 			}
 		})
