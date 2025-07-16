@@ -2,11 +2,20 @@
 shopt -s nullglob
 
 for f in *.mp4; do
-  outfile="${f%.mp4}.webm"
-  echo "Converting \"$f\" → \"$outfile\"…"
-  ffmpeg -i "$f" \
-    -c:v libvpx-vp9 -crf 30 -b:v 0 \
-    -c:a libopus -b:a 64k \
-    -metadata title="${outfile%.*}" \
-    "$outfile"
+  name="${f%.mp4}"
+  echo "Converting \"$f\" → \"$name.gif\"…"
+
+  # 1) generate palette from the video
+  ffmpeg -v warning -i "$f" \
+    -vf "fps=10,scale=320:-1:flags=lanczos,palettegen" \
+    -y "${name}_palette.png"
+
+  # 2) use that palette to create the final GIF
+  ffmpeg -v warning -i "$f" -i "${name}_palette.png" \
+    -filter_complex "fps=10,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse" \
+    -loop 0 \
+    -y "${name}.gif"
+
+  # clean up
+  rm "${name}_palette.png"
 done
