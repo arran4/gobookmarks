@@ -27,10 +27,16 @@ var (
 	DBConnectionString   string
 
 	CommitsPerPage int
+
+	// ContentSecurityPolicy is the value of the CSP header sent on responses.
+	ContentSecurityPolicy string
 )
 
 const (
 	DefaultFaviconCacheSize   int64         = 20 * 1024 * 1024 // 20MB
 	DefaultFaviconCacheMaxAge time.Duration = 24 * time.Hour
 	DefaultCommitsPerPage     int           = 100
+
+	// DefaultContentSecurityPolicy is applied when no policy is configured.
+	DefaultContentSecurityPolicy string = "default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
 )
