@@ -50,6 +50,113 @@
                     }
 
                     attach(toggleEdit);
+
+                    var searchBox = document.getElementById('search-box');
+                    var searchResults = [];
+                    var selectedIndex = 0;
+
+                    function clearSearch() {
+                        document.querySelectorAll('.search-hidden').forEach(function(el){
+                            el.classList.remove('search-hidden');
+                        });
+                        document.querySelectorAll('.search-selected').forEach(function(el){
+                            el.classList.remove('search-selected');
+                        });
+                        searchResults = [];
+                        selectedIndex = 0;
+                    }
+
+                    function updateSearch() {
+                        clearSearch();
+                        if (!searchBox) return;
+                        var q = searchBox.value.trim().toLowerCase();
+                        if (!q) return;
+                        var items = document.querySelectorAll('.bookmark-entries li');
+                        items.forEach(function(li) {
+                            var a = li.querySelector('a');
+                            if (!a) return;
+                            var text = a.textContent.toLowerCase();
+                            var url = a.getAttribute('href').toLowerCase();
+                            if (text.indexOf(q) !== -1 || url.indexOf(q) !== -1) {
+                                searchResults.push(li);
+                            } else {
+                                li.classList.add('search-hidden');
+                            }
+                        });
+                        if (searchResults.length > 0) {
+                            searchResults[0].classList.add('search-selected');
+                            searchResults[0].scrollIntoView({block: 'nearest'});
+                        }
+                    }
+
+                    if (searchBox) {
+                        searchBox.addEventListener('input', updateSearch);
+                        searchBox.addEventListener('keydown', function(e) {
+                            if (e.key === 'ArrowDown') {
+                                if (searchResults.length > 0) {
+                                    searchResults[selectedIndex].classList.remove('search-selected');
+                                    selectedIndex = (selectedIndex + 1) % searchResults.length;
+                                    searchResults[selectedIndex].classList.add('search-selected');
+                                    searchResults[selectedIndex].scrollIntoView({block: 'nearest'});
+                                    e.preventDefault();
+                                }
+                            } else if (e.key === 'ArrowUp') {
+                                if (searchResults.length > 0) {
+                                    searchResults[selectedIndex].classList.remove('search-selected');
+                                    selectedIndex = (selectedIndex - 1 + searchResults.length) % searchResults.length;
+                                    searchResults[selectedIndex].classList.add('search-selected');
+                                    searchResults[selectedIndex].scrollIntoView({block: 'nearest'});
+                                    e.preventDefault();
+                                }
+                            } else if (e.key === 'Enter') {
+                                if (searchResults.length > 0) {
+                                    var link = searchResults[selectedIndex].querySelector('a');
+                                    if (link) {
+                                        window.location.href = link.href;
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    function changePage(delta) {
+                        var pages = document.querySelectorAll('.bookmarkPage[id^="page"]');
+                        if (!pages.length) return;
+                        var cur = currentPage();
+                        if (cur < 0) cur = 0;
+                        var next = (cur + delta + pages.length) % pages.length;
+                        var id = pages[next].id;
+                        location.hash = '#' + id;
+                        pages[next].scrollIntoView();
+                    }
+
+                    function changeTab(delta) {
+                        var tabs = document.querySelectorAll('#tab-list a');
+                        if (!tabs.length) return;
+                        var params = new URLSearchParams(window.location.search);
+                        var idx = parseInt(params.get('tab') || '0');
+                        if (isNaN(idx)) idx = 0;
+                        var next = (idx + delta + tabs.length) % tabs.length;
+                        window.location.href = tabs[next].href;
+                    }
+
+                    document.addEventListener('keydown', function(e) {
+                        if (e.ctrlKey && e.altKey && e.shiftKey) {
+                            if (e.key === 'ArrowRight') {
+                                changePage(1);
+                                e.preventDefault();
+                            } else if (e.key === 'ArrowLeft') {
+                                changePage(-1);
+                                e.preventDefault();
+                            } else if (e.key === 'ArrowDown') {
+                                changeTab(1);
+                                e.preventDefault();
+                            } else if (e.key === 'ArrowUp') {
+                                changeTab(-1);
+                                e.preventDefault();
+                            }
+                        }
+                    });
                 });
                 </script>
                  </body>

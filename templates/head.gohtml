@@ -26,6 +26,7 @@
                                                 {{ end }}
                                                 <a id="toggle-edit" href="/?{{if $.EditMode}}{{if tab}}tab={{tab}}{{end}}{{else}}edit=1{{if tab}}&tab={{tab}}{{end}}{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
                                                 {{if $.EditMode}}<a href="/edit?edit=1{{if ref}}&ref={{ref}}{{end}}{{if tab}}&tab={{tab}}{{end}}">Edit All</a><br/>{{end}}
+                                                <input id="search-box" type="text" placeholder="Search" style="width: 100%;" /><br/>
                                                 <hr/>
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
