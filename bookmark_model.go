@@ -332,8 +332,12 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			}
 			flushCategory()
 			ensureTab()
-			currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
-			currentTab.AddPage(currentPage)
+			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 {
+				currentPage.Name = rest
+			} else {
+				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+				currentTab.AddPage(currentPage)
+			}
 			continue
 		}
 		if line == "--" {
