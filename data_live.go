@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func init() {
@@ -31,4 +32,9 @@ func GetFavicon() []byte {
 		panic(err)
 	}
 	return b
+}
+
+func GetJS(name string) ([]byte, error) {
+	path := filepath.Join("static", "js", name)
+	return os.ReadFile(path)
 }

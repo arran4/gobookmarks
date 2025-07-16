@@ -327,12 +327,28 @@ func main() {
 
 	r.Use(UserAdderMiddleware)
 	r.Use(CoreAdderMiddleware)
+	r.Use(SecurityHeadersMiddleware)
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
 	}).Methods("GET")
 	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetFavicon())
+	}).Methods("GET")
+
+	r.HandleFunc("/static/js/{name}", func(w http.ResponseWriter, r *http.Request) {
+		name := mux.Vars(r)["name"]
+		if strings.Contains(name, "/") {
+			http.NotFound(w, r)
+			return
+		}
+		data, err := GetJS(name)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/javascript")
+		_, _ = w.Write(data)
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
