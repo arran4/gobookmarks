@@ -75,6 +75,22 @@ changed while you were editing.
 
 ![img_2.png](media/img_2.png)
 
+## Keyboard Shortcuts
+
+The interface supports a number of keyboard shortcuts to make navigation
+quicker:
+
+* **Alt+K** focuses the search box and selects any existing text.
+* **Alt+{** and **Alt+}** switch between bookmark tabs.
+* **Alt+[** and **Alt+]** switch between pages within a tab.
+* While the search box is focused, **Up/Down** or **Left/Right** arrows move
+  between filtered results. Press **Enter** to open the selected link or
+  **Ctrl+Enter**/**Meta+Enter** to open it in a background tab.
+* Pressing **Esc** once blurs the search field. Pressing **Esc** again clears
+  the search and restores the previous view.
+* Press **?** anywhere (outside of a text field) to see these shortcuts in a
+  small help dialog.
+
 # How to setup for yourself
 
 You can run this yourself. Docker images are published to the [GitHub Container Registry](https://github.com/arran4/gobookmarks/pkgs/container/gobookmarks) as `ghcr.io/arran4/gobookmarks`.
