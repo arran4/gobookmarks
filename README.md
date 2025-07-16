@@ -203,6 +203,8 @@ There is keyboard navigation, see keyboard shortcuts for details.
 
 ![simplescreenrecorder-2025-07-16_16.23.20.mp4](media/simplescreenrecorder-2025-07-16_16.23.20.mp4)
 
+<video src="media/simplescreenrecorder-2025-07-16_16.23.20.mp4" width="320" height="240" controls></video>
+
 <video src="blob/main/media/simplescreenrecorder-2025-07-16_16.23.20.mp4" width="320" height="240" controls></video>
 
 ## Keyboard Shortcuts
