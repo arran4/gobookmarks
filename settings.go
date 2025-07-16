@@ -4,6 +4,7 @@ import "time"
 
 var (
 	UseCssColumns bool
+	DevMode       bool
 	Namespace     string
 	SiteTitle     string
 	NoFooter      bool

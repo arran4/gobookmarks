@@ -109,6 +109,7 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GBM_NAMESPACE` | Optional suffix added to the bookmarks repository name.                                                                                                                                                                                      |
 | `GBM_TITLE` | Overrides the page title shown in the browser.                                                                                                                                                                                               |
 | `GBM_NO_FOOTER` | Hide footer on pages.                                                                                                                                                                                                                        |
+| `GBM_DEV_MODE` | Enable developer helpers like `/_css` and `/_table`. Defaults to on when built as `dev`.
 | `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/var/cache/gobookmarks/favcache` when installed system‑wide (including the Docker image).                                                  |
 | `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`.                                                                                                                                             |
 | `GITHUB_SERVER` | Base URL for GitHub (set for GitHub Enterprise).                                                                                                                                                                                             |
@@ -131,6 +132,7 @@ Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration f
 
 The `--title` flag or `GBM_TITLE` environment variable sets the browser page title.
 The `--no-footer` flag or `GBM_NO_FOOTER` environment variable hides the footer on pages.
+The `--dev-mode` flag or `GBM_DEV_MODE` environment variable toggles the developer helpers.
 Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
 Use `--no-footer` or `GBM_NO_FOOTER` to hide the footer on pages.
 Use `--provider-order` or `PROVIDER_ORDER` to customize the login button order.

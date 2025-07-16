@@ -64,6 +64,7 @@ func testFuncMap() template.FuncMap {
 		"page":          func() string { return "" },
 		"historyRef":    func() string { return "refs/heads/main" },
 		"useCssColumns": func() bool { return false },
+		"devMode":       func() bool { return false },
 		"showFooter":    func() bool { return true },
 		"showPages":     func() bool { return true },
 		"loggedIn":      func() (bool, error) { return true, nil },
