@@ -93,10 +93,12 @@
                                 searchResults[0].scrollIntoView({block: 'nearest'});
                             }
                         }
+                        searchBox.focus();
                     }
 
                     function moveSelection(delta) {
                         if (searchResults.length === 0) return;
+                        var hadFocus = document.activeElement === searchBox;
                         var cur = searchResults[selectedIndex];
                         cur.classList.remove('search-selected');
                         selectedIndex = (selectedIndex + delta + searchResults.length) % searchResults.length;
@@ -110,10 +112,12 @@
                         } else {
                             nextEl.scrollIntoView({block: 'nearest'});
                         }
+                        if (hadFocus) searchBox.focus();
                     }
 
                     function moveSelectionHorizontal(dir) {
                         if (searchResults.length === 0) return;
+                        var hadFocus = document.activeElement === searchBox;
                         var cur = searchResults[selectedIndex];
                         var r0 = cur.getBoundingClientRect();
                         var midY = (r0.top + r0.bottom) / 2;
@@ -145,6 +149,7 @@
                                 nextEl.scrollIntoView({block: 'nearest'});
                             }
                         }
+                        if (hadFocus) searchBox.focus();
                     }
 
                     if (searchBox) {
@@ -156,13 +161,25 @@
                             } else if (e.key === 'ArrowUp') {
                                 moveSelection(-1);
                                 e.preventDefault();
+                            } else if (e.key === 'ArrowRight') {
+                                moveSelectionHorizontal(1);
+                                e.preventDefault();
+                            } else if (e.key === 'ArrowLeft') {
+                                moveSelectionHorizontal(-1);
+                                e.preventDefault();
                             } else if (e.key === 'Enter') {
                                 if (searchResults.length > 0) {
                                     var link = searchResults[selectedIndex].querySelector('a');
                                     if (link) {
-                                        window.location.href = link.href;
+                                        if (link.target && link.target === '_blank') {
+                                            window.open(link.href, '_blank');
+                                        } else {
+                                            window.location.href = link.href;
+                                        }
+                                        searchBox.focus();
                                     }
                                 }
+                                e.preventDefault();
                             } else if (e.key === 'Escape') {
                                 searchBox.blur();
                                 e.preventDefault();
@@ -174,12 +191,14 @@
                     function changePage(delta) {
                         var pages = document.querySelectorAll('.bookmarkPage[id^="page"]');
                         if (!pages.length) return;
+                        var hadFocus = document.activeElement === searchBox;
                         var cur = currentPage();
                         if (cur < 0) cur = 0;
                         var next = (cur + delta + pages.length) % pages.length;
                         var id = pages[next].id;
                         location.hash = '#' + id;
                         pages[next].scrollIntoView();
+                        if (hadFocus) searchBox.focus();
                     }
 
                     function changeTab(delta) {
@@ -223,7 +242,14 @@
                             } else if (e.key === 'Enter') {
                                 if (searchResults.length > 0) {
                                     var link = searchResults[selectedIndex].querySelector('a');
-                                    if (link) { window.location.href = link.href; }
+                                    if (link) {
+                                        if (link.target && link.target === '_blank') {
+                                            window.open(link.href, '_blank');
+                                        } else {
+                                            window.location.href = link.href;
+                                        }
+                                        if (searchBox) searchBox.focus();
+                                    }
                                 }
                             }
                         }
