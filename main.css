@@ -239,3 +239,7 @@ body:not(.edit-mode) .moveIcon {
 body:not(.edit-mode) .move-handle {
     display: none;
 }
+
+.search-selected > a {
+    background-color: #ffe1a6;
+}

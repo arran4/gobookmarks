@@ -50,6 +50,109 @@
                     }
 
                     attach(toggleEdit);
+
+                    var searchInput = document.getElementById('search');
+                    var searchResults = [];
+                    var searchIndex = 0;
+
+                    function updateSearch() {
+                        if (!searchInput) return;
+                        var term = searchInput.value.trim().toLowerCase();
+                        searchResults = [];
+                        document.querySelectorAll('.bookmark-entries li').forEach(function (li) {
+                            var a = li.querySelector('a');
+                            var text = a.textContent.toLowerCase();
+                            var url = a.getAttribute('href').toLowerCase();
+                            if (!term || text.indexOf(term) !== -1 || url.indexOf(term) !== -1) {
+                                li.style.display = '';
+                                searchResults.push(li);
+                            } else {
+                                li.style.display = 'none';
+                            }
+                        });
+                        document.querySelectorAll('.categoryBlock').forEach(function (cat) {
+                            var visible = false;
+                            cat.querySelectorAll('.bookmark-entries li').forEach(function (li) {
+                                if (li.style.display !== 'none') visible = true;
+                            });
+                            cat.style.display = visible ? '' : 'none';
+                        });
+                        document.querySelectorAll('.bookmarkPage').forEach(function (page) {
+                            var visible = false;
+                            page.querySelectorAll('.categoryBlock').forEach(function (cat) {
+                                if (cat.style.display !== 'none') visible = true;
+                            });
+                            page.style.display = visible ? '' : 'none';
+                        });
+                        searchIndex = 0;
+                        highlightSearch();
+                    }
+
+                    function highlightSearch() {
+                        searchResults.forEach(function (li, idx) {
+                            if (idx === searchIndex) li.classList.add('search-selected');
+                            else li.classList.remove('search-selected');
+                        });
+                        if (searchResults[searchIndex]) {
+                            searchResults[searchIndex].scrollIntoView({block:'center'});
+                        }
+                    }
+
+                    if (searchInput) {
+                        searchInput.addEventListener('input', updateSearch);
+                        searchInput.addEventListener('keydown', function (e) {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (searchResults[searchIndex]) {
+                                    searchResults[searchIndex].querySelector('a').click();
+                                }
+                            } else if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                if (searchResults.length) {
+                                    searchIndex = (searchIndex + 1) % searchResults.length;
+                                    highlightSearch();
+                                }
+                            } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                if (searchResults.length) {
+                                    searchIndex = (searchIndex - 1 + searchResults.length) % searchResults.length;
+                                    highlightSearch();
+                                }
+                            }
+                        });
+                    }
+
+                    document.addEventListener('keydown', function (e) {
+                        if (!(e.ctrlKey && e.altKey && e.shiftKey)) return;
+                        var pages = document.querySelectorAll('.bookmarkPage[id^="page"]');
+                        var tabLinks = document.querySelectorAll('#tab-list li a');
+                        var current = currentPage();
+                        var currentTab = parseInt(document.body.dataset.tab || '0');
+
+                        if (e.key === 'ArrowRight') {
+                            e.preventDefault();
+                            if (current + 1 < pages.length) {
+                                pages[current + 1].scrollIntoView({behavior:'smooth'});
+                                location.hash = 'page' + (current + 1);
+                            }
+                        } else if (e.key === 'ArrowLeft') {
+                            e.preventDefault();
+                            if (current > 0) {
+                                pages[current - 1].scrollIntoView({behavior:'smooth'});
+                                location.hash = 'page' + (current - 1);
+                            }
+                        } else if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            if (currentTab + 1 < tabLinks.length) {
+                                window.location.href = tabLinks[currentTab + 1].href;
+                            }
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (currentTab > 0) {
+                                window.location.href = tabLinks[currentTab - 1].href;
+                            }
+                        }
+                    });
                 });
                 </script>
                  </body>
