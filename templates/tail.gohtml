@@ -91,10 +91,19 @@
 
                     function moveSelection(delta) {
                         if (searchResults.length === 0) return;
-                        searchResults[selectedIndex].classList.remove('search-selected');
+                        var cur = searchResults[selectedIndex];
+                        cur.classList.remove('search-selected');
                         selectedIndex = (selectedIndex + delta + searchResults.length) % searchResults.length;
-                        searchResults[selectedIndex].classList.add('search-selected');
-                        searchResults[selectedIndex].scrollIntoView({block: 'nearest'});
+                        var nextEl = searchResults[selectedIndex];
+                        nextEl.classList.add('search-selected');
+                        var curPage = cur.closest('.bookmarkPage');
+                        var newPage = nextEl.closest('.bookmarkPage');
+                        if (newPage && curPage !== newPage) {
+                            location.hash = '#' + newPage.id;
+                            newPage.scrollIntoView({block: 'center'});
+                        } else {
+                            nextEl.scrollIntoView({block: 'nearest'});
+                        }
                     }
 
                     function moveSelectionHorizontal(dir) {
@@ -117,10 +126,18 @@
                             }
                         });
                         if (best >= 0) {
+                            var curPage = cur.closest('.bookmarkPage');
                             searchResults[selectedIndex].classList.remove('search-selected');
                             selectedIndex = best;
-                            searchResults[selectedIndex].classList.add('search-selected');
-                            searchResults[selectedIndex].scrollIntoView({block: 'nearest'});
+                            var nextEl = searchResults[selectedIndex];
+                            nextEl.classList.add('search-selected');
+                            var newPage = nextEl.closest('.bookmarkPage');
+                            if (newPage && curPage !== newPage) {
+                                location.hash = '#' + newPage.id;
+                                newPage.scrollIntoView({block: 'center'});
+                            } else {
+                                nextEl.scrollIntoView({block: 'nearest'});
+                            }
                         }
                     }
 
@@ -143,6 +160,7 @@
                             } else if (e.key === 'Escape') {
                                 searchBox.blur();
                                 e.preventDefault();
+                                e.stopPropagation();
                             }
                         });
                     }
