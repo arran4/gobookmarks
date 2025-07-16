@@ -239,3 +239,27 @@ body:not(.edit-mode) .moveIcon {
 body:not(.edit-mode) .move-handle {
     display: none;
 }
+
+#search-overlay {
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFFBF0;
+    color: #800000;
+    border: 1px solid #800000;
+    padding: 1em;
+    z-index: 1000;
+    display: none;
+}
+
+#search-results {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-top: 0.5em;
+}
+
+#search-results div.selected {
+    background: #800000;
+    color: #FFFBF0;
+}

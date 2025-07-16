@@ -15,9 +15,15 @@
                                </i>
                        </div>
 </footer>
-                {{ end }}
-                <script>
-                document.addEventListener('DOMContentLoaded', function () {
+                 {{ end }}
+
+                 <div id="search-overlay">
+                     <input id="search-input" type="text" placeholder="Search..." />
+                     <div id="search-results"></div>
+                 </div>
+
+                 <script>
+                 document.addEventListener('DOMContentLoaded', function () {
                     var toggleEdit = document.getElementById('toggle-edit');
 
                     function currentPage() {
@@ -49,8 +55,92 @@
                         });
                     }
 
-                    attach(toggleEdit);
-                });
+                     attach(toggleEdit);
+
+                     function switchPage(delta) {
+                         var pages = document.querySelectorAll('#page-list li a');
+                         if (!pages.length) return;
+                         var idx = currentPage();
+                         if (idx < 0) idx = 0;
+                         idx = Math.max(0, Math.min(pages.length - 1, idx + delta));
+                         window.location.href = pages[idx].href;
+                     }
+
+                     function switchTab(delta) {
+                         var tabs = document.querySelectorAll('#tab-list li a');
+                         if (!tabs.length) return;
+                         var current = document.body.dataset.tab || '';
+                         var idx = Array.from(tabs).findIndex(function(a){
+                             return a.href.includes('tab=' + encodeURIComponent(current));
+                         });
+                         if (idx < 0) idx = 0;
+                         idx = Math.max(0, Math.min(tabs.length - 1, idx + delta));
+                         window.location.href = tabs[idx].href;
+                     }
+
+                     var overlay = document.getElementById('search-overlay');
+                     var input = document.getElementById('search-input');
+                     var resultsEl = document.getElementById('search-results');
+                     var results = [];
+                     var sel = 0;
+
+                     function renderResults() {
+                         resultsEl.innerHTML = '';
+                         results.forEach(function(a, i){
+                             var div = document.createElement('div');
+                             div.textContent = a.textContent;
+                             if (i === sel) div.classList.add('selected');
+                             resultsEl.appendChild(div);
+                         });
+                     }
+
+                     function updateResults() {
+                         var q = input.value.toLowerCase();
+                         results = [];
+                         if (q) {
+                             document.querySelectorAll('.bookmarkPage a').forEach(function(a){
+                                 if (a.textContent.toLowerCase().includes(q)) {
+                                     results.push(a);
+                                 }
+                             });
+                         }
+                         sel = 0;
+                         renderResults();
+                     }
+
+                     input.addEventListener('input', updateResults);
+
+                     function openSearch() {
+                         overlay.style.display = 'block';
+                         input.value = '';
+                         updateResults();
+                         input.focus();
+                     }
+
+                     function closeSearch() {
+                         overlay.style.display = 'none';
+                     }
+
+                     document.addEventListener('keydown', function(e){
+                         if (overlay.style.display === 'block') {
+                             if (e.key === 'Escape') { closeSearch(); }
+                             else if (e.key === 'ArrowDown') { if (sel < results.length-1) { sel++; renderResults(); } e.preventDefault(); }
+                             else if (e.key === 'ArrowUp') { if (sel > 0) { sel--; renderResults(); } e.preventDefault(); }
+                             else if (e.key === 'Enter') { if (results[sel]) { window.location.href = results[sel].href; closeSearch(); } }
+                             return;
+                         }
+
+                         if (e.ctrlKey && e.altKey && e.shiftKey) {
+                             if (e.key === 'ArrowDown') { e.preventDefault(); switchPage(1); }
+                             else if (e.key === 'ArrowUp') { e.preventDefault(); switchPage(-1); }
+                             else if (e.key === 'ArrowRight') { e.preventDefault(); switchTab(1); }
+                             else if (e.key === 'ArrowLeft') { e.preventDefault(); switchTab(-1); }
+                             else if (e.key.toLowerCase() === 'f') { e.preventDefault(); openSearch(); }
+                         }
+                     });
+
+                     window.addEventListener('blur', function(){ closeSearch(); });
+                 });
                 </script>
                  </body>
 </html>
