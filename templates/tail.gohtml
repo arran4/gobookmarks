@@ -85,7 +85,13 @@
                         });
                         if (searchResults.length > 0) {
                             searchResults[0].classList.add('search-selected');
-                            searchResults[0].scrollIntoView({block: 'nearest'});
+                            var firstPage = searchResults[0].closest('.bookmarkPage');
+                            if (firstPage) {
+                                location.hash = '#' + firstPage.id;
+                                firstPage.scrollIntoView({block: 'center'});
+                            } else {
+                                searchResults[0].scrollIntoView({block: 'nearest'});
+                            }
                         }
                     }
 
