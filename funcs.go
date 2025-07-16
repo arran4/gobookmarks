@@ -115,6 +115,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return UseCssColumns
 		},
+		"devMode": func() bool {
+			return DevMode
+		},
 		"showFooter": func() bool {
 			return !NoFooter
 		},

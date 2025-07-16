@@ -20,6 +20,7 @@ type Config struct {
 	GitlabSecret         string   `json:"gitlab_secret"`
 	ExternalURL          string   `json:"external_url"`
 	CssColumns           bool     `json:"css_columns"`
+	DevMode              *bool    `json:"dev_mode"`
 	Namespace            string   `json:"namespace"`
 	Title                string   `json:"title"`
 	GithubServer         string   `json:"github_server"`
@@ -96,6 +97,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.CssColumns {
 		dst.CssColumns = true
+	}
+	if src.DevMode != nil {
+		dst.DevMode = src.DevMode
 	}
 	if src.Namespace != "" {
 		dst.Namespace = src.Namespace

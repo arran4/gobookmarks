@@ -70,12 +70,19 @@ func main() {
 	}
 
 	cfg := Config{
-		GithubClientID:  os.Getenv("GITHUB_CLIENT_ID"),
-		GithubSecret:    os.Getenv("GITHUB_SECRET"),
-		GitlabClientID:  os.Getenv("GITLAB_CLIENT_ID"),
-		GitlabSecret:    os.Getenv("GITLAB_SECRET"),
-		ExternalURL:     os.Getenv("EXTERNAL_URL"),
-		CssColumns:      os.Getenv("GBM_CSS_COLUMNS") != "",
+		GithubClientID: os.Getenv("GITHUB_CLIENT_ID"),
+		GithubSecret:   os.Getenv("GITHUB_SECRET"),
+		GitlabClientID: os.Getenv("GITLAB_CLIENT_ID"),
+		GitlabSecret:   os.Getenv("GITLAB_SECRET"),
+		ExternalURL:    os.Getenv("EXTERNAL_URL"),
+		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
+		DevMode: func() *bool {
+			if v, ok := os.LookupEnv("GBM_DEV_MODE"); ok {
+				b, _ := strconv.ParseBool(v)
+				return BP(b)
+			}
+			return nil
+		}(),
 		Namespace:       os.Getenv("GBM_NAMESPACE"),
 		Title:           os.Getenv("GBM_TITLE"),
 		GithubServer:    os.Getenv("GITHUB_SERVER"),
@@ -127,6 +134,7 @@ func main() {
 	var providerOrderFlag stringFlag
 	var columnFlag boolFlag
 	var noFooterFlag boolFlag
+	var devModeFlag boolFlag
 	var versionFlag bool
 	var dumpConfig bool
 	flag.Var(&cfgFlag, "config", "path to config file")
@@ -149,6 +157,7 @@ func main() {
 	flag.Var(&providerOrderFlag, "provider-order", "comma-separated provider order")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.Var(&noFooterFlag, "no-footer", "disable footer on pages")
+	flag.Var(&devModeFlag, "dev-mode", "enable dev mode helpers")
 	flag.BoolVar(&versionFlag, "version", false, "show version")
 	flag.BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
 	flag.Parse()
@@ -205,6 +214,9 @@ func main() {
 	if noFooterFlag.set {
 		cfg.NoFooter = noFooterFlag.value
 	}
+	if devModeFlag.set {
+		cfg.DevMode = BP(devModeFlag.value)
+	}
 	if ghServerFlag.set {
 		cfg.GithubServer = ghServerFlag.value
 	}
@@ -251,6 +263,13 @@ func main() {
 	RepoName = GetBookmarksRepoName()
 	SiteTitle = cfg.Title
 	NoFooter = cfg.NoFooter
+	DevMode = version == "dev"
+	if cfg.DevMode != nil {
+		DevMode = *cfg.DevMode
+	}
+	if devModeFlag.set {
+		DevMode = devModeFlag.value
+	}
 	if cfg.GithubServer != "" {
 		GithubServer = cfg.GithubServer
 	}
@@ -317,7 +336,7 @@ func main() {
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
-	if version == "dev" {
+	if DevMode {
 		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
