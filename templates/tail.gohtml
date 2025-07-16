@@ -50,6 +50,160 @@
                     }
 
                     attach(toggleEdit);
+
+                    var searchBox = document.getElementById('search-box');
+                    var searchResults = [];
+                    var selectedIndex = 0;
+
+                    function clearSearch() {
+                        document.querySelectorAll('.search-hidden').forEach(function(el){
+                            el.classList.remove('search-hidden');
+                        });
+                        document.querySelectorAll('.search-selected').forEach(function(el){
+                            el.classList.remove('search-selected');
+                        });
+                        searchResults = [];
+                        selectedIndex = 0;
+                    }
+
+                    function updateSearch() {
+                        clearSearch();
+                        if (!searchBox) return;
+                        var q = searchBox.value.trim().toLowerCase();
+                        if (!q) return;
+                        var items = document.querySelectorAll('.bookmark-entries li');
+                        items.forEach(function(li) {
+                            var a = li.querySelector('a[target="_blank"]');
+                            if (!a) return;
+                            var text = a.textContent.toLowerCase();
+                            var url = a.getAttribute('href').toLowerCase();
+                            if (text.indexOf(q) !== -1 || url.indexOf(q) !== -1) {
+                                searchResults.push(li);
+                            } else {
+                                li.classList.add('search-hidden');
+                            }
+                        });
+                        if (searchResults.length > 0) {
+                            searchResults[0].classList.add('search-selected');
+                            searchResults[0].scrollIntoView({block: 'nearest'});
+                        }
+                    }
+
+                    function moveSelection(delta) {
+                        if (searchResults.length === 0) return;
+                        searchResults[selectedIndex].classList.remove('search-selected');
+                        selectedIndex = (selectedIndex + delta + searchResults.length) % searchResults.length;
+                        searchResults[selectedIndex].classList.add('search-selected');
+                        searchResults[selectedIndex].scrollIntoView({block: 'nearest'});
+                    }
+
+                    function moveSelectionHorizontal(dir) {
+                        if (searchResults.length === 0) return;
+                        var cur = searchResults[selectedIndex];
+                        var r0 = cur.getBoundingClientRect();
+                        var midY = (r0.top + r0.bottom) / 2;
+                        var best = -1;
+                        var bestDist = Infinity;
+                        searchResults.forEach(function(li, idx){
+                            if (idx === selectedIndex) return;
+                            var r = li.getBoundingClientRect();
+                            var withinY = Math.abs(((r.top + r.bottom)/2) - midY);
+                            if (dir < 0 && r.right <= r0.left) {
+                                var dist = (r0.left - r.right) * (r0.left - r.right) + withinY * withinY;
+                                if (dist < bestDist) { bestDist = dist; best = idx; }
+                            } else if (dir > 0 && r.left >= r0.right) {
+                                var dist = (r.left - r0.right) * (r.left - r0.right) + withinY * withinY;
+                                if (dist < bestDist) { bestDist = dist; best = idx; }
+                            }
+                        });
+                        if (best >= 0) {
+                            searchResults[selectedIndex].classList.remove('search-selected');
+                            selectedIndex = best;
+                            searchResults[selectedIndex].classList.add('search-selected');
+                            searchResults[selectedIndex].scrollIntoView({block: 'nearest'});
+                        }
+                    }
+
+                    if (searchBox) {
+                        searchBox.addEventListener('input', updateSearch);
+                        searchBox.addEventListener('keydown', function(e) {
+                            if (e.key === 'ArrowDown') {
+                                moveSelection(1);
+                                e.preventDefault();
+                            } else if (e.key === 'ArrowUp') {
+                                moveSelection(-1);
+                                e.preventDefault();
+                            } else if (e.key === 'Enter') {
+                                if (searchResults.length > 0) {
+                                    var link = searchResults[selectedIndex].querySelector('a');
+                                    if (link) {
+                                        window.location.href = link.href;
+                                    }
+                                }
+                            } else if (e.key === 'Escape') {
+                                searchBox.blur();
+                                e.preventDefault();
+                            }
+                        });
+                    }
+
+                    function changePage(delta) {
+                        var pages = document.querySelectorAll('.bookmarkPage[id^="page"]');
+                        if (!pages.length) return;
+                        var cur = currentPage();
+                        if (cur < 0) cur = 0;
+                        var next = (cur + delta + pages.length) % pages.length;
+                        var id = pages[next].id;
+                        location.hash = '#' + id;
+                        pages[next].scrollIntoView();
+                    }
+
+                    function changeTab(delta) {
+                        var tabs = document.querySelectorAll('#tab-list a');
+                        if (!tabs.length) return;
+                        var params = new URLSearchParams(window.location.search);
+                        var idx = parseInt(params.get('tab') || '0');
+                        if (isNaN(idx)) idx = 0;
+                        var next = (idx + delta + tabs.length) % tabs.length;
+                        window.location.href = tabs[next].href;
+                    }
+
+                    document.addEventListener('keydown', function(e) {
+                        var active = document.activeElement;
+                        var inInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+
+                        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+                            if (e.key === ']') { changePage(1); e.preventDefault(); return; }
+                            if (e.key === '[') { changePage(-1); e.preventDefault(); return; }
+                            if (e.key === '}') { changeTab(1); e.preventDefault(); return; }
+                            if (e.key === '{') { changeTab(-1); e.preventDefault(); return; }
+                            if (e.key.toLowerCase() === 'k') { if (searchBox) { searchBox.focus(); searchBox.select(); } e.preventDefault(); return; }
+                        }
+
+                        if (!inInput) {
+                            if (e.key === 'ArrowDown') { moveSelection(1); e.preventDefault(); }
+                            else if (e.key === 'ArrowUp') { moveSelection(-1); e.preventDefault(); }
+                            else if (e.key === 'ArrowRight') { moveSelectionHorizontal(1); e.preventDefault(); }
+                            else if (e.key === 'ArrowLeft') { moveSelectionHorizontal(-1); e.preventDefault(); }
+                            else if (e.key === '?') {
+                                alert('Keyboard shortcuts:\nAlt+[ and Alt+] - switch page\nAlt+{ and Alt+} - switch tab\nAlt+K - focus search\nArrows navigate results\nEsc - exit search (press twice)');
+                                e.preventDefault();
+                            } else if (e.key === 'Escape') {
+                                if (searchBox && searchBox.value !== '') {
+                                    searchBox.value = '';
+                                    clearSearch();
+                                } else if (searchBox) {
+                                    searchBox.blur();
+                                }
+                                e.preventDefault();
+                            } else if (e.key === 'Enter') {
+                                if (searchResults.length > 0) {
+                                    var link = searchResults[selectedIndex].querySelector('a');
+                                    if (link) { window.location.href = link.href; }
+                                }
+                            }
+                        }
+                    });
                 });
                 </script>
                  </body>
