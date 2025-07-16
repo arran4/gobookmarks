@@ -246,7 +246,8 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `DB_CONNECTION_PROVIDER` | SQL driver name for the SQL provider. `mysql` or `sqlite`                                                                                                                                                                                    |
 | `DB_CONNECTION_STRING` | Connection string for the SQL provider. File path for `sqlite` or `user:pass@/database?multiStatements=true` See https://github.com/go-sql-driver/mysql                                                                                      |
 | `GBM_NO_FOOTER` | Hide the footer on pages.                                                                                                                                                                                                                    |
-| `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`.                                                    |
+| `SESSION_KEY` | Secret used to sign session cookies. If unset the program reads or creates `session.key` under `$XDG_STATE_HOME/gobookmarks`, `$HOME/.local/state/gobookmarks` or `/var/lib/gobookmarks`. |
+| `CONTENT_SECURITY_POLICY` | Value for the `Content-Security-Policy` header applied to responses. Defaults to `default-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';` |
 | `PROVIDER_ORDER` | Comma-separated list controlling the order login options are shown. Unrecognized names are ignored. Defaults to alphabetical order. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`.                                                                                                                           |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system‑wide or run as root. |
@@ -264,6 +265,7 @@ The `--dev-mode` flag or `GBM_DEV_MODE` environment variable toggles the develop
 Use `--github-server` or `GITHUB_SERVER` to override the GitHub base URL and `--gitlab-server` or `GITLAB_SERVER` for GitLab.
 Use `--no-footer` or `GBM_NO_FOOTER` to hide the footer on pages.
 Use `--provider-order` or `PROVIDER_ORDER` to customize the login button order.
+Set `CONTENT_SECURITY_POLICY` to override the default Content Security Policy if you need a stricter configuration.
 
 Running `gobookmarks --version` will print the version information along with the list of compiled-in providers.
 When no OAuth2 credentials are configured the login buttons are hidden. Visit `/status` to see which providers are available.
