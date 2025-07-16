@@ -15,6 +15,8 @@ var (
 	mainCSSData []byte
 	//go:embed "logo.png"
 	faviconData []byte
+	//go:embed "static/js/*.js"
+	staticJS embed.FS
 )
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
@@ -27,4 +29,8 @@ func GetMainCSSData() []byte {
 
 func GetFavicon() []byte {
 	return faviconData
+}
+
+func GetJS(name string) ([]byte, error) {
+	return staticJS.ReadFile("static/js/" + name)
 }
