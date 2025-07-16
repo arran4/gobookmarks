@@ -28,6 +28,7 @@ type Config struct {
 	FaviconCacheDir      string   `json:"favicon_cache_dir"`
 	FaviconCacheSize     int64    `json:"favicon_cache_size"`
 	LocalGitPath         string   `json:"local_git_path"`
+	CSP                  string   `json:"csp"`
 	NoFooter             bool     `json:"no_footer"`
 	SessionKey           string   `json:"session_key"`
 	DBConnectionProvider string   `json:"db_connection_provider"`
@@ -121,6 +122,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.LocalGitPath != "" {
 		dst.LocalGitPath = src.LocalGitPath
+	}
+	if src.CSP != "" {
+		dst.CSP = src.CSP
 	}
 	if src.NoFooter {
 		dst.NoFooter = true
