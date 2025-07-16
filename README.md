@@ -5,7 +5,7 @@
 The purpose of the site is to display a list of links for you to see every time you open your browser. I have tried to
 move as much of the work into the app as possible with minimal effort but you will need to use GitHub occasionally.
 
-![img_4.png](media/img_4.png)
+![Screenshot_20250716_161941.png](media/Screenshot_20250716_161941.png)
 
 This project is a conversion of a project: [goa4web-bookmarks](https://github.com/arran4/goa4web-bookmarks) to remove
 the SQL and replace it with GitHub. Which itself is extracted from [goa4web](https://github.com/arran4/goa4web), which is
@@ -16,7 +16,9 @@ OAuth2 restrictions on SPA sites. You can read more about this here: https://arr
 
 # How to use
 
-1. Sign up or log in using Git, GitHub or GitLab. On first use the service
+![Screenshot_20250716_161715.png](media/Screenshot_20250716_161715.png)
+
+1. Sign up or log in using a database, local Git, GitHub or GitLab. On first use the service
    creates a repository called `MyBookmarks` in your account containing a
    `bookmarks.txt` file like:
 
@@ -28,11 +30,10 @@ OAuth2 restrictions on SPA sites. You can read more about this here: https://arr
    http://mathworld.wolfram.com/ Math World
    http://gentoo-wiki.com/Main_Page Gentoo-wiki
    ```
-
-   ![img_3.png](media/img_3.png)
-2. Go to the URL this app is deployed at, your private instance or:
-   https://bookmarks.arran.net.au
-3. Enjoy
+   
+   ![Screenshot_20250716_162050.png](media/Screenshot_20250716_162050.png)
+2. Go to the URL this app is deployed at.
+3. Enjoy your new landing page / start page / bookmarks page.
 
 ## File format
 
@@ -60,7 +61,121 @@ Category: Right
 http://right.com
 ```
 
+### Big example
+
+```text
+Tab: Home Dashboard  
+Page: Quick Links  
+Column  
+Category: Search Engines  
+https://www.google.com              Google Search  
+https://duckduckgo.com              DuckDuckGo  
+https://bing.com                    Bing  
+https://startpage.com               Startpage  
+
+Category: Version Control  
+https://github.com                  GitHub  
+https://gitlab.com                  GitLab  
+https://github.com/arran4/blog      arran4 Blog  
+https://github.com/arran4/dotfiles   arran4 Dotfiles  
+https://bitbucket.org               Bitbucket  
+https://sr.ht                       SourceHut  
+https://gitea.com                   Gitea  
+https://aws.amazon.com/codecommit   AWS CodeCommit  
+
+Column  
+Category: freeCodeCamp  
+https://freecodecamp.org            freeCodeCamp  
+https://forum.freecodecamp.org      freeCodeCamp Forum  
+
+Category: Coursera  
+https://coursera.org                Coursera  
+https://blog.coursera.org           Coursera Blog  
+
+Page: Tools  
+Column  
+Category: Code Editors  
+https://code.visualstudio.com       Visual Studio Code  
+https://sublimetext.com             Sublime Text  
+https://atom.io                     Atom  
+https://www.jetbrains.com/idea      IntelliJ IDEA Community Edition  
+
+Column  
+Category: Terminal Emulators  
+https://wezfurlong.org/wezterm      WezTerm  
+https://kitty.black                 Kitty  
+https://github.com/alacritty/alacritty  Alacritty  
+https://hyper.is                    Hyper  
+
+Tab: UI Frameworks  
+Page: Components  
+Column  
+Category: Libraries  
+https://mui.com                     Material‑UI  
+https://storybook.js.org            Storybook  
+https://ant.design                  Ant Design  
+https://chakra-ui.com               Chakra UI  
+
+Column  
+Category: Grid Guides  
+https://css-tricks.com/snippets/css/complete-guide-grid   CSS‑Tricks Grid Guide  
+https://getbootstrap.com/docs/5.0/layout/grid/            Bootstrap Grid Guide  
+https://tailwindcss.com/docs/grid-template-columns       Tailwind CSS Grid Guide  
+
+Page: Reference  
+Column  
+Category: MDN Web Docs  
+https://developer.mozilla.org      MDN Web Docs  
+https://caniuse.com                Can I Use  
+https://www.w3.org/standards       W3C Standards  
+https://devdocs.io                 DevDocs  
+
+Tab: Entertainment  
+Page: Video  
+Column  
+Category: Videos  
+https://youtube.com                YouTube  
+https://netflix.com                Netflix  
+https://primevideo.com             Prime Video  
+
+Column  
+Category: Tech News  
+https://news.ycombinator.com       Hacker News  
+https://arstechnica.com            Ars Technica  
+https://techcrunch.com             TechCrunch  
+
+Page: Podcasts  
+Column  
+Category: Podcasts  
+https://talkpython.fm              Talk Python To Me  
+https://developerhabits.com        Developer Habits  
+https://syntax.fm                  Syntax.fm  
+
+```
+
 ## Editing
+
+### Visual editor
+
+There is a visual editor which you can do some things such as rearrange links, categories,
+pages, etc. It's designed to be for things which would be quicker to preform them that way
+you can also just use the text version below.
+
+Here is a visual demonstration of the edit capabilities:
+
+There is a distinct edit mode. With some visual indication of what can be moved:
+
+![Screenshot_20250716_162044.png](media/Screenshot_20250716_162044.png)
+
+<video src="media/simplescreenrecorder-2025-07-16_16.22.12.mp4" width="320" height="240" controls></video>
+
+<video src="media/simplescreenrecorder-2025-07-16_16.22.19.mp4" width="320" height="240" controls></video>
+
+<video src="media/simplescreenrecorder-2025-07-16_16.22.27.mp4" width="320" height="240" controls></video>
+
+<video src="media/simplescreenrecorder-2025-07-16_16.22.51.mp4" width="320" height="240" controls></video>
+
+### Edit as text
 
 The `/edit` page allows updating the entire bookmark file.
 Each category heading on the index page now includes a small pencil icon
@@ -69,11 +184,24 @@ category text and saves changes back to your bookmarks without touching
 other sections. Edits check the file's SHA so you'll get an error if it
 changed while you were editing.
 
-![img.png](media/img.png)
+![Screenshot_20250716_162050.png](media/Screenshot_20250716_162050.png)
 
-![img_1.png](media/img_1.png)
+## History 
 
-![img_2.png](media/img_2.png)
+All modes have a git (or git like) means of storing history, you can see your bookmarks
+at any stage using this system:
+
+![Screenshot_20250716_162105.png](media/Screenshot_20250716_162105.png)
+
+## Search
+
+You can quickly search for any link on the same Tab you're on. (Tabs contain pages.)
+
+![Screenshot_20250716_162125.png](media/Screenshot_20250716_162125.png)
+
+There is keyboard navigation, see keyboard shortcuts for details.
+
+<video src="media/simplescreenrecorder-2025-07-16_16.23.20.mp4" width="320" height="240" controls></video>
 
 ## Keyboard Shortcuts
 
@@ -86,7 +214,7 @@ quicker:
 * While the search box is focused, **Up/Down** or **Left/Right** arrows move
   between filtered results. Press **Enter** to open the selected link or
   **Ctrl+Enter**/**Meta+Enter** to open it in a background tab.
-* Pressing **Esc** once blurs the search field. Pressing **Esc** again clears
+* Pressing **Esc** once exits the search field. Pressing **Esc** again clears
   the search and restores the previous view.
 * Press **?** anywhere (outside of a text field) to see these shortcuts in a
   small help dialog.
