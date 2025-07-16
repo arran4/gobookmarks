@@ -167,13 +167,13 @@ There is a distinct edit mode. With some visual indication of what can be moved:
 
 ![Screenshot_20250716_162044.png](media/Screenshot_20250716_162044.png)
 
-![media/simplescreenrecorder-2025-07-16_16.22.12.webm](media/simplescreenrecorder-2025-07-16_16.22.12.webm)
+![media/simplescreenrecorder-2025-07-16_16.22.12.gif](media/simplescreenrecorder-2025-07-16_16.22.12.gif)
 
-![media/simplescreenrecorder-2025-07-16_16.22.19.webm](media/simplescreenrecorder-2025-07-16_16.22.19.webm)
+![media/simplescreenrecorder-2025-07-16_16.22.19.gif](media/simplescreenrecorder-2025-07-16_16.22.19.gif)
 
-![media/simplescreenrecorder-2025-07-16_16.22.27.webm](media/simplescreenrecorder-2025-07-16_16.22.27.webm)
+![media/simplescreenrecorder-2025-07-16_16.22.27.gif](media/simplescreenrecorder-2025-07-16_16.22.27.gif)
 
-![media/simplescreenrecorder-2025-07-16_16.22.51.webm](media/simplescreenrecorder-2025-07-16_16.22.51.webm)
+![media/simplescreenrecorder-2025-07-16_16.22.51.gif](media/simplescreenrecorder-2025-07-16_16.22.51.gif)
 
 ### Edit as text
 
@@ -201,7 +201,7 @@ You can quickly search for any link on the same Tab you're on. (Tabs contain pag
 
 There is keyboard navigation, see keyboard shortcuts for details.
 
-![media/simplescreenrecorder-2025-07-16_16.23.20.webm](media/simplescreenrecorder-2025-07-16_16.23.20.webm)
+![media/simplescreenrecorder-2025-07-16_16.23.20.gif](media/simplescreenrecorder-2025-07-16_16.23.20.gif)
 
 ## Keyboard Shortcuts
 
