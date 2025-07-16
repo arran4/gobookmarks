@@ -50,6 +50,100 @@
                     }
 
                     attach(toggleEdit);
+
+                    var searchBox = document.getElementById('search-box');
+                    var searchResults = document.getElementById('search-results');
+                    if (searchBox && searchResults) {
+                        var allLinks = Array.from(document.querySelectorAll('.bookmarkPage a[href]'));
+                        var sel = -1;
+                        function updateResults() {
+                            var q = searchBox.value.toLowerCase();
+                            searchResults.innerHTML = '';
+                            sel = -1;
+                            if (!q) {
+                                searchResults.style.display = 'none';
+                                return;
+                            }
+                            var matches = allLinks.filter(function (a) {
+                                return a.textContent.toLowerCase().indexOf(q) !== -1;
+                            });
+                            matches.forEach(function (a, i) {
+                                var div = document.createElement('div');
+                                div.textContent = a.textContent;
+                                div.dataset.url = a.href;
+                                if (i === 0) {
+                                    div.classList.add('search-result-selected');
+                                    sel = 0;
+                                }
+                                searchResults.appendChild(div);
+                            });
+                            searchResults.style.display = matches.length ? 'block' : 'none';
+                        }
+                        searchBox.addEventListener('input', updateResults);
+                        searchBox.addEventListener('keydown', function (e) {
+                            var items = searchResults.querySelectorAll('div');
+                            if (e.key === 'ArrowDown') {
+                                if (sel < items.length - 1) sel++;
+                                e.preventDefault();
+                            } else if (e.key === 'ArrowUp') {
+                                if (sel > 0) sel--;
+                                e.preventDefault();
+                            } else if (e.key === 'Enter') {
+                                if (sel >= 0 && items[sel]) {
+                                    window.open(items[sel].dataset.url, '_blank');
+                                }
+                            }
+                            items.forEach(function (it, idx) {
+                                if (idx === sel) it.classList.add('search-result-selected');
+                                else it.classList.remove('search-result-selected');
+                            });
+                        });
+                        searchResults.addEventListener('mousedown', function (e) {
+                            var t = e.target.closest('div');
+                            if (t) {
+                                window.open(t.dataset.url, '_blank');
+                            }
+                        });
+                        document.addEventListener('keydown', function (e) {
+                            if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+                                e.preventDefault();
+                                searchBox.focus();
+                                searchBox.select();
+                            }
+                        });
+                    }
+
+                    document.addEventListener('keydown', function (e) {
+                        if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === ']')) {
+                            e.preventDefault();
+                            var links = document.querySelectorAll('#page-list li a');
+                            var cur = currentPage();
+                            var next = cur + 1;
+                            if (next >= links.length) next = 0;
+                            if (links[next]) links[next].click();
+                        } else if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === '[')) {
+                            e.preventDefault();
+                            var links = document.querySelectorAll('#page-list li a');
+                            var cur = currentPage();
+                            var prev = cur - 1;
+                            if (prev < 0) prev = links.length - 1;
+                            if (links[prev]) links[prev].click();
+                        } else if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === 'ArrowDown')) {
+                            e.preventDefault();
+                            var tabs = document.querySelectorAll('#tab-list li a');
+                            var current = parseInt(document.body.dataset.tab || '0');
+                            var n = current + 1;
+                            if (n >= tabs.length) n = 0;
+                            if (tabs[n]) tabs[n].click();
+                        } else if (e.ctrlKey && e.shiftKey && e.altKey && (e.key === 'ArrowUp')) {
+                            e.preventDefault();
+                            var tabs = document.querySelectorAll('#tab-list li a');
+                            var current = parseInt(document.body.dataset.tab || '0');
+                            var n = current - 1;
+                            if (n < 0) n = tabs.length - 1;
+                            if (tabs[n]) tabs[n].click();
+                        }
+                    });
                 });
                 </script>
                  </body>

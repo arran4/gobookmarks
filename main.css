@@ -239,3 +239,18 @@ body:not(.edit-mode) .moveIcon {
 body:not(.edit-mode) .move-handle {
     display: none;
 }
+
+#search-results {
+    position: absolute;
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    width: 190px;
+}
+
+.search-result-selected {
+    background-color: #ccc;
+}

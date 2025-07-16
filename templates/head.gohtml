@@ -46,9 +46,11 @@
                                                         {{- if $.EditMode }}
                                                                 <li><a href="/editPage?edit=1&ref={{ref}}&tab={{tab}}">+ Add Page</a></li>
                                                         {{- end }}
-                                                </ul>
-                                                {{ end }}
-                                                {{ if eq version "dev" }}
+                                               </ul>
+                                               {{ end }}
+                                               <input type="text" id="search-box" placeholder="Search..." autocomplete="off" style="width:100%;box-sizing:border-box;margin-top:0.5em;"/>
+                                               <div id="search-results" style="display:none;"></div>
+                                               {{ if eq version "dev" }}
                                                     <div id="devtools" style="margin-top:1em;">
                                                         Devtools:
                                                         <ul>
