@@ -167,13 +167,13 @@ There is a distinct edit mode. With some visual indication of what can be moved:
 
 ![Screenshot_20250716_162044.png](media/Screenshot_20250716_162044.png)
 
-<video src="blob/main/media/simplescreenrecorder-2025-07-16_16.22.12.mp4" width="320" height="240" controls></video>
+![media/simplescreenrecorder-2025-07-16_16.22.12.webm](media/simplescreenrecorder-2025-07-16_16.22.12.webm)
 
-<video src="blob/main/media/simplescreenrecorder-2025-07-16_16.22.19.mp4" width="320" height="240" controls></video>
+![media/simplescreenrecorder-2025-07-16_16.22.19.webm](media/simplescreenrecorder-2025-07-16_16.22.19.webm)
 
-<video src="blob/main/media/simplescreenrecorder-2025-07-16_16.22.27.mp4" width="320" height="240" controls></video>
+![media/simplescreenrecorder-2025-07-16_16.22.27.webm](media/simplescreenrecorder-2025-07-16_16.22.27.webm)
 
-<video src="blob/main/media/simplescreenrecorder-2025-07-16_16.22.51.mp4" width="320" height="240" controls></video>
+![media/simplescreenrecorder-2025-07-16_16.22.51.webm](media/simplescreenrecorder-2025-07-16_16.22.51.webm)
 
 ### Edit as text
 
@@ -201,11 +201,7 @@ You can quickly search for any link on the same Tab you're on. (Tabs contain pag
 
 There is keyboard navigation, see keyboard shortcuts for details.
 
-![simplescreenrecorder-2025-07-16_16.23.20.mp4](media/simplescreenrecorder-2025-07-16_16.23.20.mp4)
-
-<video src="media/simplescreenrecorder-2025-07-16_16.23.20.mp4" width="320" height="240" controls></video>
-
-<video src="blob/main/media/simplescreenrecorder-2025-07-16_16.23.20.mp4" width="320" height="240" controls></video>
+![media/simplescreenrecorder-2025-07-16_16.23.20.webm](media/simplescreenrecorder-2025-07-16_16.23.20.webm)
 
 ## Keyboard Shortcuts
 
