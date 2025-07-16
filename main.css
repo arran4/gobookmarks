@@ -239,3 +239,15 @@ body:not(.edit-mode) .moveIcon {
 body:not(.edit-mode) .move-handle {
     display: none;
 }
+
+/* Search box styles */
+#search-box {
+    width: 90%;
+    margin-top: 0.5em;
+}
+.search-hidden {
+    display: none;
+}
+.search-selected {
+    background-color: #ffe0e0;
+}
