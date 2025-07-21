@@ -23,8 +23,12 @@
                                 {{- range $j, $e := .Entries }}
                                     <li>
                                         <span class="move-handle">&#9776;</span>
-                                        <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                        <img src="/proxy/favicon?url={{ if isSearchURL .Url }}{{ searchURL .Url }}{{ else }}{{ .Url }}{{ end }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                        {{- if isSearchURL .Url }}
+                                        <input type="text" class="search-widget" data-search-url="{{ searchURL .Url }}" placeholder="{{ .DisplayName }}" />
+                                        {{- else }}
                                         <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
+                                        {{- end }}
                                     </li>
                                 {{- end }}
                             </ul>
@@ -49,8 +53,12 @@
                                   {{- range $j, $e := .Entries }}
                                       <li>
                                           <span class="move-handle">&#9776;</span>
-                                          <img src="/proxy/favicon?url={{ .Url }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                          <img src="/proxy/favicon?url={{ if isSearchURL .Url }}{{ searchURL .Url }}{{ else }}{{ .Url }}{{ end }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
+                                          {{- if isSearchURL .Url }}
+                                          <input type="text" class="search-widget" data-search-url="{{ searchURL .Url }}" placeholder="{{ .DisplayName }}" />
+                                          {{- else }}
                                           <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
+                                          {{- end }}
                                       </li>
                                   {{- end }}
                                 </ul>
