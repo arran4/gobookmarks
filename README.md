@@ -201,7 +201,10 @@ You can quickly search for any link on the same Tab you're on. (Tabs contain pag
 
 There is keyboard navigation, see keyboard shortcuts for details.
 
+Selecting the entry from quick search focuses its input field. Press **Enter** inside the widget to open the search in a new tab, **Shift+Enter** for a background tab and hold **Alt** to keep the entered text.
+
 [![media/simplescreenrecorder-2025-07-16_16.23.20.gif](media/simplescreenrecorder-2025-07-16_16.23.20.gif)](media/simplescreenrecorder-2025-07-16_16.23.20.gif)
+
 
 ### Search Widgets
 
@@ -211,10 +214,6 @@ Use a link starting with the `search:` scheme followed by a URL containing
 ```
 search:https://www.google.com/search?q=$query
 ```
-
-Selecting the entry from quick search focuses its input field. Press **Enter**
-inside the widget to open the search in a new tab, **Shift+Enter** for a
-background tab and hold **Alt** to keep the entered text.
 
 ## Keyboard Shortcuts
 
