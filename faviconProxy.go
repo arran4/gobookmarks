@@ -25,6 +25,10 @@ import (
 	"time"
 )
 
+// fetchUserAgent is used when fetching pages and icons so sites return
+// favicon links consistently (e.g. Google Calendar).
+const fetchUserAgent = "Mozilla/5.0 (compatible; gobookmarks/1.0)"
+
 type FavIcon struct {
 	Data        []byte
 	ContentType string
@@ -240,7 +244,12 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func fetchURL(urlParam string) ([]byte, error) {
-	resp, err := http.Get(urlParam)
+	req, err := http.NewRequest("GET", urlParam, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", fetchUserAgent)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +291,12 @@ func findFaviconURL(pageContent []byte, baseURL *url.URL) (string, string, error
 }
 
 func downloadUrl(url string) ([]byte, http.Header, error) {
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("User-Agent", fetchUserAgent)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
