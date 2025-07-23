@@ -57,7 +57,7 @@
                     var initialHash = '';
                     var initialPage = -1;
                     var lastSearchWidget = null;
-                    var widgetEscStep = 0;
+                    var widgetEscState = 'idle';
 
                     function restoreInitial() {
                         if (initialHash !== '') {
@@ -237,7 +237,7 @@
             document.querySelectorAll('input.search-widget').forEach(function(inp){
                 inp.addEventListener('focus', function(){
                     lastSearchWidget = inp;
-                    widgetEscStep = 0;
+                    widgetEscState = 'idle';
                 });
                 inp.addEventListener('keydown', function(e){
                     if (e.key === 'Enter') {
@@ -255,12 +255,12 @@
                         e.preventDefault();
                     } else if (e.key === 'Escape') {
                         lastSearchWidget = inp;
-                        widgetEscStep = 1;
+                        widgetEscState = 'clear-one';
                         inp.blur();
                         e.preventDefault();
                         e.stopPropagation();
                     } else {
-                        widgetEscStep = 0;
+                        widgetEscState = 'idle';
                     }
                 });
             });
@@ -302,7 +302,7 @@
 
                         if (!inInput) {
                             if (e.key !== 'Escape') {
-                                widgetEscStep = 0;
+                                widgetEscState = 'idle';
                             }
                             if (e.key === 'ArrowDown') { moveSelection(1); e.preventDefault(); }
                             else if (e.key === 'ArrowUp') { moveSelection(-1); e.preventDefault(); }
@@ -312,12 +312,12 @@
                                 alert('Keyboard shortcuts:\nAlt+[ and Alt+] - switch page\nAlt+{ and Alt+} - switch tab\nAlt+K - focus search\nArrows move selection\nEnter - open\nCtrl+Enter - open in background\nEsc twice - clear search and restore view');
                                 e.preventDefault();
                             } else if (e.key === 'Escape') {
-                                if (widgetEscStep === 1 && lastSearchWidget) {
+                                if (widgetEscState === 'clear-one' && lastSearchWidget) {
                                     if (lastSearchWidget.value !== '') {
                                         lastSearchWidget.value = '';
                                     }
-                                    widgetEscStep = 2;
-                                } else if (widgetEscStep === 2) {
+                                    widgetEscState = 'clear-all';
+                                } else if (widgetEscState === 'clear-all') {
                                     document.querySelectorAll('input.search-widget').forEach(function(el){ el.value = ''; });
                                     if (searchBox && searchBox.value !== '') {
                                         searchBox.value = '';
@@ -325,7 +325,7 @@
                                     } else if (searchBox) {
                                         searchBox.blur();
                                     }
-                                    widgetEscStep = 0;
+                                    widgetEscState = 'idle';
                                     lastSearchWidget = null;
                                 } else if (searchBox && searchBox.value !== '') {
                                     searchBox.value = '';
