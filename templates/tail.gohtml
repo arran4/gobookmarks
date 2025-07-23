@@ -56,6 +56,8 @@
                     var selectedIndex = 0;
                     var initialHash = '';
                     var initialPage = -1;
+                    var lastSearchWidget = null;
+                    var widgetEscStep = 0;
 
                     function restoreInitial() {
                         if (initialHash !== '') {
@@ -233,6 +235,10 @@
                     }
 
             document.querySelectorAll('input.search-widget').forEach(function(inp){
+                inp.addEventListener('focus', function(){
+                    lastSearchWidget = inp;
+                    widgetEscStep = 0;
+                });
                 inp.addEventListener('keydown', function(e){
                     if (e.key === 'Enter') {
                         var url = (inp.dataset.searchUrl || '').replace('$query', encodeURIComponent(inp.value));
@@ -247,6 +253,14 @@
                             inp.value = '';
                         }
                         e.preventDefault();
+                    } else if (e.key === 'Escape') {
+                        lastSearchWidget = inp;
+                        widgetEscStep = 1;
+                        inp.blur();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } else {
+                        widgetEscStep = 0;
                     }
                 });
             });
@@ -287,6 +301,9 @@
                         }
 
                         if (!inInput) {
+                            if (e.key !== 'Escape') {
+                                widgetEscStep = 0;
+                            }
                             if (e.key === 'ArrowDown') { moveSelection(1); e.preventDefault(); }
                             else if (e.key === 'ArrowUp') { moveSelection(-1); e.preventDefault(); }
                             else if (e.key === 'ArrowRight') { moveSelectionHorizontal(1); e.preventDefault(); }
@@ -295,7 +312,16 @@
                                 alert('Keyboard shortcuts:\nAlt+[ and Alt+] - switch page\nAlt+{ and Alt+} - switch tab\nAlt+K - focus search\nArrows move selection\nEnter - open\nCtrl+Enter - open in background\nEsc twice - clear search and restore view');
                                 e.preventDefault();
                             } else if (e.key === 'Escape') {
-                                if (searchBox && searchBox.value !== '') {
+                                if (widgetEscStep === 1 && lastSearchWidget) {
+                                    if (lastSearchWidget.value !== '') {
+                                        lastSearchWidget.value = '';
+                                    }
+                                    widgetEscStep = 2;
+                                } else if (widgetEscStep === 2) {
+                                    document.querySelectorAll('input.search-widget').forEach(function(el){ el.value = ''; });
+                                    widgetEscStep = 0;
+                                    lastSearchWidget = null;
+                                } else if (searchBox && searchBox.value !== '') {
                                     searchBox.value = '';
                                     clearSearch();
                                 } else if (searchBox) {
