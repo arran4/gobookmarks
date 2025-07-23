@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 shopt -s nullglob
 
-for f in *.mp4; do
+for f in *.webm; do
   base="${f%.mp4}"
   echo "🔄 Converting \"$f\" → \"$base.gif\" (native resolution)…"
 

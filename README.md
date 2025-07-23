@@ -215,6 +215,8 @@ Use a link starting with the `search:` scheme followed by a URL containing
 search:https://www.google.com/search?q=$query
 ```
 
+![Screencast_20250723_111959.webm.gif](media/Screencast_20250723_111959.webm.gif)
+
 ## Keyboard Shortcuts
 
 The interface supports a number of keyboard shortcuts to make navigation
