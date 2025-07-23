@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -123,8 +124,10 @@ func testFuncMap() template.FuncMap {
 				CommitterDate:  time.Unix(0, 0),
 			}}, nil
 		},
-		"prevCommit": func() string { return "prev" },
-		"nextCommit": func() string { return "next" },
+		"prevCommit":  func() string { return "prev" },
+		"nextCommit":  func() string { return "next" },
+		"isSearchURL": func(string) bool { return false },
+		"searchURL":   func(u string) string { return strings.TrimPrefix(u, "search:") },
 	}
 }
 

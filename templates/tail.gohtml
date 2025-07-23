@@ -56,6 +56,7 @@
                     var selectedIndex = 0;
                     var initialHash = '';
                     var initialPage = -1;
+                    var lastSearchWidget = null;
 
                     function restoreInitial() {
                         if (initialHash !== '') {
@@ -100,9 +101,18 @@
                         var items = document.querySelectorAll('.bookmark-entries li');
                         items.forEach(function(li) {
                             var a = li.querySelector('a[target="_blank"]');
-                            if (!a) return;
-                            var text = a.textContent.toLowerCase();
-                            var url = a.getAttribute('href').toLowerCase();
+                            var input = li.querySelector('input.search-widget');
+                            var text = '';
+                            var url = '';
+                            if (a) {
+                                text = a.textContent.toLowerCase();
+                                url = a.getAttribute('href').toLowerCase();
+                            } else if (input) {
+                                text = input.getAttribute('placeholder').toLowerCase();
+                                url = (input.dataset.searchUrl || '').toLowerCase();
+                            } else {
+                                return;
+                            }
                             if (text.indexOf(q) !== -1 || url.indexOf(q) !== -1) {
                                 searchResults.push(li);
                             } else {
@@ -195,16 +205,23 @@
                                 e.preventDefault();
                             } else if (e.key === 'Enter') {
                                 if (searchResults.length > 0) {
-                                    var link = searchResults[selectedIndex].querySelector('a');
-                                    if (link) {
-                                        if (e.ctrlKey || e.metaKey) {
-                                            window.open(link.href, '_blank', 'noopener');
-                                        } else if (link.target && link.target === '_blank') {
-                                            window.open(link.href, '_blank');
-                                        } else {
-                                            window.location.href = link.href;
+                                    var li = searchResults[selectedIndex];
+                                    var input = li.querySelector('input.search-widget');
+                                    if (input) {
+                                        input.focus();
+                                        input.select();
+                                    } else {
+                                        var link = li.querySelector('a');
+                                        if (link) {
+                                            if (e.ctrlKey || e.metaKey) {
+                                                window.open(link.href, '_blank', 'noopener');
+                                            } else if (link.target && link.target === '_blank') {
+                                                window.open(link.href, '_blank');
+                                            } else {
+                                                window.location.href = link.href;
+                                            }
+                                            searchBox.focus();
                                         }
-                                        searchBox.focus();
                                     }
                                 }
                                 e.preventDefault();
@@ -215,6 +232,33 @@
                             }
                         });
                     }
+
+            document.querySelectorAll('input.search-widget').forEach(function(inp){
+                inp.addEventListener('focus', function(){
+                    lastSearchWidget = inp;
+                });
+                inp.addEventListener('keydown', function(e){
+                    if (e.key === 'Enter') {
+                        var url = (inp.dataset.searchUrl || '').replace('$query', encodeURIComponent(inp.value));
+                        if (e.altKey && e.shiftKey) {
+                            window.open(url);
+                        } else if (e.shiftKey) {
+                            window.open(url, '_blank', 'noopener');
+                        } else {
+                            window.open(url, '_blank');
+                        }
+                        if (!e.altKey) {
+                            inp.value = '';
+                        }
+                        e.preventDefault();
+                    } else if (e.key === 'Escape') {
+                        lastSearchWidget = inp;
+                        inp.blur();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                });
+            });
 
                     function changePage(delta) {
                         var pages = document.querySelectorAll('.bookmarkPage[id^="page"]');
@@ -260,7 +304,24 @@
                                 alert('Keyboard shortcuts:\nAlt+[ and Alt+] - switch page\nAlt+{ and Alt+} - switch tab\nAlt+K - focus search\nArrows move selection\nEnter - open\nCtrl+Enter - open in background\nEsc twice - clear search and restore view');
                                 e.preventDefault();
                             } else if (e.key === 'Escape') {
-                                if (searchBox && searchBox.value !== '') {
+                                if (lastSearchWidget && lastSearchWidget.value !== '') {
+                                    lastSearchWidget.value = '';
+                                } else if (document.querySelectorAll('input.search-widget').length > 0) {
+                                    var anyVal = false;
+                                    document.querySelectorAll('input.search-widget').forEach(function(el){ if (el.value !== '') { anyVal = true; } });
+                                    if (anyVal || (searchBox && searchBox.value !== '')) {
+                                        document.querySelectorAll('input.search-widget').forEach(function(el){ el.value = ''; });
+                                        if (searchBox && searchBox.value !== '') {
+                                            searchBox.value = '';
+                                            clearSearch();
+                                        } else if (searchBox) {
+                                            searchBox.blur();
+                                        }
+                                    } else if (searchBox) {
+                                        searchBox.blur();
+                                    }
+                                    lastSearchWidget = null;
+                                } else if (searchBox && searchBox.value !== '') {
                                     searchBox.value = '';
                                     clearSearch();
                                 } else if (searchBox) {
@@ -269,16 +330,23 @@
                                 e.preventDefault();
                             } else if (e.key === 'Enter') {
                                 if (searchResults.length > 0) {
-                                    var link = searchResults[selectedIndex].querySelector('a');
-                                    if (link) {
-                                        if (e.ctrlKey || e.metaKey) {
-                                            window.open(link.href, '_blank', 'noopener');
-                                        } else if (link.target && link.target === '_blank') {
-                                            window.open(link.href, '_blank');
-                                        } else {
-                                            window.location.href = link.href;
+                                    var li = searchResults[selectedIndex];
+                                    var input = li.querySelector('input.search-widget');
+                                    if (input) {
+                                        input.focus();
+                                        input.select();
+                                    } else {
+                                        var link = li.querySelector('a');
+                                        if (link) {
+                                            if (e.ctrlKey || e.metaKey) {
+                                                window.open(link.href, '_blank', 'noopener');
+                                            } else if (link.target && link.target === '_blank') {
+                                                window.open(link.href, '_blank');
+                                            } else {
+                                                window.location.href = link.href;
+                                            }
+                                            if (searchBox) searchBox.focus();
                                         }
-                                        if (searchBox) searchBox.focus();
                                     }
                                 }
                             }

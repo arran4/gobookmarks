@@ -201,7 +201,19 @@ You can quickly search for any link on the same Tab you're on. (Tabs contain pag
 
 There is keyboard navigation, see keyboard shortcuts for details.
 
+Selecting the entry from quick search focuses its input field. Press **Enter** inside the widget to open the search in a new tab, **Shift+Enter** for a background tab and hold **Alt** to keep the entered text.
+
 [![media/simplescreenrecorder-2025-07-16_16.23.20.gif](media/simplescreenrecorder-2025-07-16_16.23.20.gif)](media/simplescreenrecorder-2025-07-16_16.23.20.gif)
+
+
+### Search Widgets
+
+Use a link starting with the `search:` scheme followed by a URL containing
+`$query`, for example:
+
+```
+search:https://www.google.com/search?q=$query
+```
 
 ## Keyboard Shortcuts
 
@@ -214,8 +226,9 @@ quicker:
 * While the search box is focused, **Up/Down** or **Left/Right** arrows move
   between filtered results. Press **Enter** to open the selected link or
   **Ctrl+Enter**/**Meta+Enter** to open it in a background tab.
-* Pressing **Esc** once exits the search field. Pressing **Esc** again clears
-  the search and restores the previous view.
+* Pressing **Esc** inside the search field removes focus. Pressing **Esc**
+  again clears the search and restores the previous view. Search widgets use the
+  same pattern, with a third **Esc** press clearing all widget text.
 * Press **?** anywhere (outside of a text field) to see these shortcuts in a
   small help dialog.
 

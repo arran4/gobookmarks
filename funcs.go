@@ -414,6 +414,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return next
 		},
+		"isSearchURL": func(u string) bool {
+			return strings.HasPrefix(u, "search:")
+		},
+		"searchURL": func(u string) string {
+			return strings.TrimPrefix(u, "search:")
+		},
 	}
 }
 
