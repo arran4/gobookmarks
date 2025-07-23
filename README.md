@@ -226,8 +226,9 @@ quicker:
 * While the search box is focused, **Up/Down** or **Left/Right** arrows move
   between filtered results. Press **Enter** to open the selected link or
   **Ctrl+Enter**/**Meta+Enter** to open it in a background tab.
-* Pressing **Esc** once exits the search field. Pressing **Esc** again clears
-  the search and restores the previous view.
+* Pressing **Esc** inside the search field removes focus. Pressing **Esc**
+  again clears the search and restores the previous view. Search widgets use the
+  same pattern, with a third **Esc** press clearing all widget text.
 * Press **?** anywhere (outside of a text field) to see these shortcuts in a
   small help dialog.
 
