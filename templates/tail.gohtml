@@ -319,6 +319,12 @@
                                     widgetEscStep = 2;
                                 } else if (widgetEscStep === 2) {
                                     document.querySelectorAll('input.search-widget').forEach(function(el){ el.value = ''; });
+                                    if (searchBox && searchBox.value !== '') {
+                                        searchBox.value = '';
+                                        clearSearch();
+                                    } else if (searchBox) {
+                                        searchBox.blur();
+                                    }
                                     widgetEscStep = 0;
                                     lastSearchWidget = null;
                                 } else if (searchBox && searchBox.value !== '') {
