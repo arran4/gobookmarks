@@ -295,13 +295,19 @@
                             if (e.key.toLowerCase() === 'k') { if (searchBox) { searchBox.focus(); searchBox.select(); } e.preventDefault(); return; }
                         }
 
+                        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                            if (searchBox) { searchBox.focus(); searchBox.select(); }
+                            e.preventDefault();
+                            return;
+                        }
+
                         if (!inInput) {
                             if (e.key === 'ArrowDown') { moveSelection(1); e.preventDefault(); }
                             else if (e.key === 'ArrowUp') { moveSelection(-1); e.preventDefault(); }
                             else if (e.key === 'ArrowRight') { moveSelectionHorizontal(1); e.preventDefault(); }
                             else if (e.key === 'ArrowLeft') { moveSelectionHorizontal(-1); e.preventDefault(); }
                             else if (e.key === '?') {
-                                alert('Keyboard shortcuts:\nAlt+[ and Alt+] - switch page\nAlt+{ and Alt+} - switch tab\nAlt+K - focus search\nArrows move selection\nEnter - open\nCtrl+Enter - open in background\nEsc twice - clear search and restore view');
+                                alert('Keyboard shortcuts:\nAlt+[ and Alt+] - switch page\nAlt+{ and Alt+} - switch tab\nAlt+K or Ctrl/Cmd+K - focus search\nArrows move selection\nEnter - open\nCtrl+Enter - open in background\nEsc twice - clear search and restore view');
                                 e.preventDefault();
                             } else if (e.key === 'Escape') {
                                 if (lastSearchWidget && lastSearchWidget.value !== '') {

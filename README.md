@@ -222,7 +222,7 @@ search:https://www.google.com/search?q=$query
 The interface supports a number of keyboard shortcuts to make navigation
 quicker:
 
-* **Alt+K** focuses the search box and selects any existing text.
+* **Alt+K** or **Ctrl+K**/**Cmd+K** focuses the search box and selects any existing text.
 * **Alt+{** and **Alt+}** switch between bookmark tabs.
 * **Alt+[** and **Alt+]** switch between pages within a tab.
 * While the search box is focused, **Up/Down** or **Left/Right** arrows move
