@@ -8,6 +8,7 @@ var (
 	Namespace     string
 	SiteTitle     string
 	NoFooter      bool
+	CSP           string
 
 	GithubServer string
 	GitlabServer string

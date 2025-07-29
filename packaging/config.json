@@ -10,6 +10,7 @@
   "github_server": "https://github.com",
   "gitlab_server": "https://gitlab.com",
   "local_git_path": "",
+  "csp": "",
   "db_connection_provider": "",
   "db_connection_string": ""
 }

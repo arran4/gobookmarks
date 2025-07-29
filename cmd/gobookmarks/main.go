@@ -101,6 +101,7 @@ func main() {
 		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
 		NoFooter:             os.Getenv("GBM_NO_FOOTER") != "",
 		SessionKey:           os.Getenv("SESSION_KEY"),
+		CSP:                  os.Getenv("CSP"),
 		ProviderOrder:        splitList(os.Getenv("PROVIDER_ORDER")),
 		CommitsPerPage: func() int {
 			if v := os.Getenv("COMMITS_PER_PAGE"); v != "" {
@@ -131,6 +132,7 @@ func main() {
 	var dbProviderFlag stringFlag
 	var dbConnFlag stringFlag
 	var sessionKeyFlag stringFlag
+	var cspFlag stringFlag
 	var providerOrderFlag stringFlag
 	var columnFlag boolFlag
 	var noFooterFlag boolFlag
@@ -154,6 +156,7 @@ func main() {
 	flag.Var(&dbProviderFlag, "db-provider", "SQL driver name")
 	flag.Var(&dbConnFlag, "db-conn", "SQL connection string")
 	flag.Var(&sessionKeyFlag, "session-key", "session cookie key")
+	flag.Var(&cspFlag, "csp", "content security policy header")
 	flag.Var(&providerOrderFlag, "provider-order", "comma-separated provider order")
 	flag.Var(&columnFlag, "css-columns", "use CSS columns")
 	flag.Var(&noFooterFlag, "no-footer", "disable footer on pages")
@@ -248,6 +251,9 @@ func main() {
 	if sessionKeyFlag.set {
 		cfg.SessionKey = sessionKeyFlag.value
 	}
+	if cspFlag.set {
+		cfg.CSP = cspFlag.value
+	}
 	if providerOrderFlag.set {
 		cfg.ProviderOrder = splitList(providerOrderFlag.value)
 	}
@@ -298,6 +304,9 @@ func main() {
 	if cfg.DBConnectionString != "" {
 		DBConnectionString = cfg.DBConnectionString
 	}
+	if cfg.CSP != "" {
+		CSP = cfg.CSP
+	}
 	githubID := cfg.GithubClientID
 	githubSecret := cfg.GithubSecret
 	gitlabID := cfg.GitlabClientID
@@ -327,6 +336,9 @@ func main() {
 
 	r.Use(UserAdderMiddleware)
 	r.Use(CoreAdderMiddleware)
+	if CSP != "" {
+		r.Use(CSPMiddleware(CSP))
+	}
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
