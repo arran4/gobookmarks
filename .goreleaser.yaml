@@ -10,9 +10,7 @@ builds:
     # goos: [linux, windows, darwin, freebsd] # Disabled b/c of cgo requirements
     # goarch: [amd64, arm64] # Disabled b/c of cgo requirements
     goos: ["linux"]
-    goarch: ["{{.Env.GOARCH}}"]
-#    goos: ["linux"]
-#    goarch: ["amd64"]
+    goarch: ["amd64"]
 
 archives:
   -
