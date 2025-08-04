@@ -10,7 +10,9 @@ builds:
     # goos: [linux, windows, darwin, freebsd] # Disabled b/c of cgo requirements
     # goarch: [amd64, arm64] # Disabled b/c of cgo requirements
     goos: ["linux"]
-    goarch: ["amd64"]
+    goarch: ["{{.Env.GOARCH}}"]
+#    goos: ["linux"]
+#    goarch: ["amd64"]
 
 archives:
   -
@@ -31,8 +33,8 @@ dockers:
   - image_templates:
       - "arran4/gobookmarks:{{ .Tag }}"
       - "arran4/gobookmarks:latest"
-      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-{{ .Arch }}"
-      - "ghcr.io/arran4/gobookmarks:latest-{{ .Arch }}"
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-{{ .Env.GOARCH }}"
+      - "ghcr.io/arran4/gobookmarks:latest-{{ .Env.GOARCH }}"
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
@@ -46,10 +48,10 @@ docker_manifests:
       - "arran4/gobookmarks:latest"
   - name_template: "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
     image_templates:
-      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-{{ .Arch }}"
+      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-{{ .Env.GOARCH }}"
   - name_template: "ghcr.io/arran4/gobookmarks:latest"
     image_templates:
-      - "ghcr.io/arran4/gobookmarks:latest-{{ .Arch }}"
+      - "ghcr.io/arran4/gobookmarks:latest-{{ .Env.GOARCH }}"
 nfpms:
   -
     vendor: Ubels Software Development
