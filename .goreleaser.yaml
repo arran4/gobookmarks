@@ -9,8 +9,8 @@ builds:
     flags: ["-trimpath"]
     # goos: [linux, windows, darwin, freebsd] # Disabled b/c of cgo requirements
     # goarch: [amd64, arm64] # Disabled b/c of cgo requirements
-    goos: ["{{ .Env.GOOS }}"]
-    goarch: ["{{ .Env.GOARCH }}"]
+    goos: ["linux"]
+    goarch: ["amd64"]
 
 archives:
   -
