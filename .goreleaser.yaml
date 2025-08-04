@@ -5,7 +5,7 @@ builds:
     binary: gobookmarks
     dir: cmd/gobookmarks
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     flags: ["-trimpath"]
     goos: [linux, windows, darwin, freebsd]
     goarch: [amd64, arm64]
