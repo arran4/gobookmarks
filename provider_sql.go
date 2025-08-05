@@ -59,6 +59,13 @@ func openDB() (*sql.DB, error) {
 }
 
 func ensureSQLSchema(db *sql.DB) error {
+	switch strings.ToLower(DBConnectionProvider) {
+	case "mysql":
+	case "sqlite":
+	default:
+		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite; you used %s", DBConnectionProvider)
+	}
+
 	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
 	sqlSchema, err := sqlSchemas.ReadFile(schemaFile)
 	if err != nil {
