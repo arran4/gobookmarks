@@ -61,9 +61,9 @@ func openDB() (*sql.DB, error) {
 func ensureSQLSchema(db *sql.DB) error {
 	switch strings.ToLower(DBConnectionProvider) {
 	case "mysql":
-	case "sqlite":
+	case "sqlite3":
 	default:
-		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite; you used %s", DBConnectionProvider)
+		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite3; you used %s", DBConnectionProvider)
 	}
 
 	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
@@ -318,7 +318,7 @@ func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oa
 			tx.Rollback()
 			return err
 		}
-	case "sqlite":
+	case "sqlite3":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
 			VALUES (?, ?, ?)
@@ -360,7 +360,7 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 			tx.Rollback()
 			return err
 		}
-	case "sqlite":
+	case "sqlite3":
 		if _, err := tx.ExecContext(ctx,
 			"INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')",
 			user,
@@ -402,7 +402,7 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 			tx.Rollback()
 			return err
 		}
-	case "sqlite":
+	case "sqlite3":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
 			VALUES (?, ?, ?)
@@ -449,7 +449,7 @@ func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.
 			tx.Rollback()
 			return err
 		}
-	case "sqlite":
+	case "sqlite3":
 		if _, err := tx.ExecContext(ctx,
 			"INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')",
 			user,
