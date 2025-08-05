@@ -1,4 +1,4 @@
-FROM alpine
+FROM debian
 VOLUME /var/cache/gobookmarks
 VOLUME /etc/gobookmarks
 VOLUME /var/lib/gobookmarks
@@ -20,5 +20,4 @@ ENV GOBM_CONFIG_FILE=/etc/gobookmarks/config.json
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks
-RUN apk add --no-cache ca-certificates tzdata gcompat && update-ca-certificates
 ENTRYPOINT ["gobookmarks"]
