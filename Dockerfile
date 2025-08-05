@@ -20,6 +20,6 @@ ENV GOBM_CONFIG_FILE=/etc/gobookmarks/config.json
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks
-RUN apk add --no-cache ca-certificates && update-ca-certificates
+RUN apk add --no-cache ca-certificates tzdata libc6-compat libgcc libstdc++ && update-ca-certificates
 ENV PATH=/bin
 ENTRYPOINT ["gobookmarks"]
