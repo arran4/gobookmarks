@@ -62,10 +62,10 @@ func ensureSQLSchema(db *sql.DB) error {
 	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
 	sqlSchema, err := sqlSchemas.ReadFile(schemaFile)
 	if err != nil {
-		log.Printf("failed to find sql schema %s: %v", schemaFile, err)
+		log.Printf("failed to find sql schema %s falling back on sql/schema.sql: %v", schemaFile, err)
 		sqlSchema, err = sqlSchemas.ReadFile("sql/schema.sql")
 		if err != nil {
-			return fmt.Errorf("failed to find default sql schema: %w", err)
+			return fmt.Errorf("failed to find default sql schema sql/schema.sql: %w", err)
 		}
 		log.Printf("using default sql schema file")
 	}
@@ -84,6 +84,7 @@ func ensureSQLSchema(db *sql.DB) error {
 		if _, err := db.Exec("INSERT INTO meta(version) VALUES(?)", sqlSchemaVersion); err != nil {
 			return fmt.Errorf("failed to set schema version: %w", err)
 		}
+		ver = sqlSchemaVersion
 	case err != nil:
 		return fmt.Errorf("failed to query schema version: %w", err)
 	}
