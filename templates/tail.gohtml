@@ -42,7 +42,7 @@
                             if (page >= 0) {
                                 var url = new URL(link.getAttribute('href'), window.location);
                                 url.searchParams.set('page', page);
-                                url.hash = 'page' + page;
+                                url.hash = 'page' + (page + 1);
                                 e.preventDefault();
                                 window.location.href = url.toString();
                             }

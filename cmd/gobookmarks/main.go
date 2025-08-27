@@ -677,7 +677,11 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 			page = v
 		}
 		if page != "" {
-			u.Fragment = "page" + page
+			if p, err := strconv.Atoi(page); err == nil {
+				u.Fragment = "page" + strconv.Itoa(p+1)
+			} else {
+				u.Fragment = "page" + page
+			}
 		}
 		if edit := r.URL.Query().Get("edit"); edit != "" {
 			qs.Set("edit", edit)
@@ -695,7 +699,11 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 			qs.Set("tab", tab)
 		}
 		if page := r.URL.Query().Get("page"); page != "" {
-			u.Fragment = "page" + page
+			if p, err := strconv.Atoi(page); err == nil {
+				u.Fragment = "page" + strconv.Itoa(p+1)
+			} else {
+				u.Fragment = "page" + page
+			}
 		}
 		if edit := r.URL.Query().Get("edit"); edit != "" {
 			qs.Set("edit", edit)
