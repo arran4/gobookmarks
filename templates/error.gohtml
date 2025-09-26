@@ -11,7 +11,45 @@
                 <strong>gobookmarks</strong><br>
             </td>
             <td>
-                <p>Error: {{.Error}}</p>
+                <h1>Error</h1>
+                <p>{{.Message}}</p>
+                {{ $replay := .RequestReplay }}
+                {{ if $replay }}
+                <div class="error-actions" style="margin-top: 1em;">
+                    <p>You can try your previous action again.</p>
+                    {{ if eq $replay.Method "GET" }}
+                    <form action="{{ $replay.URL }}" method="get" style="display:inline-block; margin-right: 1em;">
+                        <button type="submit">Retry</button>
+                    </form>
+                    {{ else if eq $replay.Method "POST" }}
+                    <form action="{{ $replay.URL }}" method="post" style="display:inline-block; margin-right: 1em;">
+                        {{ range $name, $vals := $replay.Form }}
+                            {{ range $vals }}
+                        <input type="hidden" name="{{ $name }}" value="{{ . }}">
+                            {{ end }}
+                        {{ end }}
+                        <button type="submit">Retry</button>
+                    </form>
+                    {{ else }}
+                    <a href="{{ $replay.URL }}">Retry</a>
+                    {{ end }}
+                </div>
+                {{ end }}
+                {{ if IsAuthenticationError . }}
+                <p>Your authentication details are no longer valid. Please log out and sign in again.</p>
+                <form action="/logout" method="post" style="margin-top: 1em;">
+                    {{ if $replay }}
+                    <input type="hidden" name="return_url" value="{{ $replay.URL }}">
+                    <input type="hidden" name="return_method" value="{{ $replay.Method }}">
+                    {{ if $replay.EncodedForm }}
+                    <input type="hidden" name="return_body" value="{{ $replay.EncodedForm }}">
+                    {{ end }}
+                    {{ else }}
+                    <input type="hidden" name="return_method" value="GET">
+                    {{ end }}
+                    <button type="submit">Logout</button>
+                </form>
+                {{ end }}
             </td>
         </tr>
     </table>

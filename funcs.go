@@ -81,6 +81,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return creds != nil && GetProvider(p) != nil
 		},
 		"errorMsg": errorMessage,
+		"IsAuthenticationError": func(err error) bool {
+			if err == nil {
+				return false
+			}
+			return errors.Is(err, ErrSignedOut)
+		},
 		"ref": func() string {
 			return r.URL.Query().Get("ref")
 		},

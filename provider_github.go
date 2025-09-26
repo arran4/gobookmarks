@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,6 +18,11 @@ import (
 
 // GitHubProvider implements Provider for GitHub.
 type GitHubProvider struct{}
+
+func githubUnauthorized(err error) bool {
+	var respErr *github.ErrorResponse
+	return errors.As(err, &respErr) && respErr.Response != nil && respErr.Response.StatusCode == http.StatusUnauthorized
+}
 
 func init() {
 	gob.Register(&github.User{})
@@ -126,7 +132,13 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 	if resp != nil && resp.StatusCode == 404 {
 		return "", "", nil
 	}
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		return "", "", ErrSignedOut
+	}
 	if err != nil {
+		if githubUnauthorized(err) {
+			return "", "", ErrSignedOut
+		}
 		log.Printf("github GetBookmarks: %v", err)
 		return "", "", fmt.Errorf("GetBookmarks: %w", err)
 	}
