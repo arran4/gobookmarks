@@ -630,6 +630,18 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		if errors.Is(err, ErrSignedOut) {
+			if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
+				log.Printf("logout error: %v", logoutErr)
+			}
+			type LogoutData struct{ *CoreData }
+			if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", LogoutData{data.CoreData}); tplErr != nil {
+				log.Printf("Logout Template Error: %v", tplErr)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+			return
+		}
+
 		var serr SystemError
 		display := "Internal error"
 		if errors.As(err, &serr) {
