@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"errors"
 	"html/template"
 	"io"
 	"os"
@@ -51,8 +52,11 @@ func testFuncMap() template.FuncMap {
 		"AllProviders":       func() []string { return []string{"github", "gitlab"} },
 		"ProviderConfigured": func(string) bool { return true },
 		"errorMsg":           func(s string) string { return s },
-		"ref":                func() string { return "refs/heads/main" },
-		"add1":               func(i int) int { return i + 1 },
+		"IsAuthenticationError": func(err error) bool {
+			return errors.Is(err, ErrSignedOut)
+		},
+		"ref":  func() string { return "refs/heads/main" },
+		"add1": func(i int) int { return i + 1 },
 		"sub1": func(i int) int {
 			if i > 0 {
 				return i - 1
@@ -185,10 +189,12 @@ func TestExecuteTemplates(t *testing.T) {
 		{"history", "history.gohtml", baseData},
 		{"historyCommits", "historyCommits.gohtml", baseData},
 		{"taskDone", "taskDoneAutoRefreshPage.gohtml", baseData},
-		{"error", "error.gohtml", struct {
-			*CoreData
-			Error string
-		}{baseData.CoreData, "boom"}},
+		{"error", "error.gohtml", ErrorPageData{
+			CoreData:      baseData.CoreData,
+			Message:       "boom",
+			RequestReplay: &RequestReplay{Method: "GET", URL: "/"},
+			error:         ErrSignedOut,
+		}},
 	}
 
 	for _, tt := range pages {

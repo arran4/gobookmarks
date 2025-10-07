@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"html/template"
 	"io"
 	"log"
 	"math/big"
@@ -32,6 +33,27 @@ import (
 	"sync"
 	"time"
 )
+
+var postReplayTemplate = template.Must(template.New("postReplay").Parse(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Continuing...</title>
+</head>
+<body>
+    <p>Continuing your previous request...</p>
+    <form id="return-form" method="{{ .Method }}" action="{{ .Action }}">
+    {{- range .Fields }}
+        <input type="hidden" name="{{ .Name }}" value="{{ .Value }}">
+    {{- end }}
+        <noscript>
+            <p>JavaScript is required to continue. Click the button below to proceed.</p>
+            <button type="submit">Continue</button>
+        </noscript>
+    </form>
+    <script>document.getElementById('return-form').submit();</script>
+</body>
+</html>`))
 
 func splitList(s string) []string {
 	if s == "" {
@@ -396,7 +418,7 @@ func main() {
 	r.HandleFunc("/login/sql", runHandlerChain(SqlLoginAction, redirectToHandler("/"))).Methods("POST")
 	r.HandleFunc("/signup/sql", runHandlerChain(SqlSignupAction, redirectToHandler("/login/sql"))).Methods("POST")
 	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
-	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
+	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET", "POST")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
 	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
@@ -550,6 +572,9 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 						return
 					}
 					if errors.Is(err, ErrSignedOut) {
+						if replay := CaptureRequestReplay(r); replay != nil {
+							r = r.WithContext(context.WithValue(r.Context(), ContextValues("requestReplay"), replay))
+						}
 						if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
 							log.Printf("logout error: %v", logoutErr)
 						}
@@ -591,23 +616,21 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 
 					log.Printf("handler error: %v", err)
 
-					type ErrorData struct {
-						*CoreData
-						Error string
-					}
-					if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-						CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
-						Error:    display,
-					}); err != nil {
-						log.Printf("Error Template Error: %s", err)
-						http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-					}
+					renderErrorPage(w, r, err, display)
 					return
 				}
 			default:
 				log.Panicf("unknown input: %s", reflect.TypeOf(each))
 			}
 		}
+	}
+}
+
+func renderErrorPage(w http.ResponseWriter, r *http.Request, err error, display string) {
+	data := NewErrorPageData(r, err, display)
+	if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", data); tplErr != nil {
+		log.Printf("Error Template Error: %v", tplErr)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
@@ -630,6 +653,12 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		if errors.Is(err, ErrSignedOut) {
+			log.Printf("Template %s error: %v", tmpl, err)
+			renderErrorPage(w, r, ErrSignedOut, "Authentication error")
+			return
+		}
+
 		var serr SystemError
 		display := "Internal error"
 		if errors.As(err, &serr) {
@@ -638,24 +667,15 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		log.Printf("Template %s error: %v", tmpl, err)
-
-		type ErrorData struct {
-			*CoreData
-			Error string
-		}
-
-		if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-			CoreData: data.CoreData,
-			Error:    display,
-		}); tplErr != nil {
-			log.Printf("Error Template Error: %v", tplErr)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		renderErrorPage(w, r, err, display)
 	})
 }
 
 func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if handleReturnRedirect(w, r) {
+			return
+		}
 		http.Redirect(w, r, toUrl, http.StatusTemporaryRedirect)
 	})
 }
@@ -703,6 +723,76 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 		u.RawQuery = qs.Encode()
 		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
 	})
+}
+
+type replayField struct {
+	Name  string
+	Value string
+}
+
+func handleReturnRedirect(w http.ResponseWriter, r *http.Request) bool {
+	sessioni := r.Context().Value(ContextValues("session"))
+	sess, ok := sessioni.(*sessions.Session)
+	if !ok || sess == nil {
+		return false
+	}
+
+	replay := ConsumeRequestReplay(sess)
+	if replay == nil || replay.URL == "" {
+		return false
+	}
+
+	if err := sess.Save(r, w); err != nil {
+		log.Printf("return replay save: %v", err)
+	}
+
+	method := strings.ToUpper(replay.Method)
+	if method == "" || method == http.MethodGet {
+		http.Redirect(w, r, replay.URL, http.StatusSeeOther)
+		return true
+	}
+	if method == http.MethodPost {
+		writeReturnPostReplay(w, r, replay)
+		return true
+	}
+
+	http.Redirect(w, r, replay.URL, http.StatusSeeOther)
+	return true
+}
+
+func writeReturnPostReplay(w http.ResponseWriter, r *http.Request, replay *RequestReplay) {
+	values := replay.Form
+	if len(values) == 0 && replay.EncodedForm != "" {
+		if parsed, err := url.ParseQuery(replay.EncodedForm); err == nil {
+			values = parsed
+		} else {
+			log.Printf("return replay parse: %v", err)
+			http.Redirect(w, r, replay.URL, http.StatusSeeOther)
+			return
+		}
+	}
+
+	var fields []replayField
+	for name, vals := range values {
+		for _, val := range vals {
+			fields = append(fields, replayField{Name: name, Value: val})
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	data := struct {
+		Action string
+		Method string
+		Fields []replayField
+	}{
+		Action: replay.URL,
+		Method: http.MethodPost,
+		Fields: fields,
+	}
+	if err := postReplayTemplate.Execute(w, data); err != nil {
+		log.Printf("replay template error: %v", err)
+		http.Redirect(w, r, replay.URL, http.StatusSeeOther)
+	}
 }
 
 func RequiresAnAccount() mux.MatcherFunc {

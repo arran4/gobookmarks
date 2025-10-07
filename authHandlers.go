@@ -9,6 +9,8 @@ import (
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
@@ -21,6 +23,38 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+
+	var replay *RequestReplay
+	if v := r.Context().Value(ContextValues("requestReplay")); v != nil {
+		if rr, ok := v.(*RequestReplay); ok {
+			replay = rr
+		}
+	}
+	if replay == nil {
+		if err := r.ParseForm(); err == nil {
+			rawURL := r.FormValue("return_url")
+			if rawURL != "" {
+				method := strings.ToUpper(r.FormValue("return_method"))
+				if method == "" {
+					method = http.MethodGet
+				}
+				body := r.FormValue("return_body")
+				replay = &RequestReplay{
+					Method:      method,
+					URL:         rawURL,
+					EncodedForm: body,
+				}
+				if body != "" {
+					if form, err := url.ParseQuery(body); err == nil {
+						replay.Form = form
+					}
+				}
+			}
+		}
+	}
+
+	StoreRequestReplay(session, replay)
+
 	delete(session.Values, "GithubUser")
 	delete(session.Values, "Token")
 	delete(session.Values, "Provider")
