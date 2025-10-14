@@ -4,17 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Git reference to checkout (branch, tag or commit)'
-        required: true
-        default: main
-      publish:
-        description: 'Publish release artifacts and push Docker images'
-        required: false
-        type: boolean
-        default: false
+      - 'v*.*.*-*'
 
 permissions:
   contents: write
@@ -28,52 +18,35 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
-      - name: Determine publish mode
-        id: publish
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PUBLISH_INPUT: ${{ github.event.inputs.publish }}
+      - name: Determine tag details
+        id: tag_info
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$PUBLISH_INPUT" != "true" ]; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          if [[ "$TAG_NAME" == *"-"* ]]; then
+            echo "pre_release=true" >> "$GITHUB_OUTPUT"
+            echo "LATEST_TAG=next" >> "$GITHUB_ENV"
           else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Determine git tag status
-        id: git_state
-        run: |
-          if git describe --exact-match --tags >/dev/null 2>&1; then
-            echo "tagged=true" >> "$GITHUB_OUTPUT"
+            echo "pre_release=false" >> "$GITHUB_OUTPUT"
             echo "LATEST_TAG=latest" >> "$GITHUB_ENV"
-          else
-            echo "tagged=false" >> "$GITHUB_OUTPUT"
-            echo "LATEST_TAG=disabled" >> "$GITHUB_ENV"
           fi
       - name: Login to GitHub Container Registry
-        if: steps.publish.outputs.publish == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to Docker Hub
-        if: steps.publish.outputs.publish == 'true'
+        if: secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Enable Docker Hub push
-        if: steps.publish.outputs.publish == 'true'
-        run: echo "DOCKERHUB_PUSH=true" >> "$GITHUB_ENV"
-      - name: Disable Docker Hub push
-        if: steps.publish.outputs.publish != 'true'
-        run: echo "DOCKERHUB_PUSH=false" >> "$GITHUB_ENV"
       - name: Env setup
         run: |
           sudo apt-get update
@@ -90,30 +63,11 @@ jobs:
         run: |
           rm -f gobookmarks
           docker image rm gobookmarks:test || true
-      - name: Run GoReleaser (snapshot)
-        if: steps.publish.outputs.publish != 'true'
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean --skip=publish --skip=announce --snapshot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run GoReleaser (publish)
-        if: steps.publish.outputs.publish == 'true' && steps.git_state.outputs.tagged == 'true'
+      - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
           args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run GoReleaser (publish snapshot)
-        if: steps.publish.outputs.publish == 'true' && steps.git_state.outputs.tagged != 'true'
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean --snapshot --skip=announce
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
