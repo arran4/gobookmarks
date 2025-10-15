@@ -1,4 +1,5 @@
 {{ template "head" $ }}
+    {{- if .Error }}<p style="color:red">{{ errorMsg .Error }}</p>{{ end }}
     {{- if Providers }}
     {{- range Providers }}
     <a href="{{ LoginURL . }}">Login with {{ . }}</a><br>
