@@ -123,6 +123,9 @@ func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oaut
 
 func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
 	contents, _, resp, err := p.client(ctx, token).Repositories.GetContents(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: ref})
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		return "", "", ErrSignedOut
+	}
 	if resp != nil && resp.StatusCode == 404 {
 		return "", "", nil
 	}
