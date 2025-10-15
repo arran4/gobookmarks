@@ -31,10 +31,11 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-      - "arran4/gobookmarks:{{ .Version }}"
-      - '{{- if ne .Env.LATEST_TAG "disabled" }}arran4/gobookmarks:{{ .Env.LATEST_TAG }}{{ end -}}'
-      - "ghcr.io/arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
-      - '{{- if ne .Env.LATEST_TAG "disabled" }}ghcr.io/arran4/gobookmarks:{{ .Env.LATEST_TAG }}-{{ .Runtime.Goarch }}{{ end -}}'
+    - "arran4/gobookmarks:{{ .Version }}"
+    - '{{- if ne .Env.LATEST_TAG "disabled" }}arran4/gobookmarks:{{ .Env.LATEST_TAG }}{{ end -}}'
+    - "ghcr.io/arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
+    - '{{- if ne .Env.LATEST_TAG "disabled" }}ghcr.io/arran4/gobookmarks:{{ .Env.LATEST_TAG }}{{ end -}}'
+    - '{{- if ne .Env.LATEST_TAG "disabled" }}ghcr.io/arran4/gobookmarks:{{ .Env.LATEST_TAG }}-{{ .Runtime.Goarch }}{{ end -}}'
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
