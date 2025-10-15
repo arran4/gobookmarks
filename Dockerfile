@@ -1,4 +1,9 @@
 FROM debian
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-ca-certificates
 VOLUME /var/cache/gobookmarks
 VOLUME /etc/gobookmarks
 VOLUME /var/lib/gobookmarks
