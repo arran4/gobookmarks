@@ -20,7 +20,9 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  version_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ .ShortCommit }}"
+release:
+  prerelease: auto
 changelog:
   sort: asc
   filters:
@@ -29,27 +31,21 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-      - "arran4/gobookmarks:{{ .Tag }}"
-      - "arran4/gobookmarks:latest"
-      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-{{.Runtime.Goarch}}"
-      - "ghcr.io/arran4/gobookmarks:latest-{{.Runtime.Goarch}}"
+      - "arran4/gobookmarks:{{ .Version }}"
+      - '{{- if ne .Env.LATEST_TAG "disabled" }}arran4/gobookmarks:{{ .Env.LATEST_TAG }}{{ end -}}'
+      - "ghcr.io/arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
+      - '{{- if ne .Env.LATEST_TAG "disabled" }}ghcr.io/arran4/gobookmarks:{{ .Env.LATEST_TAG }}-{{ .Runtime.Goarch }}{{ end -}}'
     dockerfile: Dockerfile
     goos: linux
     goarch: amd64
     use: buildx
 docker_manifests:
-  - name_template: "arran4/gobookmarks:{{ .Tag }}"
+  - name_template: "arran4/gobookmarks:{{ .Version }}"
     image_templates:
-      - "arran4/gobookmarks:{{ .Tag }}"
-  - name_template: "arran4/gobookmarks:latest"
+      - "arran4/gobookmarks:{{ .Version }}"
+  - name_template: "ghcr.io/arran4/gobookmarks:{{ .Version }}"
     image_templates:
-      - "arran4/gobookmarks:latest"
-  - name_template: "ghcr.io/arran4/gobookmarks:{{ .Tag }}"
-    image_templates:
-      - "ghcr.io/arran4/gobookmarks:{{ .Tag }}-{{.Runtime.Goarch}}"
-  - name_template: "ghcr.io/arran4/gobookmarks:latest"
-    image_templates:
-      - "ghcr.io/arran4/gobookmarks:latest-{{.Runtime.Goarch}}"
+      - "ghcr.io/arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
 nfpms:
   -
     vendor: Ubels Software Development
