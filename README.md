@@ -61,6 +61,16 @@ Category: Right
 http://right.com
 ```
 
+## Release process
+
+Releases are created by tagging the repository. Push a semantic version tag such as
+`v1.2.3` for a stable release. To build a pre-release or snapshot, append a hyphenated
+qualifier (for example `v1.2.3-test` or `v1.2.3-test.1`). GoReleaser automatically marks
+any tag containing a hyphen as a GitHub pre-release thanks to the `prerelease: auto`
+setting in `.goreleaser.yaml`. Stable releases publish Docker images tagged with both the
+version and `latest`, while pre-releases publish the version alongside a `next` tag for
+Docker testing.
+
 ### Big example
 
 ```text
