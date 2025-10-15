@@ -471,6 +471,8 @@ func errorMessage(code string) string {
 		return "Invalid username or password"
 	case "exists":
 		return "Account already exists"
+	case "oauth":
+		return "Login expired or was cancelled. Please try signing in again."
 	default:
 		return code
 	}

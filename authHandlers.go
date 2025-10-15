@@ -135,6 +135,23 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	}
 	token, err := cfg.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
+		var retrieveErr *oauth2.RetrieveError
+		if errors.As(err, &retrieveErr) {
+			status := 0
+			if retrieveErr.Response != nil {
+				status = retrieveErr.Response.StatusCode
+			}
+
+			if status == 0 || (status >= 400 && status < 500) {
+				log.Printf("oauth exchange failed for %s: %v", providerName, err)
+				session.Options.MaxAge = -1
+				if saveErr := session.Save(r, w); saveErr != nil {
+					log.Printf("session save error after oauth failure: %v", saveErr)
+				}
+				http.Redirect(w, r, fmt.Sprintf("/login/%s?error=oauth", providerName), http.StatusSeeOther)
+				return ErrHandled
+			}
+		}
 		return fmt.Errorf("exchange error: %w", err)
 	}
 
