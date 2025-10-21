@@ -298,6 +298,10 @@ func main() {
 	if cfg.DBConnectionString != "" {
 		DBConnectionString = cfg.DBConnectionString
 	}
+	ContentSecurityPolicy = os.Getenv(ContentSecurityPolicyEnv)
+	if ContentSecurityPolicy == "" {
+		ContentSecurityPolicy = DefaultContentSecurityPolicy
+	}
 	githubID := cfg.GithubClientID
 	githubSecret := cfg.GithubSecret
 	gitlabID := cfg.GitlabClientID
@@ -327,6 +331,7 @@ func main() {
 
 	r.Use(UserAdderMiddleware)
 	r.Use(CoreAdderMiddleware)
+	r.Use(SecurityHeadersMiddleware)
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
