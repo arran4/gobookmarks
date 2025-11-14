@@ -197,7 +197,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				login = githubUser.Login
 			}
 
-			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			ref := r.URL.Query().Get("ref")
+			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 			var bookmark = defaultBookmarks
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
@@ -226,7 +227,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				login = githubUser.Login
 			}
 
-			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
+			ref := r.URL.Query().Get("ref")
+			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 			var bookmark = defaultBookmarks
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
@@ -245,9 +247,16 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					indexName = "Main"
 				}
 				if indexName != "" {
-					href := "/"
+					q := make([]string, 0, 2)
 					if i != 0 {
-						href = fmt.Sprintf("/?tab=%d", i)
+						q = append(q, "tab="+strconv.Itoa(i))
+					}
+					if ref != "" {
+						q = append(q, "ref="+ref)
+					}
+					href := "/"
+					if len(q) > 0 {
+						href = "/?" + strings.Join(q, "&")
 					}
 					lastSha := ""
 					if len(t.Pages) > 0 {
