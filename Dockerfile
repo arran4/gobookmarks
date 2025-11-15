@@ -25,4 +25,4 @@ ENV GOBM_CONFIG_FILE=/etc/gobookmarks/config.json
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks
-ENTRYPOINT ["gobookmarks"]
+ENTRYPOINT ["gobookmarks", "serve"]
