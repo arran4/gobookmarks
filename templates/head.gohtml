@@ -11,7 +11,7 @@
             <meta http-equiv="refresh" content="1">
         {{ end }}
         </head>
-        <body{{if $.EditMode}} class="edit-mode"{{end}}{{if tab}} data-tab="{{tab}}"{{end}}>
+        <body{{if $.EditMode}} class="edit-mode"{{end}}>
                 <table border=0 id="layout">
                         <tr valign=top>
                                 <td width=200px id="nav">
@@ -30,8 +30,8 @@
                                                 <hr/>
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
-                                                        {{- range bookmarkTabs }}
-                                                       <li data-page-sha="{{ .LastPageSha }}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{if eq .Href "/"}}/?edit=1{{else}}{{.Href}}&edit=1{{end}}{{else}}{{.Href}}{{end}}">{{ .IndexName }}</a></li>
+                                                        {{- range $i, $t := bookmarkTabs }}
+                                                       <li data-page-sha="{{ $t.LastPageSha }}"{{if eq $i $.tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{if eq $t.Href "/"}}/?edit=1{{else}}{{$t.Href}}&edit=1{{end}}{{else}}{{$t.Href}}{{end}}">{{ $t.IndexName }}</a></li>
                                                         {{- end }}
                                                         {{- if $.EditMode }}
                                                                 <li><a href="/editTab?edit=1&ref={{ref}}">+ Add Tab</a></li>
