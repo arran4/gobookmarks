@@ -367,4 +367,34 @@
 {{ if $.EditMode }}
 {{ template "dragdrop" $ }}
 {{ end }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const pages = document.querySelectorAll('.bookmarkPage');
+    const pageLinks = document.querySelectorAll('#page-list li');
+
+    function setActivePage() {
+        let activePageIndex = -1;
+
+        pages.forEach((page, index) => {
+            const rect = page.getBoundingClientRect();
+            if (rect.top >= 0 && rect.top < window.innerHeight) {
+                activePageIndex = index;
+            }
+        });
+
+        pageLinks.forEach((link, index) => {
+            if (index === activePageIndex) {
+                link.classList.add('active-page');
+            } else {
+                link.classList.remove('active-page');
+            }
+        });
+    }
+
+    window.addEventListener('scroll', setActivePage);
+    setActivePage(); // Set active page on initial load
+});
+</script>
+
 {{ template "tail" $ }}

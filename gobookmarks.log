@@ -1,0 +1,8 @@
+2025/11/15 12:22:22 config.go:45: attempting to load config from /home/jules/.config/gobookmarks/config.json
+2025/11/15 12:22:22 config.go:60: successfully loaded config from /home/jules/.config/gobookmarks/config.json (keys: external_url, local_git_path)
+2025/11/15 12:22:22 main.go:410: gobookmarks: dev, commit none, built at unknown
+2025/11/15 12:22:22 main.go:413: Redirect URL configured to: http://localhost:8080/oauth2Callback
+2025/11/15 12:22:22 main.go:414: Server started on http://localhost:8080
+2025/11/15 12:22:22 main.go:415: Server started on https://localhost:8443
+HTTPS server listening on :8443...
+HTTP server listening on :8080...
