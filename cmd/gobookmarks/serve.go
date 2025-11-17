@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"bytes"
@@ -11,13 +11,13 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"flag"
 	"fmt"
 	. "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/spf13/cobra"
 	"io"
 	"log"
 	"math/big"
@@ -27,238 +27,146 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-var serveCmd = &cobra.Command{
-	Use:   "serve",
-	Short: "Starts the gobookmarks server",
-	Long:  `Starts the gobookmarks server, serving the web UI and API.`,
-	Run:   runServe,
+type ServeCommand struct {
+	*RootCommand
+	fs *flag.FlagSet
+
+	GithubClientID   string
+	GithubSecret     string
+	GitlabClientID   string
+	GitlabSecret     string
+	ExternalURL      string
+	Namespace        string
+	Title            string
+	FaviconCacheDir  string
+	FaviconCacheSize int64
+	CommitsPerPage   int
+	GithubServer     string
+	GitlabServer     string
+	LocalGitPath     string
+	DbProvider       string
+	DbConn           string
+	SessionKey       string
+	ProviderOrder    string
+	CssColumns       bool
+	NoFooter         bool
+	DevMode          bool
+	DumpConfig       bool
 }
 
-type stringFlag struct {
-	value string
-	set   bool
+func NewServeCommand(root *RootCommand) *ServeCommand {
+	c := &ServeCommand{
+		RootCommand: root,
+		fs:          flag.NewFlagSet("serve", flag.ExitOnError),
+	}
+
+	c.fs.StringVar(&c.GithubClientID, "github-client-id", "", "GitHub OAuth client ID")
+	c.fs.StringVar(&c.GithubSecret, "github-secret", "", "GitHub OAuth client secret")
+	c.fs.StringVar(&c.GitlabClientID, "gitlab-client-id", "", "GitLab OAuth client ID")
+	c.fs.StringVar(&c.GitlabSecret, "gitlab-secret", "", "GitLab OAuth client secret")
+	c.fs.StringVar(&c.ExternalURL, "external-url", "", "external URL")
+	c.fs.StringVar(&c.Namespace, "namespace", "", "repository namespace")
+	c.fs.StringVar(&c.Title, "title", "", "site title")
+	c.fs.StringVar(&c.FaviconCacheDir, "favicon-cache-dir", "", "directory for cached favicons")
+	c.fs.Int64Var(&c.FaviconCacheSize, "favicon-cache-size", 0, "max size of favicon cache in bytes")
+	c.fs.IntVar(&c.CommitsPerPage, "commits-per-page", 0, "commits per page")
+	c.fs.StringVar(&c.GithubServer, "github-server", "", "GitHub base URL")
+	c.fs.StringVar(&c.GitlabServer, "gitlab-server", "", "GitLab base URL")
+	c.fs.StringVar(&c.LocalGitPath, "local-git-path", "", "directory for local git provider")
+	c.fs.StringVar(&c.DbProvider, "db-provider", "", "SQL driver name")
+	c.fs.StringVar(&c.DbConn, "db-conn", "", "SQL connection string")
+	c.fs.StringVar(&c.SessionKey, "session-key", "", "session cookie key")
+	c.fs.StringVar(&c.ProviderOrder, "provider-order", "", "comma-separated provider order")
+	c.fs.BoolVar(&c.CssColumns, "css-columns", false, "use CSS columns")
+	c.fs.BoolVar(&c.NoFooter, "no-footer", false, "disable footer on pages")
+	c.fs.BoolVar(&c.DevMode, "dev-mode", false, "enable dev mode helpers")
+	c.fs.BoolVar(&c.DumpConfig, "dump-config", false, "print merged config and exit")
+
+	return c
 }
 
-func (s *stringFlag) Set(v string) error { s.value = v; s.set = true; return nil }
-func (s *stringFlag) String() string     { return s.value }
-func (s *stringFlag) Type() string       { return "string" }
-
-type boolFlag struct {
-	value bool
-	set   bool
+func (c *ServeCommand) Name() string {
+	return c.fs.Name()
 }
 
-func (b *boolFlag) Set(v string) error {
-	val, err := strconv.ParseBool(v)
-	if err != nil {
-		return err
-	}
-	b.value = val
-	b.set = true
-	return nil
-}
-func (b *boolFlag) String() string { return strconv.FormatBool(b.value) }
-func (b *boolFlag) Type() string   { return "bool" }
-
-var (
-	cfgFlag            stringFlag
-	ghIDFlag           stringFlag
-	ghSecretFlag       stringFlag
-	glIDFlag           stringFlag
-	glSecretFlag       stringFlag
-	urlFlag            stringFlag
-	nsFlag             stringFlag
-	titleFlag          stringFlag
-	ghServerFlag       stringFlag
-	glServerFlag       stringFlag
-	faviconDirFlag     stringFlag
-	faviconSizeFlag    stringFlag
-	commitsPerPageFlag stringFlag
-	localGitPathFlag   stringFlag
-	dbProviderFlag     stringFlag
-	dbConnFlag         stringFlag
-	sessionKeyFlag     stringFlag
-	providerOrderFlag  stringFlag
-	columnFlag         boolFlag
-	noFooterFlag       boolFlag
-	devModeFlag        boolFlag
-	dumpConfig         bool
-)
-
-func init() {
-	rootCmd.AddCommand(serveCmd)
-	serveCmd.Flags().Var(&cfgFlag, "config", "path to config file")
-	serveCmd.Flags().Var(&ghIDFlag, "github-client-id", "GitHub OAuth client ID")
-	serveCmd.Flags().Var(&ghSecretFlag, "github-secret", "GitHub OAuth client secret")
-	serveCmd.Flags().Var(&glIDFlag, "gitlab-client-id", "GitLab OAuth client ID")
-	serveCmd.Flags().Var(&glSecretFlag, "gitlab-secret", "GitLab OAuth client secret")
-	serveCmd.Flags().Var(&urlFlag, "external-url", "external URL")
-	serveCmd.Flags().Var(&nsFlag, "namespace", "repository namespace")
-	serveCmd.Flags().Var(&titleFlag, "title", "site title")
-	serveCmd.Flags().Var(&faviconDirFlag, "favicon-cache-dir", "directory for cached favicons")
-	serveCmd.Flags().Var(&faviconSizeFlag, "favicon-cache-size", "max size of favicon cache in bytes")
-	serveCmd.Flags().Var(&commitsPerPageFlag, "commits-per-page", "commits per page")
-	serveCmd.Flags().Var(&ghServerFlag, "github-server", "GitHub base URL")
-	serveCmd.Flags().Var(&glServerFlag, "gitlab-server", "GitLab base URL")
-	serveCmd.Flags().Var(&localGitPathFlag, "local-git-path", "directory for local git provider")
-	serveCmd.Flags().Var(&dbProviderFlag, "db-provider", "SQL driver name")
-	serveCmd.Flags().Var(&dbConnFlag, "db-conn", "SQL connection string")
-	serveCmd.Flags().Var(&sessionKeyFlag, "session-key", "session cookie key")
-	serveCmd.Flags().Var(&providerOrderFlag, "provider-order", "comma-separated provider order")
-	serveCmd.Flags().Var(&columnFlag, "css-columns", "use CSS columns")
-	serveCmd.Flags().Var(&noFooterFlag, "no-footer", "disable footer on pages")
-	serveCmd.Flags().Var(&devModeFlag, "dev-mode", "enable dev mode helpers")
-	serveCmd.Flags().BoolVar(&dumpConfig, "dump-config", false, "print merged config and exit")
+func (c *ServeCommand) Fs() *flag.FlagSet {
+	return c.fs
 }
 
-func runServe(cmd *cobra.Command, args []string) {
-	envPath := os.Getenv("GOBM_ENV_FILE")
-	if envPath == "" {
-		envPath = "/etc/gobookmarks/gobookmarks.env"
+func (c *ServeCommand) Execute(args []string) error {
+	c.fs.Parse(args)
+	cfg := c.RootCommand.cfg
+
+	if c.GithubClientID != "" {
+		cfg.GithubClientID = c.GithubClientID
 	}
-	if err := LoadEnvFile(envPath); err != nil {
-		log.Printf("unable to load env file %s: %v", envPath, err)
+	if c.GithubSecret != "" {
+		cfg.GithubSecret = c.GithubSecret
+	}
+	if c.GitlabClientID != "" {
+		cfg.GitlabClientID = c.GitlabClientID
+	}
+	if c.GitlabSecret != "" {
+		cfg.GitlabSecret = c.GitlabSecret
+	}
+	if c.ExternalURL != "" {
+		cfg.ExternalURL = c.ExternalURL
+	}
+	if c.Namespace != "" {
+		cfg.Namespace = c.Namespace
+	}
+	if c.Title != "" {
+		cfg.Title = c.Title
+	}
+	if c.CssColumns {
+		cfg.CssColumns = c.CssColumns
+	}
+	if c.NoFooter {
+		cfg.NoFooter = c.NoFooter
+	}
+	if c.DevMode {
+		cfg.DevMode = BP(c.DevMode)
+	}
+	if c.GithubServer != "" {
+		cfg.GithubServer = c.GithubServer
+	}
+	if c.FaviconCacheDir != "" {
+		cfg.FaviconCacheDir = c.FaviconCacheDir
+	}
+	if c.FaviconCacheSize != 0 {
+		cfg.FaviconCacheSize = c.FaviconCacheSize
+	}
+	if c.CommitsPerPage != 0 {
+		cfg.CommitsPerPage = c.CommitsPerPage
+	}
+	if c.GitlabServer != "" {
+		cfg.GitlabServer = c.GitlabServer
+	}
+	if c.LocalGitPath != "" {
+		cfg.LocalGitPath = c.LocalGitPath
+	}
+	if c.DbProvider != "" {
+		cfg.DBConnectionProvider = c.DbProvider
+	}
+	if c.DbConn != "" {
+		cfg.DBConnectionString = c.DbConn
+	}
+	if c.SessionKey != "" {
+		cfg.SessionKey = c.SessionKey
+	}
+	if c.ProviderOrder != "" {
+		cfg.ProviderOrder = splitList(c.ProviderOrder)
 	}
 
-	cfg := Config{
-		GithubClientID: os.Getenv("GITHUB_CLIENT_ID"),
-		GithubSecret:   os.Getenv("GITHUB_SECRET"),
-		GitlabClientID: os.Getenv("GITLAB_CLIENT_ID"),
-		GitlabSecret:   os.Getenv("GITLAB_SECRET"),
-		ExternalURL:    os.Getenv("EXTERNAL_URL"),
-		CssColumns:     os.Getenv("GBM_CSS_COLUMNS") != "",
-		DevMode: func() *bool {
-			if v, ok := os.LookupEnv("GBM_DEV_MODE"); ok {
-				b, _ := strconv.ParseBool(v)
-				return BP(b)
-			}
-			return nil
-		}(),
-		Namespace:       os.Getenv("GBM_NAMESPACE"),
-		Title:           os.Getenv("GBM_TITLE"),
-		GithubServer:    os.Getenv("GITHUB_SERVER"),
-		GitlabServer:    os.Getenv("GITLAB_SERVER"),
-		FaviconCacheDir: os.Getenv("FAVICON_CACHE_DIR"),
-		FaviconCacheSize: func() int64 {
-			if v := os.Getenv("FAVICON_CACHE_SIZE"); v != "" {
-				if i, err := strconv.ParseInt(v, 10, 64); err == nil {
-					return i
-				}
-			}
-			return 0
-		}(),
-		LocalGitPath:         os.Getenv("LOCAL_GIT_PATH"),
-		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
-		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
-		NoFooter:             os.Getenv("GBM_NO_FOOTER") != "",
-		SessionKey:           os.Getenv("SESSION_KEY"),
-		ProviderOrder:        splitList(os.Getenv("PROVIDER_ORDER")),
-		CommitsPerPage: func() int {
-			if v := os.Getenv("COMMITS_PER_PAGE"); v != "" {
-				if i, err := strconv.Atoi(v); err == nil {
-					return i
-				}
-			}
-			return 0
-		}(),
-	}
-
-	configPath := DefaultConfigPath()
-
-	if cfgFlag.set {
-		configPath = cfgFlag.value
-	}
-
-	cfgSpecified := cfgFlag.set || os.Getenv("GOBM_CONFIG_FILE") != ""
-
-	if fileCfg, found, err := LoadConfigFile(configPath); err == nil {
-		if found {
-			MergeConfig(&cfg, fileCfg)
-		}
-	} else {
-		if os.IsNotExist(err) && !cfgSpecified {
-			log.Printf("config file %s not found", configPath)
-		} else {
-			log.Printf("unable to load config file %s: %v", configPath, err)
-			os.Exit(1)
-		}
-	}
-
-	if ghIDFlag.set {
-		cfg.GithubClientID = ghIDFlag.value
-	}
-	if ghSecretFlag.set {
-		cfg.GithubSecret = ghSecretFlag.value
-	}
-	if glIDFlag.set {
-		cfg.GitlabClientID = glIDFlag.value
-	}
-	if glSecretFlag.set {
-		cfg.GitlabSecret = glSecretFlag.value
-	}
-	if urlFlag.set {
-		cfg.ExternalURL = urlFlag.value
-	}
-	if nsFlag.set {
-		cfg.Namespace = nsFlag.value
-	}
-	if titleFlag.set {
-		cfg.Title = titleFlag.value
-	}
-	if columnFlag.set {
-		cfg.CssColumns = columnFlag.value
-	}
-	if noFooterFlag.set {
-		cfg.NoFooter = noFooterFlag.value
-	}
-	if devModeFlag.set {
-		cfg.DevMode = BP(devModeFlag.value)
-	}
-	if ghServerFlag.set {
-		cfg.GithubServer = ghServerFlag.value
-	}
-	if faviconDirFlag.set {
-		cfg.FaviconCacheDir = faviconDirFlag.value
-	}
-	if faviconSizeFlag.set {
-		if i, err := strconv.ParseInt(faviconSizeFlag.value, 10, 64); err == nil {
-			cfg.FaviconCacheSize = i
-		}
-	}
-	if commitsPerPageFlag.set {
-		if i, err := strconv.Atoi(commitsPerPageFlag.value); err == nil {
-			cfg.CommitsPerPage = i
-		}
-	}
-	if glServerFlag.set {
-		cfg.GitlabServer = glServerFlag.value
-	}
-	if localGitPathFlag.set {
-		cfg.LocalGitPath = localGitPathFlag.value
-	}
-	if dbProviderFlag.set {
-		cfg.DBConnectionProvider = dbProviderFlag.value
-	}
-	if dbConnFlag.set {
-		cfg.DBConnectionString = dbConnFlag.value
-	}
-	if sessionKeyFlag.set {
-		cfg.SessionKey = sessionKeyFlag.value
-	}
-	if providerOrderFlag.set {
-		cfg.ProviderOrder = splitList(providerOrderFlag.value)
-	}
-
-	if dumpConfig {
+	if c.DumpConfig {
 		data, _ := json.MarshalIndent(cfg, "", "  ")
 		fmt.Println(string(data))
-		return
+		return nil
 	}
 
 	UseCssColumns = cfg.CssColumns
@@ -270,9 +178,7 @@ func runServe(cmd *cobra.Command, args []string) {
 	if cfg.DevMode != nil {
 		DevMode = *cfg.DevMode
 	}
-	if devModeFlag.set {
-		DevMode = devModeFlag.value
-	}
+
 	if cfg.GithubServer != "" {
 		GithubServer = cfg.GithubServer
 	}
@@ -305,8 +211,8 @@ func runServe(cmd *cobra.Command, args []string) {
 	githubSecret := cfg.GithubSecret
 	gitlabID := cfg.GitlabClientID
 	gitlabSecret := cfg.GitlabSecret
-	externalUrl = strings.TrimRight(cfg.ExternalURL, "/")
-	redirectUrl = JoinURL(externalUrl, "oauth2Callback")
+	externalUrl := strings.TrimRight(cfg.ExternalURL, "/")
+	redirectUrl := JoinURL(externalUrl, "oauth2Callback")
 	GithubClientID = githubID
 	GithubClientSecret = githubSecret
 	GitlabClientID = gitlabID
@@ -318,12 +224,10 @@ func runServe(cmd *cobra.Command, args []string) {
 	SessionName = "gobookmarks"
 	SessionStore = sessions.NewCookieStore(loadSessionKey(cfg))
 	if len(ProviderNames()) == 0 {
-		fmt.Println("no providers compiled")
-		os.Exit(-1)
+		return errors.New("no providers compiled")
 	}
 	if len(ConfiguredProviderNames()) == 0 {
-		fmt.Println("no providers available")
-		os.Exit(-1)
+		return errors.New("no providers available")
 	}
 
 	r := mux.NewRouter()
@@ -338,11 +242,13 @@ func runServe(cmd *cobra.Command, args []string) {
 		_, _ = writer.Write(GetFavicon())
 	}).Methods("GET")
 
+	// Development helpers to toggle layout mode
 	if DevMode {
 		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
 
+	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
@@ -415,18 +321,22 @@ func runServe(cmd *cobra.Command, args []string) {
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
+	// Create a context with a cancel function
 	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer cancel() // Ensure cancellation when main exits
 
+	// Create an HTTP server with a handler
 	httpServer := &http.Server{
 		Addr: ":8080",
 	}
 
+	// Create an HTTPS server with a handler
 	httpsServer := &http.Server{
 		Addr: ":8443",
 	}
 
 	var sigCh chan os.Signal
+	// Handle ^C signal (SIGINT) to gracefully shut down the servers
 	go func() {
 		sigCh = make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt)
@@ -434,8 +344,10 @@ func runServe(cmd *cobra.Command, args []string) {
 
 		fmt.Println("Shutting down gracefully...")
 
+		// Cancel the context to signal shutdown to both servers
 		cancel()
 
+		// Give some time for active connections to finish
 		timeout := 5 * time.Second
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -453,6 +365,7 @@ func runServe(cmd *cobra.Command, args []string) {
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
+	// Start the HTTP server
 	go func() {
 		defer wg.Done()
 		fmt.Println("HTTP server listening on :8080...")
@@ -461,6 +374,7 @@ func runServe(cmd *cobra.Command, args []string) {
 		}
 	}()
 
+	// Start the HTTPS server (TLS/SSL)
 	go func() {
 		defer wg.Done()
 		fmt.Println("HTTPS server listening on :8443...")
@@ -470,11 +384,26 @@ func runServe(cmd *cobra.Command, args []string) {
 	}()
 
 	wg.Wait()
+	return nil
+}
+
+func splitList(s string) []string {
+	if s == "" {
+		return nil
+	}
+	parts := strings.Split(s, ",")
+	var out []string
+	for _, p := range parts {
+		if t := strings.TrimSpace(p); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func CreatePEMFiles() {
 	notBefore := time.Now()
-	notAfter := notBefore.Add(365 * 24 * time.Hour)
+	notAfter := notBefore.Add(365 * 24 * time.Hour) // Valid for 1 year
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
@@ -788,20 +717,6 @@ func loadSessionKey(cfg Config) []byte {
 	}
 
 	return key
-}
-
-func splitList(s string) []string {
-	if s == "" {
-		return nil
-	}
-	parts := strings.Split(s, ",")
-	var out []string
-	for _, p := range parts {
-		if t := strings.TrimSpace(p); t != "" {
-			out = append(out, t)
-		}
-	}
-	return out
 }
 
 var (
