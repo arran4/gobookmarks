@@ -22,7 +22,7 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		login = githubUser.Login
 	}
 
-	_, sha, err := GetBookmarks(r.Context(), login, ref, token)
+	bookmarks, sha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
