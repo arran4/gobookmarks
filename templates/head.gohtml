@@ -31,10 +31,10 @@
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $t := bookmarkTabs }}
-                                                       <li data-page-sha="{{ $t.LastPageSha }}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{if eq $t.Href "/"}}/?edit=1{{else}}{{$t.Href}}&edit=1{{end}}{{else}}{{$t.Href}}{{end}}">{{ $t.IndexName }}</a></li>
-                                                        {{- end }}
-                                                        {{- if $.EditMode }}
-                                                                <li><a href="/editTab?edit=1&ref={{ref}}">+ Add Tab</a></li>
+                                                       <li data-page-sha="{{ $t.LastPageSha }}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{if eq $t.Href "/"}}/?edit=1{{else}}{{$t.Href}}&edit=1{{end}}{{else}}{{$t.Href}}{{end}}">{{ $t.IndexName }}</a><a class="edit-link" href="/editTab?edit=1{{if ref}}&ref={{ref}}{{end}}&tab={{$t.Index}}{{if $t.Name}}&name={{$t.Name}}{{end}}" title="Edit Tab">&#9998;</a></li>
+                                                       {{- end }}
+                                                       {{- if $.EditMode }}
+                                                               <li><a href="/editTab?edit=1{{if ref}}&ref={{ref}}{{end}}">+ Add Tab</a></li>
                                                         {{- end }}
                                                 </ul>
                                                 <hr/>
@@ -42,10 +42,10 @@
                                                 <b>Pages</b>
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
-                                                        <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?edit=1{{if tab}}&tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">{{ if $p.IndexName }}{{$p.IndexName}}{{ else }}Page {{ add1 $i }}{{ end }}</a></li>
-                                                        {{- end }}
-                                                        {{- if $.EditMode }}
-                                                                <li><a href="/editPage?edit=1&ref={{ref}}&tab={{tab}}">+ Add Page</a></li>
+                                                       <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?edit=1{{if tab}}&tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">{{ if $p.IndexName }}{{$p.IndexName}}{{ else }}Page {{ add1 $i }}{{ end }}</a><a class="edit-link" href="/editPage?edit=1&ref={{ref}}{{if tab}}&tab={{tab}}{{end}}&page={{$i}}" title="Edit Page">&#9998;</a></li>
+                                                       {{- end }}
+                                                       {{- if $.EditMode }}
+                                                               <li><a href="/editPage?edit=1&ref={{ref}}&tab={{tab}}">+ Add Page</a></li>
                                                         {{- end }}
                                                 </ul>
                                                 {{ end }}
