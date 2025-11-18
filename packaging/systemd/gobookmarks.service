@@ -7,7 +7,7 @@ Type=simple
 User=gobookmarks
 Group=gobookmarks
 EnvironmentFile=-/etc/gobookmarks/gobookmarks.env
-ExecStart=/usr/local/bin/gobookmarks --config /etc/gobookmarks/config.json
+ExecStart=/usr/local/bin/gobookmarks --config /etc/gobookmarks/config.json serve
 Restart=on-failure
 
 [Install]
