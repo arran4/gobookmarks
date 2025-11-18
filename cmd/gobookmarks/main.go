@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -6,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-
-	. "github.com/arran4/gobookmarks"
 )
 
 var (
@@ -20,76 +17,110 @@ var (
 type Command interface {
 	Execute(args []string) error
 	Name() string
-	Fs() *flag.FlagSet
+	FlagSet() *flag.FlagSet
+	Parent() Command
+	Subcommands() []Command
+	Description() string
+}
+
+type VersionInfo struct {
+	Version string
+	Commit  string
+	Date    string
 }
 
 type RootCommand struct {
-	fs *flag.FlagSet
+	Flags       *flag.FlagSet
+	ConfigPath  string
+	cfg         Config
+	VersionInfo VersionInfo
 
-	Config string
-	cfg    Config
+	ServeCmd       *ServeCommand
+	VersionCmd     *VersionCommand
+	DbCmd          *DbCommand
+	VerifyFileCmd  *VerifyFileCommand
+	VerifyCredsCmd *VerifyCredsCommand
+	ImportCmd      *ImportCommand
+	ExportCmd      *ExportCommand
+	HelpCmd        *HelpCommand
 }
 
 func NewRootCommand() *RootCommand {
-	c := &RootCommand{
-		fs: flag.NewFlagSet("gobookmarks", flag.ExitOnError),
+	rc := &RootCommand{
+		Flags:       flag.NewFlagSet("gobookmarks", flag.ContinueOnError),
+		VersionInfo: VersionInfo{Version: version, Commit: commit, Date: date},
 	}
-	c.fs.StringVar(&c.Config, "config", "", "path to config file")
-	return c
+	rc.Flags.StringVar(&rc.ConfigPath, "config", "", "path to config file")
+
+	rc.ServeCmd, _ = rc.NewServeCommand()
+	rc.VersionCmd, _ = rc.NewVersionCommand()
+	rc.DbCmd, _ = rc.NewDbCommand()
+	rc.VerifyFileCmd, _ = rc.NewVerifyFileCommand()
+	rc.VerifyCredsCmd, _ = rc.NewVerifyCredsCommand()
+	rc.ImportCmd, _ = rc.NewImportCommand()
+	rc.ExportCmd, _ = rc.NewExportCommand()
+	rc.HelpCmd = NewHelpCommand(rc)
+	return rc
 }
 
-func (c *RootCommand) Run(args []string) error {
-	c.fs.Parse(args)
+func (c *RootCommand) Name() string {
+	return c.Flags.Name()
+}
+
+func (c *RootCommand) Parent() Command {
+	return nil
+}
+
+func (c *RootCommand) FlagSet() *flag.FlagSet {
+	return c.Flags
+}
+
+func (c *RootCommand) Subcommands() []Command {
+	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.HelpCmd}
+}
+
+func (c *RootCommand) Description() string {
+	return "Command line entrypoint for gobookmarks"
+}
+
+func (c *RootCommand) Execute(args []string) error {
+	c.Flags.Usage = func() { printHelp(c, nil) }
+	if err := c.Flags.Parse(args); err != nil {
+		printHelp(c, err)
+		return err
+	}
 	if err := c.loadConfig(); err != nil {
+		printHelp(c, err)
 		return err
 	}
 
-	if c.fs.NArg() < 1 {
-		printHelp(c, c.subcommands()...)
+	remaining := c.Flags.Args()
+	if len(remaining) == 0 {
+		printHelp(c, nil)
 		return nil
 	}
 
-	var cmd Command
-	subcommands := c.subcommands()
-	cmdName := c.fs.Arg(0)
-	for _, sub := range subcommands {
-		if sub.Name() == cmdName {
-			cmd = sub
-			break
-		}
-	}
-
-	if cmd == nil {
-		if cmdName == "help" {
-			if c.fs.NArg() < 2 {
-				printHelp(c, c.subcommands()...)
-				return nil
-			}
-			cmdName = c.fs.Arg(1)
-			for _, sub := range subcommands {
-				if sub.Name() == cmdName {
-					printHelp(sub)
-					return nil
-				}
-			}
-			return fmt.Errorf("unknown command: %s", cmdName)
-		}
-		return fmt.Errorf("unknown command: %s", cmdName)
-	}
-
-	cmd.Fs().Usage = func() { printHelp(cmd) }
-	return cmd.Execute(c.fs.Args()[1:])
-}
-
-func (c *RootCommand) subcommands() []Command {
-	return []Command{
-		NewServeCommand(c),
-		NewVersionCommand(c),
-		NewDbCommand(c),
-		NewVerifyFileCommand(c),
-		NewVerifyCredsCommand(c),
-		NewImportCommand(c),
-		NewExportCommand(c),
+	switch remaining[0] {
+	case "-h", "--help", "help":
+		return c.HelpCmd.Execute(remaining[1:])
+	case c.ServeCmd.Name():
+		return c.ServeCmd.Execute(remaining[1:])
+	case c.VersionCmd.Name():
+		return c.VersionCmd.Execute(remaining[1:])
+	case c.DbCmd.Name():
+		return c.DbCmd.Execute(remaining[1:])
+	case c.VerifyFileCmd.Name():
+		return c.VerifyFileCmd.Execute(remaining[1:])
+	case c.VerifyCredsCmd.Name():
+		return c.VerifyCredsCmd.Execute(remaining[1:])
+	case c.ImportCmd.Name():
+		return c.ImportCmd.Execute(remaining[1:])
+	case c.ExportCmd.Name():
+		return c.ExportCmd.Execute(remaining[1:])
+	default:
+		err := fmt.Errorf("unknown command: %s", remaining[0])
+		printHelp(c, err)
+		return err
 	}
 }
 
@@ -112,11 +143,11 @@ func (c *RootCommand) loadConfig() error {
 	}
 
 	configPath := DefaultConfigPath()
-	if c.Config != "" {
-		configPath = c.Config
+	if c.ConfigPath != "" {
+		configPath = c.ConfigPath
 	}
 
-	cfgSpecified := c.Config != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
+	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
 	if fileCfg, found, err := LoadConfigFile(configPath); err == nil {
 		if found {
 			MergeConfig(&c.cfg, fileCfg)
@@ -131,26 +162,14 @@ func (c *RootCommand) loadConfig() error {
 	return nil
 }
 
-func (c *RootCommand) Name() string {
-	return "gobookmarks"
-}
-
-func (c *RootCommand) Fs() *flag.FlagSet {
-	return c.fs
-}
-
-func (c *RootCommand) Execute(args []string) error {
-	return c.Run(args)
+func printHelp(cmd Command, err error) {
+	fmt.Print(renderTemplate(cmd, err))
 }
 
 func main() {
 	log.SetFlags(log.Flags() | log.Lshortfile)
 	root := NewRootCommand()
-	if err := root.Run(os.Args[1:]); err != nil {
+	if err := root.Execute(os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func printUsage() {
-	NewRootCommand().fs.Usage()
 }

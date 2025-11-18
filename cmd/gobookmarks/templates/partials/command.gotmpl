@@ -1,0 +1,19 @@
+{{ define "partials/command" }}
+{{- if .Error }}Error: {{ .Error }}
+
+{{ end -}}
+{{- $cmd := .Command -}}
+{{- $path := commandPath $cmd -}}
+Usage: {{ $path }}{{ if .Subcommands }} <subcommand>{{ end }}{{ if .FlagsOutput }} [flags]{{ end }}
+
+{{ if $cmd.Description }}{{ $cmd.Description }}
+
+{{ end -}}
+{{- if .Subcommands }}Subcommands:
+{{ range .Subcommands }}  {{ .Name }}\t{{ .Description }}
+{{ end }}
+{{ end -}}
+{{- if .FlagsOutput }}Flags:
+{{ .FlagsOutput }}
+{{ end -}}
+{{ end }}

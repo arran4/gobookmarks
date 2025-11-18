@@ -33,8 +33,8 @@ import (
 )
 
 type ServeCommand struct {
-	*RootCommand
-	fs *flag.FlagSet
+	parent Command
+	Flags  *flag.FlagSet
 
 	GithubClientID   string
 	GithubSecret     string
@@ -59,48 +59,67 @@ type ServeCommand struct {
 	DumpConfig       bool
 }
 
-func NewServeCommand(root *RootCommand) *ServeCommand {
+func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
 	c := &ServeCommand{
-		RootCommand: root,
-		fs:          flag.NewFlagSet("serve", flag.ExitOnError),
+		parent: rc,
+		Flags:  flag.NewFlagSet("serve", flag.ContinueOnError),
 	}
 
-	c.fs.StringVar(&c.GithubClientID, "github-client-id", "", "GitHub OAuth client ID")
-	c.fs.StringVar(&c.GithubSecret, "github-secret", "", "GitHub OAuth client secret")
-	c.fs.StringVar(&c.GitlabClientID, "gitlab-client-id", "", "GitLab OAuth client ID")
-	c.fs.StringVar(&c.GitlabSecret, "gitlab-secret", "", "GitLab OAuth client secret")
-	c.fs.StringVar(&c.ExternalURL, "external-url", "", "external URL")
-	c.fs.StringVar(&c.Namespace, "namespace", "", "repository namespace")
-	c.fs.StringVar(&c.Title, "title", "", "site title")
-	c.fs.StringVar(&c.FaviconCacheDir, "favicon-cache-dir", "", "directory for cached favicons")
-	c.fs.Int64Var(&c.FaviconCacheSize, "favicon-cache-size", 0, "max size of favicon cache in bytes")
-	c.fs.IntVar(&c.CommitsPerPage, "commits-per-page", 0, "commits per page")
-	c.fs.StringVar(&c.GithubServer, "github-server", "", "GitHub base URL")
-	c.fs.StringVar(&c.GitlabServer, "gitlab-server", "", "GitLab base URL")
-	c.fs.StringVar(&c.LocalGitPath, "local-git-path", "", "directory for local git provider")
-	c.fs.StringVar(&c.DbProvider, "db-provider", "", "SQL driver name")
-	c.fs.StringVar(&c.DbConn, "db-conn", "", "SQL connection string")
-	c.fs.StringVar(&c.SessionKey, "session-key", "", "session cookie key")
-	c.fs.StringVar(&c.ProviderOrder, "provider-order", "", "comma-separated provider order")
-	c.fs.BoolVar(&c.CssColumns, "css-columns", false, "use CSS columns")
-	c.fs.BoolVar(&c.NoFooter, "no-footer", false, "disable footer on pages")
-	c.fs.BoolVar(&c.DevMode, "dev-mode", false, "enable dev mode helpers")
-	c.fs.BoolVar(&c.DumpConfig, "dump-config", false, "print merged config and exit")
+	c.Flags.StringVar(&c.GithubClientID, "github-client-id", "", "GitHub OAuth client ID")
+	c.Flags.StringVar(&c.GithubSecret, "github-secret", "", "GitHub OAuth client secret")
+	c.Flags.StringVar(&c.GitlabClientID, "gitlab-client-id", "", "GitLab OAuth client ID")
+	c.Flags.StringVar(&c.GitlabSecret, "gitlab-secret", "", "GitLab OAuth client secret")
+	c.Flags.StringVar(&c.ExternalURL, "external-url", "", "external URL")
+	c.Flags.StringVar(&c.Namespace, "namespace", "", "repository namespace")
+	c.Flags.StringVar(&c.Title, "title", "", "site title")
+	c.Flags.StringVar(&c.FaviconCacheDir, "favicon-cache-dir", "", "directory for cached favicons")
+	c.Flags.Int64Var(&c.FaviconCacheSize, "favicon-cache-size", 0, "max size of favicon cache in bytes")
+	c.Flags.IntVar(&c.CommitsPerPage, "commits-per-page", 0, "commits per page")
+	c.Flags.StringVar(&c.GithubServer, "github-server", "", "GitHub base URL")
+	c.Flags.StringVar(&c.GitlabServer, "gitlab-server", "", "GitLab base URL")
+	c.Flags.StringVar(&c.LocalGitPath, "local-git-path", "", "directory for local git provider")
+	c.Flags.StringVar(&c.DbProvider, "db-provider", "", "SQL driver name")
+	c.Flags.StringVar(&c.DbConn, "db-conn", "", "SQL connection string")
+	c.Flags.StringVar(&c.SessionKey, "session-key", "", "session cookie key")
+	c.Flags.StringVar(&c.ProviderOrder, "provider-order", "", "comma-separated provider order")
+	c.Flags.BoolVar(&c.CssColumns, "css-columns", false, "use CSS columns")
+	c.Flags.BoolVar(&c.NoFooter, "no-footer", false, "disable footer on pages")
+	c.Flags.BoolVar(&c.DevMode, "dev-mode", false, "enable dev mode helpers")
+	c.Flags.BoolVar(&c.DumpConfig, "dump-config", false, "print merged config and exit")
 
-	return c
+	return c, nil
 }
 
 func (c *ServeCommand) Name() string {
-	return c.fs.Name()
+	return c.Flags.Name()
 }
 
-func (c *ServeCommand) Fs() *flag.FlagSet {
-	return c.fs
+func (c *ServeCommand) Parent() Command {
+	return c.parent
+}
+
+func (c *ServeCommand) FlagSet() *flag.FlagSet {
+	return c.Flags
+}
+
+func (c *ServeCommand) Subcommands() []Command {
+	return nil
+}
+
+func (c *ServeCommand) Description() string {
+	return "Start the gobookmarks web service"
 }
 
 func (c *ServeCommand) Execute(args []string) error {
-	c.fs.Parse(args)
-	cfg := c.RootCommand.cfg
+	c.FlagSet().Usage = func() { printHelp(c, nil) }
+	if err := c.FlagSet().Parse(args); err != nil {
+		printHelp(c, err)
+		return err
+	}
+	if forwardHelpIfRequested(c, args) {
+		return nil
+	}
+	cfg := c.parent.(*RootCommand).cfg
 
 	if c.GithubClientID != "" {
 		cfg.GithubClientID = c.GithubClientID
