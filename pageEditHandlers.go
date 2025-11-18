@@ -14,6 +14,8 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
+	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
+	pageIdx, _ := strconv.Atoi(r.URL.Query().Get("page"))
 
 	login := ""
 	if githubUser != nil {
@@ -39,6 +41,15 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		Sha:      sha,
 	}
 
+	if pageIdx >= 0 {
+		pageText, pageName, err := ExtractPage(bookmarks, tabIdx, pageIdx)
+		if err != nil {
+			return fmt.Errorf("ExtractPage: %w", err)
+		}
+		data.Name = pageName
+		data.Text = pageText
+	}
+
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editPage.gohtml", data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
@@ -52,6 +63,7 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
 	tabIdx, _ := strconv.Atoi(r.PostFormValue("tab"))
+	pageIdx, pageErr := strconv.Atoi(r.PostFormValue("page"))
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
@@ -74,18 +86,24 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	if tabIdx < 0 || tabIdx >= len(list) {
 		tabIdx = 0
 	}
-	newIndex := len(list[tabIdx].Pages)
 	parsed := ParseBookmarks("Tab\nPage: " + name + "\n" + text)
 	p := parsed[0].Pages[0]
-	list[tabIdx].AddPage(p)
+	if pageErr == nil {
+		if pageIdx < 0 || pageIdx >= len(list[tabIdx].Pages) {
+			return fmt.Errorf("page index out of range")
+		}
+		list[tabIdx].Pages[pageIdx] = p
+	} else {
+		newIndex := len(list[tabIdx].Pages)
+		list[tabIdx].AddPage(p)
+		ctx := context.WithValue(r.Context(), ContextValues("redirectTab"), strconv.Itoa(tabIdx))
+		ctx = context.WithValue(ctx, ContextValues("redirectPage"), strconv.Itoa(newIndex))
+		*r = *r.WithContext(ctx)
+	}
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, list.String(), curSha); err != nil {
 		return fmt.Errorf("updateBookmark error: %w", err)
 	}
-
-	ctx := context.WithValue(r.Context(), ContextValues("redirectTab"), strconv.Itoa(tabIdx))
-	ctx = context.WithValue(ctx, ContextValues("redirectPage"), strconv.Itoa(newIndex))
-	*r = *r.WithContext(ctx)
 
 	return nil
 }
