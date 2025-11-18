@@ -14,7 +14,7 @@ rcvar=gobookmarks_enable
 : ${gobookmarks_env_file:="/etc/gobookmarks/gobookmarks.env"}
 
 command="/usr/local/bin/gobookmarks"
-command_args="--config ${gobookmarks_config_file}"
+command_args="--config ${gobookmarks_config_file} serve"
 pidfile="/var/run/${name}.pid"
 command_user="${gobookmarks_user}"
 

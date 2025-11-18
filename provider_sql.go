@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -36,74 +35,8 @@ func (SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User,
 	return nil, errors.New("not implemented")
 }
 
-func openDB() (*sql.DB, error) {
-	if DBConnectionProvider == "" {
-		return nil, NewSystemError("Database error", errors.New("db provider not configured"))
-	}
-
-	db, err := sql.Open(DBConnectionProvider, DBConnectionString)
-	if err != nil {
-		return nil, NewSystemError("Database error", fmt.Errorf("failed to open db: %w", err))
-	}
-
-	if err := db.Ping(); err != nil {
-		db.Close()
-		return nil, NewSystemError("Database error", err)
-	}
-
-	if err := ensureSQLSchema(db); err != nil {
-		db.Close()
-		return nil, NewSystemError("Database error", fmt.Errorf("failed to ensure schema: %w", err))
-	}
-	return db, nil
-}
-
-func ensureSQLSchema(db *sql.DB) error {
-	switch strings.ToLower(DBConnectionProvider) {
-	case "mysql":
-	case "sqlite3":
-	default:
-		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite3; you used %s", DBConnectionProvider)
-	}
-
-	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
-	sqlSchema, err := sqlSchemas.ReadFile(schemaFile)
-	if err != nil {
-		log.Printf("failed to find sql schema %s falling back on sql/schema.sql: %v", schemaFile, err)
-		sqlSchema, err = sqlSchemas.ReadFile("sql/schema.sql")
-		if err != nil {
-			return fmt.Errorf("failed to find default sql schema sql/schema.sql: %w", err)
-		}
-		log.Printf("using default sql schema file")
-	}
-
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS meta (version INTEGER)"); err != nil {
-		return fmt.Errorf("failed to create meta table: %v", err)
-	}
-
-	var ver int
-	row := db.QueryRow("SELECT version FROM meta LIMIT 1")
-	switch err := row.Scan(&ver); {
-	case err == sql.ErrNoRows:
-		if _, err := db.Exec(string(sqlSchema)); err != nil {
-			return fmt.Errorf("failed to import schema: %w", err)
-		}
-		if _, err := db.Exec("INSERT INTO meta(version) VALUES(?)", sqlSchemaVersion); err != nil {
-			return fmt.Errorf("failed to set schema version: %w", err)
-		}
-		ver = sqlSchemaVersion
-	case err != nil:
-		return fmt.Errorf("failed to query schema version: %w", err)
-	}
-
-	if ver != sqlSchemaVersion {
-		return fmt.Errorf("unsupported schema version %d", ver)
-	}
-	return nil
-}
-
 func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +60,7 @@ func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Tok
 }
 
 func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +87,7 @@ func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2
 }
 
 func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +124,7 @@ func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.
 }
 
 func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return "", "", err
 	}
@@ -218,7 +151,7 @@ func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oa
 }
 
 func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return "", "", err
 	}
@@ -267,7 +200,7 @@ func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oa
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return err
 	}
@@ -339,7 +272,7 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return err
 	}
@@ -420,7 +353,7 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 }
 
 func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return err
 	}
@@ -473,7 +406,7 @@ func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.
 }
 
 func (p SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return false, err
 	}
@@ -485,7 +418,7 @@ func (p SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.
 }
 
 func (p SQLProvider) CreateUser(ctx context.Context, user, password string) error {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return err
 	}
@@ -508,7 +441,7 @@ func (p SQLProvider) CreateUser(ctx context.Context, user, password string) erro
 }
 
 func (p SQLProvider) SetPassword(ctx context.Context, user, password string) error {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return err
 	}
@@ -530,7 +463,7 @@ func (p SQLProvider) SetPassword(ctx context.Context, user, password string) err
 }
 
 func (p SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
-	db, err := openDB()
+	db, err := OpenDB()
 	if err != nil {
 		return false, err
 	}
