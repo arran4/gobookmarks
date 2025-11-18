@@ -5,6 +5,21 @@ import (
 	"strings"
 )
 
+func tabBoundaries(lines []string) []int {
+	starts := []int{0}
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		lower := strings.ToLower(trimmed)
+		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") {
+			if i != 0 {
+				starts = append(starts, i)
+			}
+		}
+	}
+	starts = append(starts, len(lines))
+	return starts
+}
+
 // ExtractTab returns the text for a tab by name including the 'Tab:' line.
 func ExtractTab(bookmarks, name string) (string, error) {
 	lines := strings.Split(bookmarks, "\n")
@@ -26,6 +41,18 @@ func ExtractTab(bookmarks, name string) (string, error) {
 	if start == -1 {
 		return "", fmt.Errorf("tab %s not found", name)
 	}
+	return strings.Join(lines[start:end], "\n"), nil
+}
+
+// ExtractTabByIndex returns the text for a tab by position including the tab header if present.
+func ExtractTabByIndex(bookmarks string, idx int) (string, error) {
+	lines := strings.Split(bookmarks, "\n")
+	starts := tabBoundaries(lines)
+	if idx < 0 || idx >= len(starts)-1 {
+		return "", fmt.Errorf("tab %d not found", idx)
+	}
+	start := starts[idx]
+	end := starts[idx+1]
 	return strings.Join(lines[start:end], "\n"), nil
 }
 
@@ -58,6 +85,38 @@ func ReplaceTab(bookmarks, name, newName, newText string) (string, error) {
 		newLines := strings.Split(strings.TrimSuffix(newText, "\n"), "\n")
 		result = append(result, newLines...)
 	}
+	result = append(result, lines[end:]...)
+	return strings.Join(result, "\n"), nil
+}
+
+// ReplaceTabByIndex replaces the tab at index idx with a new name and text.
+// newText should not include the leading 'Tab:' line.
+func ReplaceTabByIndex(bookmarks string, idx int, newName, newText string) (string, error) {
+	lines := strings.Split(bookmarks, "\n")
+	starts := tabBoundaries(lines)
+	if idx < 0 || idx >= len(starts)-1 {
+		return "", fmt.Errorf("tab %d not found", idx)
+	}
+	start := starts[idx]
+	end := starts[idx+1]
+
+	var replacement []string
+	includeHeader := !(idx == 0 && newName == "")
+	if includeHeader {
+		if newName != "" {
+			replacement = append(replacement, "Tab: "+newName)
+		} else {
+			replacement = append(replacement, "Tab")
+		}
+	}
+	newText = strings.TrimSuffix(newText, "\n")
+	if newText != "" {
+		replacement = append(replacement, strings.Split(newText, "\n")...)
+	}
+
+	var result []string
+	result = append(result, lines[:start]...)
+	result = append(result, replacement...)
 	result = append(result, lines[end:]...)
 	return strings.Join(result, "\n"), nil
 }

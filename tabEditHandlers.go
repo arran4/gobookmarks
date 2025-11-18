@@ -12,6 +12,7 @@ import (
 
 func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	tabName := r.URL.Query().Get("name")
+	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
@@ -26,16 +27,27 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
+	tabs := ParseBookmarks(bookmarks)
+	if tabIdx < 0 || tabIdx >= len(tabs) {
+		tabIdx = 0
+	}
 	text := ""
-	if tabName != "" {
-		t, err := ExtractTab(bookmarks, tabName)
+	tabFromQuery := tabName != ""
+	if tabName == "" && tabIdx < len(tabs) {
+		tabName = tabs[tabIdx].Name
+	}
+	if tabFromQuery || tabIdx < len(tabs) {
+		tabText, err := ExtractTabByIndex(bookmarks, tabIdx)
 		if err != nil {
-			return fmt.Errorf("ExtractTab: %w", err)
+			return fmt.Errorf("ExtractTabByIndex: %w", err)
 		}
-		// drop first line (Tab: ...)
-		lines := strings.SplitN(t, "\n", 2)
-		if len(lines) == 2 {
+		lines := strings.SplitN(tabText, "\n", 2)
+		hasHeader := len(lines) > 0 && strings.HasPrefix(strings.ToLower(strings.TrimSpace(lines[0])), "tab")
+		switch {
+		case hasHeader && len(lines) == 2:
 			text = lines[1]
+		case !hasHeader:
+			text = tabText
 		}
 	}
 
@@ -67,6 +79,7 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
+	tabIdx, _ := strconv.Atoi(r.PostFormValue("tab"))
 	sha := r.PostFormValue("sha")
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -88,7 +101,12 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	var updated string
 	newIndex := len(ParseBookmarks(currentBookmarks))
-	if oldName == "" {
+	if tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
+		updated, err = ReplaceTabByIndex(currentBookmarks, tabIdx, name, text)
+		if err != nil {
+			return fmt.Errorf("ReplaceTabByIndex: %w", err)
+		}
+	} else if oldName == "" {
 		updated = AppendTab(currentBookmarks, name, text)
 	} else {
 		updated, err = ReplaceTab(currentBookmarks, oldName, name, text)
