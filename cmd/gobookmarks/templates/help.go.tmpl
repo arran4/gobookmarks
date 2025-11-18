@@ -1,0 +1,9 @@
+{{define "help"}}
+Usage: gobookmarks {{.Name}} [options]
+
+{{if .HasSubcommands}}Commands:
+{{range .Subcommands}}  {{.Name}}
+{{end}}{{end}}
+Options:
+{{.Flags}}
+{{end}}
