@@ -143,11 +143,15 @@ func (c *RootCommand) loadConfig() error {
 		GithubSecret:         os.Getenv("GITHUB_SECRET"),
 		GitlabClientID:       os.Getenv("GITLAB_CLIENT_ID"),
 		GitlabSecret:         os.Getenv("GITLAB_SECRET"),
+		ExternalURL:          os.Getenv("EXTERNAL_URL"),
 		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
 		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
 	}
 
 	configPath := DefaultConfigPath()
+	if envCfg := os.Getenv("GOBM_CONFIG_FILE"); envCfg != "" {
+		configPath = envCfg
+	}
 	if c.ConfigPath != "" {
 		configPath = c.ConfigPath
 	}
