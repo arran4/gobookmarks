@@ -752,8 +752,3 @@ func loadSessionKey(cfg Config) []byte {
 
 	return key
 }
-
-var (
-	externalUrl string
-	redirectUrl string
-)
