@@ -57,7 +57,7 @@ jobs:
       - name: Build Docker image (smoke test)
         run: docker build --tag gobookmarks:test .
       - name: Smoke test Docker image
-        run: docker run --rm gobookmarks:test --version
+        run: docker run --rm gobookmarks:test version
       - name: Clean up Docker smoke test artifacts
         run: |
           rm -f gobookmarks
