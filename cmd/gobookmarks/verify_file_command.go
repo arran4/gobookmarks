@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	. "github.com/arran4/gobookmarks"
 )
 
 type VerifyFileCommand struct {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	. "github.com/arran4/gobookmarks"
 )
 
 var (

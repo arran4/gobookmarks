@@ -391,6 +391,16 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 	return result
 }
 
+// ValidateBookmarks parses the provided text and ensures it contains at least
+// one tab of bookmarks.
+func ValidateBookmarks(bookmarks string) (BookmarkList, error) {
+	parsed := ParseBookmarks(bookmarks)
+	if len(parsed) == 0 {
+		return parsed, fmt.Errorf("no bookmarks found")
+	}
+	return parsed, nil
+}
+
 // MoveCategory moves the category at fromIndex so it appears before toIndex.
 // If toIndex equals the total number of categories, the item is moved to the end.
 // When newColumn is true a new column directive is inserted before the moved category.

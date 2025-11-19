@@ -128,6 +128,13 @@ func testFuncMap() template.FuncMap {
 		"nextCommit":  func() string { return "next" },
 		"isSearchURL": func(string) bool { return false },
 		"searchURL":   func(u string) string { return strings.TrimPrefix(u, "search:") },
+		"taskSave":    func() string { return TaskSave },
+		"taskSaveAndDone": func() string {
+			return TaskSaveAndDone
+		},
+		"taskSaveAndStopEditing": func() string {
+			return TaskSaveAndStopEditing
+		},
 	}
 }
 

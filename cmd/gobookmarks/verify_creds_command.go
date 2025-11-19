@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+
+	. "github.com/arran4/gobookmarks"
 )
 
 type VerifyCredsCommand struct {
@@ -63,12 +66,19 @@ func (c *VerifyCredsCommand) Execute(args []string) error {
 		return err
 	}
 
-	ok, err := provider.VerifyCredentials(c.User, c.Pass)
+	ph, ok := provider.(PasswordHandler)
+	if !ok {
+		err := fmt.Errorf("provider %s does not support credential verification", provider.Name())
+		printHelp(c, err)
+		return err
+	}
+
+	okPass, err := ph.CheckPassword(context.Background(), c.User, c.Pass)
 	if err != nil {
 		printHelp(c, err)
 		return err
 	}
-	if !ok {
+	if !okPass {
 		err := fmt.Errorf("credentials rejected for %s", c.User)
 		printHelp(c, err)
 		return err
