@@ -48,7 +48,7 @@ func LoadConfigFile(path string) (Config, bool, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("config file %s not found", path)
-			return c, false, err
+			return c, false, nil
 		}
 		return c, false, fmt.Errorf("unable to read config file: %w", err)
 	}
