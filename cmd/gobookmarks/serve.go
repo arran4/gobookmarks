@@ -37,27 +37,27 @@ type ServeCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 
-	GithubClientID   string
-	GithubSecret     string
-	GitlabClientID   string
-	GitlabSecret     string
-	ExternalURL      string
-	Namespace        string
-	Title            string
-	FaviconCacheDir  string
-	FaviconCacheSize int64
-	CommitsPerPage   int
-	GithubServer     string
-	GitlabServer     string
-	LocalGitPath     string
-	DbProvider       string
-	DbConn           string
-	SessionKey       string
-	ProviderOrder    string
-	CssColumns       bool
-	NoFooter         bool
-	DevMode          bool
-	DumpConfig       bool
+	GithubClientID   stringFlag
+	GithubSecret     stringFlag
+	GitlabClientID   stringFlag
+	GitlabSecret     stringFlag
+	ExternalURL      stringFlag
+	Namespace        stringFlag
+	Title            stringFlag
+	FaviconCacheDir  stringFlag
+	FaviconCacheSize stringFlag
+	CommitsPerPage   stringFlag
+	GithubServer     stringFlag
+	GitlabServer     stringFlag
+	LocalGitPath     stringFlag
+	DbProvider       stringFlag
+	DbConn           stringFlag
+	SessionKey       stringFlag
+	ProviderOrder    stringFlag
+	CssColumns       boolFlag
+	NoFooter         boolFlag
+	DevMode          boolFlag
+	DumpConfig       boolFlag
 }
 
 func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
@@ -66,27 +66,27 @@ func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
 		Flags:  flag.NewFlagSet("serve", flag.ContinueOnError),
 	}
 
-	c.Flags.StringVar(&c.GithubClientID, "github-client-id", "", "GitHub OAuth client ID")
-	c.Flags.StringVar(&c.GithubSecret, "github-secret", "", "GitHub OAuth client secret")
-	c.Flags.StringVar(&c.GitlabClientID, "gitlab-client-id", "", "GitLab OAuth client ID")
-	c.Flags.StringVar(&c.GitlabSecret, "gitlab-secret", "", "GitLab OAuth client secret")
-	c.Flags.StringVar(&c.ExternalURL, "external-url", "", "external URL")
-	c.Flags.StringVar(&c.Namespace, "namespace", "", "repository namespace")
-	c.Flags.StringVar(&c.Title, "title", "", "site title")
-	c.Flags.StringVar(&c.FaviconCacheDir, "favicon-cache-dir", "", "directory for cached favicons")
-	c.Flags.Int64Var(&c.FaviconCacheSize, "favicon-cache-size", 0, "max size of favicon cache in bytes")
-	c.Flags.IntVar(&c.CommitsPerPage, "commits-per-page", 0, "commits per page")
-	c.Flags.StringVar(&c.GithubServer, "github-server", "", "GitHub base URL")
-	c.Flags.StringVar(&c.GitlabServer, "gitlab-server", "", "GitLab base URL")
-	c.Flags.StringVar(&c.LocalGitPath, "local-git-path", "", "directory for local git provider")
-	c.Flags.StringVar(&c.DbProvider, "db-provider", "", "SQL driver name")
-	c.Flags.StringVar(&c.DbConn, "db-conn", "", "SQL connection string")
-	c.Flags.StringVar(&c.SessionKey, "session-key", "", "session cookie key")
-	c.Flags.StringVar(&c.ProviderOrder, "provider-order", "", "comma-separated provider order")
-	c.Flags.BoolVar(&c.CssColumns, "css-columns", false, "use CSS columns")
-	c.Flags.BoolVar(&c.NoFooter, "no-footer", false, "disable footer on pages")
-	c.Flags.BoolVar(&c.DevMode, "dev-mode", false, "enable dev mode helpers")
-	c.Flags.BoolVar(&c.DumpConfig, "dump-config", false, "print merged config and exit")
+	c.Flags.Var(&c.GithubClientID, "github-client-id", "GitHub OAuth client ID")
+	c.Flags.Var(&c.GithubSecret, "github-secret", "GitHub OAuth client secret")
+	c.Flags.Var(&c.GitlabClientID, "gitlab-client-id", "GitLab OAuth client ID")
+	c.Flags.Var(&c.GitlabSecret, "gitlab-secret", "GitLab OAuth client secret")
+	c.Flags.Var(&c.ExternalURL, "external-url", "external URL")
+	c.Flags.Var(&c.Namespace, "namespace", "repository namespace")
+	c.Flags.Var(&c.Title, "title", "site title")
+	c.Flags.Var(&c.FaviconCacheDir, "favicon-cache-dir", "directory for cached favicons")
+	c.Flags.Var(&c.FaviconCacheSize, "favicon-cache-size", "max size of favicon cache in bytes")
+	c.Flags.Var(&c.CommitsPerPage, "commits-per-page", "commits per page")
+	c.Flags.Var(&c.GithubServer, "github-server", "GitHub base URL")
+	c.Flags.Var(&c.GitlabServer, "gitlab-server", "GitLab base URL")
+	c.Flags.Var(&c.LocalGitPath, "local-git-path", "directory for local git provider")
+	c.Flags.Var(&c.DbProvider, "db-provider", "SQL driver name")
+	c.Flags.Var(&c.DbConn, "db-conn", "SQL connection string")
+	c.Flags.Var(&c.SessionKey, "session-key", "session cookie key")
+	c.Flags.Var(&c.ProviderOrder, "provider-order", "comma-separated provider order")
+	c.Flags.Var(&c.CssColumns, "css-columns", "use CSS columns")
+	c.Flags.Var(&c.NoFooter, "no-footer", "disable footer on pages")
+	c.Flags.Var(&c.DevMode, "dev-mode", "enable dev mode helpers")
+	c.Flags.Var(&c.DumpConfig, "dump-config", "print merged config and exit")
 
 	return c, nil
 }
@@ -118,68 +118,72 @@ func (c *ServeCommand) Execute(args []string) error {
 	}
 	cfg := c.parent.(*RootCommand).cfg
 
-	if c.GithubClientID != "" {
-		cfg.GithubClientID = c.GithubClientID
+	if c.GithubClientID.set {
+		cfg.GithubClientID = c.GithubClientID.value
 	}
-	if c.GithubSecret != "" {
-		cfg.GithubSecret = c.GithubSecret
+	if c.GithubSecret.set {
+		cfg.GithubSecret = c.GithubSecret.value
 	}
-	if c.GitlabClientID != "" {
-		cfg.GitlabClientID = c.GitlabClientID
+	if c.GitlabClientID.set {
+		cfg.GitlabClientID = c.GitlabClientID.value
 	}
-	if c.GitlabSecret != "" {
-		cfg.GitlabSecret = c.GitlabSecret
+	if c.GitlabSecret.set {
+		cfg.GitlabSecret = c.GitlabSecret.value
 	}
-	if c.ExternalURL != "" {
-		cfg.ExternalURL = c.ExternalURL
+	if c.ExternalURL.set {
+		cfg.ExternalURL = c.ExternalURL.value
 	}
-	if c.Namespace != "" {
-		cfg.Namespace = c.Namespace
+	if c.Namespace.set {
+		cfg.Namespace = c.Namespace.value
 	}
-	if c.Title != "" {
-		cfg.Title = c.Title
+	if c.Title.set {
+		cfg.Title = c.Title.value
 	}
-	if c.CssColumns {
-		cfg.CssColumns = c.CssColumns
+	if c.CssColumns.set {
+		cfg.CssColumns = c.CssColumns.value
 	}
-	if c.NoFooter {
-		cfg.NoFooter = c.NoFooter
+	if c.NoFooter.set {
+		cfg.NoFooter = c.NoFooter.value
 	}
-	if c.DevMode {
-		cfg.DevMode = BP(c.DevMode)
+	if c.DevMode.set {
+		cfg.DevMode = BP(c.DevMode.value)
 	}
-	if c.GithubServer != "" {
-		cfg.GithubServer = c.GithubServer
+	if c.GithubServer.set {
+		cfg.GithubServer = c.GithubServer.value
 	}
-	if c.FaviconCacheDir != "" {
-		cfg.FaviconCacheDir = c.FaviconCacheDir
+	if c.FaviconCacheDir.set {
+		cfg.FaviconCacheDir = c.FaviconCacheDir.value
 	}
-	if c.FaviconCacheSize != 0 {
-		cfg.FaviconCacheSize = c.FaviconCacheSize
+	if c.FaviconCacheSize.set {
+		if i, err := strconv.ParseInt(c.FaviconCacheSize.value, 10, 64); err == nil {
+			cfg.FaviconCacheSize = i
+		}
 	}
-	if c.CommitsPerPage != 0 {
-		cfg.CommitsPerPage = c.CommitsPerPage
+	if c.CommitsPerPage.set {
+		if i, err := strconv.Atoi(c.CommitsPerPage.value); err == nil {
+			cfg.CommitsPerPage = i
+		}
 	}
-	if c.GitlabServer != "" {
-		cfg.GitlabServer = c.GitlabServer
+	if c.GitlabServer.set {
+		cfg.GitlabServer = c.GitlabServer.value
 	}
-	if c.LocalGitPath != "" {
-		cfg.LocalGitPath = c.LocalGitPath
+	if c.LocalGitPath.set {
+		cfg.LocalGitPath = c.LocalGitPath.value
 	}
-	if c.DbProvider != "" {
-		cfg.DBConnectionProvider = c.DbProvider
+	if c.DbProvider.set {
+		cfg.DBConnectionProvider = c.DbProvider.value
 	}
-	if c.DbConn != "" {
-		cfg.DBConnectionString = c.DbConn
+	if c.DbConn.set {
+		cfg.DBConnectionString = c.DbConn.value
 	}
-	if c.SessionKey != "" {
-		cfg.SessionKey = c.SessionKey
+	if c.SessionKey.set {
+		cfg.SessionKey = c.SessionKey.value
 	}
-	if c.ProviderOrder != "" {
-		cfg.ProviderOrder = splitList(c.ProviderOrder)
+	if c.ProviderOrder.set {
+		cfg.ProviderOrder = splitList(c.ProviderOrder.value)
 	}
 
-	if c.DumpConfig {
+	if c.DumpConfig.value {
 		data, _ := json.MarshalIndent(cfg, "", "  ")
 		fmt.Println(string(data))
 		return nil
