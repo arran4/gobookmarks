@@ -3,15 +3,15 @@ package main
 import (
 	"fmt"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
-func getConfiguredProvider(cfg *Config) (Provider, error) {
+func getConfiguredProvider(cfg *gobookmarks.Config) (gobookmarks.Provider, error) {
 	if cfg.DBConnectionProvider != "" && cfg.DBConnectionString != "" {
-		return SQLProvider{}, nil
+		return gobookmarks.SQLProvider{}, nil
 	}
 	if cfg.LocalGitPath != "" {
-		return GitProvider{}, nil
+		return gobookmarks.GitProvider{}, nil
 	}
 	// This is a simplification. A real implementation would need to handle
 	// OAuth2 providers, but that's outside the scope of this task.

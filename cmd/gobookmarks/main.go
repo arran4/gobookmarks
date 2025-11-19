@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 var (
@@ -32,7 +34,7 @@ type VersionInfo struct {
 type RootCommand struct {
 	Flags       *flag.FlagSet
 	ConfigPath  string
-	cfg         Config
+	cfg         gobookmarks.Config
 	VersionInfo VersionInfo
 
 	ServeCmd       *ServeCommand
@@ -129,11 +131,11 @@ func (c *RootCommand) loadConfig() error {
 	if envPath == "" {
 		envPath = "/etc/gobookmarks/gobookmarks.env"
 	}
-	if err := LoadEnvFile(envPath); err != nil {
+	if err := gobookmarks.LoadEnvFile(envPath); err != nil {
 		log.Printf("unable to load env file %s: %v", envPath, err)
 	}
 
-	c.cfg = Config{
+	c.cfg = gobookmarks.Config{
 		GithubClientID:       os.Getenv("GITHUB_CLIENT_ID"),
 		GithubSecret:         os.Getenv("GITHUB_SECRET"),
 		GitlabClientID:       os.Getenv("GITLAB_CLIENT_ID"),
@@ -142,15 +144,15 @@ func (c *RootCommand) loadConfig() error {
 		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
 	}
 
-	configPath := DefaultConfigPath()
+	configPath := gobookmarks.DefaultConfigPath()
 	if c.ConfigPath != "" {
 		configPath = c.ConfigPath
 	}
 
 	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
-	if fileCfg, found, err := LoadConfigFile(configPath); err == nil {
+	if fileCfg, found, err := gobookmarks.LoadConfigFile(configPath); err == nil {
 		if found {
-			MergeConfig(&c.cfg, fileCfg)
+			gobookmarks.MergeConfig(&c.cfg, fileCfg)
 		}
 	} else {
 		if os.IsNotExist(err) && !cfgSpecified {

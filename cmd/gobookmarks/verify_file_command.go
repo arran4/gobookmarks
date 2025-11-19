@@ -4,6 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type VerifyFileCommand struct {
@@ -69,4 +72,13 @@ func (c *VerifyFileCommand) Execute(args []string) error {
 
 	fmt.Printf("%s is valid\n", c.Path)
 	return nil
+}
+
+func ValidateBookmarks(text string) (gobookmarks.BookmarkList, error) {
+	if strings.TrimSpace(text) == "" {
+		return gobookmarks.BookmarkList{}, fmt.Errorf("bookmark data is empty")
+	}
+
+	bookmarks := gobookmarks.ParseBookmarks(text)
+	return bookmarks, nil
 }

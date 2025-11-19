@@ -71,7 +71,7 @@ func (c *ExportCommand) Execute(args []string) error {
 		return err
 	}
 
-	data, err := provider.GetBookmarks(context.Background(), c.User, nil, "main")
+	data, _, err := provider.GetBookmarks(context.Background(), c.User, "", nil)
 	if err != nil {
 		printHelp(c, err)
 		return err
