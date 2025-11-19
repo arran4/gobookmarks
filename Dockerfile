@@ -21,7 +21,6 @@ ENV GITHUB_SERVER=""
 ENV GITLAB_SERVER=""
 ENV LOCAL_GIT_PATH=/var/lib/gobookmarks/localgit
 ENV GOBM_ENV_FILE=/etc/gobookmarks/gobookmarks.env
-ENV GOBM_CONFIG_FILE=/etc/gobookmarks/config.json
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks
