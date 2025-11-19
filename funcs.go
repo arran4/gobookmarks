@@ -18,6 +18,7 @@ type TabInfo struct {
 	Name        string
 	IndexName   string
 	Href        string
+	EditHref    string
 	LastPageSha string
 }
 
@@ -85,7 +86,22 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return r.URL.Query().Get("ref")
 		},
 		"tab": func() string {
-			return r.URL.Query().Get("tab")
+			return strconv.Itoa(TabFromRequest(r))
+		},
+		"tabPath": func(tab int) string {
+			return TabPath(tab)
+		},
+		"tabEditPath": func(tab int) string {
+			return TabEditPath(tab)
+		},
+		"currentTabPath": func() string {
+			return TabPath(TabFromRequest(r))
+		},
+		"tabEditHref": func(tab int, ref, name string) string {
+			return TabEditHref(tab, ref, name)
+		},
+		"appendQuery": func(rawURL string, params ...string) string {
+			return AppendQueryParams(rawURL, params...)
 		},
 		"page": func() string {
 			return r.URL.Query().Get("page")
@@ -210,9 +226,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
-			tabStr := r.URL.Query().Get("tab")
-			idx, err := strconv.Atoi(tabStr)
-			if err != nil || idx < 0 || idx >= len(tabs) {
+			idx := TabFromRequest(r)
+			if idx < 0 || idx >= len(tabs) {
 				idx = 0
 			}
 			return tabs[idx].Pages, nil
@@ -247,22 +262,12 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					indexName = "Main"
 				}
 				if indexName != "" {
-					q := make([]string, 0, 2)
-					if i != 0 {
-						q = append(q, "tab="+strconv.Itoa(i))
-					}
-					if ref != "" {
-						q = append(q, "ref="+ref)
-					}
-					href := "/"
-					if len(q) > 0 {
-						href = "/?" + strings.Join(q, "&")
-					}
+					href := TabHref(i, ref)
 					lastSha := ""
 					if len(t.Pages) > 0 {
 						lastSha = t.Pages[len(t.Pages)-1].Sha()
 					}
-					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, LastPageSha: lastSha})
+					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, EditHref: AppendQueryParams(href, "edit", "1"), LastPageSha: lastSha})
 				}
 			}
 			return tabs, nil
@@ -289,9 +294,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
-			tabStr := r.URL.Query().Get("tab")
-			idx, err := strconv.Atoi(tabStr)
-			if err != nil || idx < 0 || idx >= len(tabs) {
+			idx := TabFromRequest(r)
+			if idx < 0 || idx >= len(tabs) {
 				idx = 0
 			}
 			name := tabs[idx].DisplayName()

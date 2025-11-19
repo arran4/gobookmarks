@@ -16,6 +16,7 @@
                         <tr valign=top>
                                 <td width=200px id="nav">
                                         <strong>gobookmarks</strong><br>
+                                        {{ $tabPath := currentTabPath }}
                                         <a href="/">Home</a><br>
                                         {{ if $.UserRef }}
                                                 <a href="/logout">Logout</a><br/>
@@ -24,17 +25,18 @@
                                                     {{ $prev := prevCommit }}{{ if $prev }}<a href="/?ref={{ $prev }}&historyRef={{ historyRef }}{{ if tab }}&tab={{ tab }}{{ end }}">Back 1 commit</a><br/>{{ end }}
                                                     {{ $next := nextCommit }}{{ if $next }}<a href="/?ref={{ $next }}&historyRef={{ historyRef }}{{ if tab }}&tab={{ tab }}{{ end }}">Forwards 1 commit</a><br/>{{ end }}
                                                 {{ end }}
-                                                <a id="toggle-edit" href="/?{{if $.EditMode}}{{if tab}}tab={{tab}}{{end}}{{else}}edit=1{{if tab}}&tab={{tab}}{{end}}{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
+                                                <a id="toggle-edit" href="{{if $.EditMode}}{{$tabPath}}{{else}}{{appendQuery $tabPath "edit" "1"}}{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
                                                 {{if $.EditMode}}<a href="/edit?edit=1{{if ref}}&ref={{ref}}{{end}}{{if tab}}&tab={{tab}}{{end}}">Edit All</a><br/>{{end}}
                                                 <input id="search-box" type="text" placeholder="Search" style="width: 100%;" autocomplete="off" spellcheck="false" /><br/>
                                                 <hr/>
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $t := bookmarkTabs }}
-                                                       <li data-page-sha="{{ $t.LastPageSha }}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{if eq $t.Href "/"}}/?edit=1{{else}}{{$t.Href}}&edit=1{{end}}{{else}}{{$t.Href}}{{end}}">{{ $t.IndexName }}</a><a class="edit-link" href="/editTab?edit=1{{if ref}}&ref={{ref}}{{end}}&tab={{$t.Index}}{{if $t.Name}}&name={{$t.Name}}{{end}}" title="Edit Tab">&#9998;</a></li>
+                                                       {{- $editTab := appendQuery (tabEditHref $t.Index (ref) $t.Name) "edit" "1" -}}
+                                                       <li data-page-sha="{{ $t.LastPageSha }}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{$t.EditHref}}{{else}}{{$t.Href}}{{end}}">{{ $t.IndexName }}</a><a class="edit-link" href="{{$editTab}}" title="Edit Tab">&#9998;</a></li>
                                                        {{- end }}
                                                        {{- if $.EditMode }}
-                                                               <li><a href="/editTab?edit=1{{if ref}}&ref={{ref}}{{end}}">+ Add Tab</a></li>
+                                                               <li><a href="{{appendQuery (tabEditHref 0 (ref) "") "edit" "1"}}">+ Add Tab</a></li>
                                                         {{- end }}
                                                 </ul>
                                                 <hr/>
@@ -42,7 +44,8 @@
                                                 <b>Pages</b>
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
-                                                       <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}/?edit=1{{if tab}}&tab={{tab}}{{end}}#page{{$i}}{{else}}#page{{$i}}{{end}}">{{ if $p.IndexName }}{{$p.IndexName}}{{ else }}Page {{ add1 $i }}{{ end }}</a><a class="edit-link" href="/editPage?edit=1&ref={{ref}}{{if tab}}&tab={{tab}}{{end}}&page={{$i}}" title="Edit Page">&#9998;</a></li>
+                                                       {{- $fragment := printf "#page%d" (add1 $i) -}}
+                                                       <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{appendQuery $tabPath "edit" "1"}}{{$fragment}}{{else}}{{$tabPath}}{{$fragment}}{{end}}">{{ if $p.IndexName }}{{$p.IndexName}}{{ else }}Page {{ add1 $i }}{{ end }}</a><a class="edit-link" href="/editPage?edit=1&ref={{ref}}{{if tab}}&tab={{tab}}{{end}}&page={{$i}}" title="Edit Page">&#9998;</a></li>
                                                        {{- end }}
                                                        {{- if $.EditMode }}
                                                                <li><a href="/editPage?edit=1&ref={{ref}}&tab={{tab}}">+ Add Page</a></li>

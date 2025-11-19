@@ -27,6 +27,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -269,6 +270,8 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
+	r.Handle("/tab", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
+	r.Handle("/tab/{tab}", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
@@ -305,6 +308,12 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editTab", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/tab/{tab}/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/editPage", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editPage", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -315,7 +324,9 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	r.HandleFunc("/moveTab", runHandlerChain(MoveTabAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -627,19 +638,19 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 		u, _ := url.Parse(toUrl)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
-		tab := r.PostFormValue("tab")
+		tab := TabFromRequest(r)
 		if v, ok := r.Context().Value(ContextValues("redirectTab")).(string); ok {
-			tab = v
+			if parsed, err := strconv.Atoi(v); err == nil {
+				tab = parsed
+			}
 		}
-		if tab != "" {
-			qs.Set("tab", tab)
-		}
+		u.Path = TabPath(tab)
 		page := r.PostFormValue("page")
 		if v, ok := r.Context().Value(ContextValues("redirectPage")).(string); ok {
 			page = v
 		}
-		if page != "" {
-			u.Fragment = "page" + page
+		if fragment := PageFragmentFromIndex(page); fragment != "" {
+			u.Fragment = fragment
 		}
 		if edit := r.URL.Query().Get("edit"); edit != "" {
 			qs.Set("edit", edit)
@@ -653,11 +664,9 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, _ := url.Parse(toUrl)
 		qs := u.Query()
-		if tab := r.URL.Query().Get("tab"); tab != "" {
-			qs.Set("tab", tab)
-		}
-		if page := r.URL.Query().Get("page"); page != "" {
-			u.Fragment = "page" + page
+		u.Path = TabPath(TabFromRequest(r))
+		if fragment := PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
+			u.Fragment = fragment
 		}
 		if edit := r.URL.Query().Get("edit"); edit != "" {
 			qs.Set("edit", edit)

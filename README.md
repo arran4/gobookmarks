@@ -117,7 +117,7 @@ Every command must be on its own line; empty lines are ignored.
 | `<Link> <Name>`          | Create a link to `<Link>` with the display name `<Name>`.                                 |
 | `Column`                 | Start a new column.                                                                      |
 | `Page[: <name>]`         | Create a new page and optionally name it.                                                |
-| `Tab[: <name>]`          | Start a new tab. Without a name it reverts to the main tab (switch using `?tab=<index>`).|
+| `Tab[: <name>]`          | Start a new tab. Without a name it reverts to the main tab (switch using `/tab/<index>`).|
 | `--`                     | Insert a horizontal rule and reset columns.                                              |
 
 Tabs contain one or more pages. The first tab is implicit and does not need a `Tab` directive unless you want to name it. Each `Page` line begins a new page within the current tab.
