@@ -86,24 +86,35 @@ func (c *RootCommand) Execute(args []string) error {
 		printHelp(c, err)
 		return err
 	}
-	if err := c.loadConfig(); err != nil {
-		printHelp(c, err)
-		return err
-	}
-
 	remaining := c.Flags.Args()
 	if len(remaining) == 0 {
 		printHelp(c, nil)
 		return nil
 	}
 
+	loadCfg := false
 	switch remaining[0] {
 	case "-h", "--help", "help":
 		return c.HelpCmd.Execute(remaining[1:])
-	case c.ServeCmd.Name():
-		return c.ServeCmd.Execute(remaining[1:])
 	case c.VersionCmd.Name():
 		return c.VersionCmd.Execute(remaining[1:])
+	case c.ServeCmd.Name(), c.DbCmd.Name(), c.VerifyFileCmd.Name(), c.VerifyCredsCmd.Name(), c.ImportCmd.Name(), c.ExportCmd.Name():
+		loadCfg = true
+	default:
+		err := fmt.Errorf("unknown command: %s", remaining[0])
+		printHelp(c, err)
+		return err
+	}
+
+	if loadCfg {
+		if err := c.loadConfig(); err != nil {
+			printHelp(c, err)
+			return err
+		}
+	}
+	switch remaining[0] {
+	case c.ServeCmd.Name():
+		return c.ServeCmd.Execute(remaining[1:])
 	case c.DbCmd.Name():
 		return c.DbCmd.Execute(remaining[1:])
 	case c.VerifyFileCmd.Name():
@@ -114,11 +125,8 @@ func (c *RootCommand) Execute(args []string) error {
 		return c.ImportCmd.Execute(remaining[1:])
 	case c.ExportCmd.Name():
 		return c.ExportCmd.Execute(remaining[1:])
-	default:
-		err := fmt.Errorf("unknown command: %s", remaining[0])
-		printHelp(c, err)
-		return err
 	}
+	return nil
 }
 
 func (c *RootCommand) loadConfig() error {
