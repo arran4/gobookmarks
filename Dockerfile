@@ -24,4 +24,5 @@ ENV GOBM_ENV_FILE=/etc/gobookmarks/gobookmarks.env
 EXPOSE 8080
 EXPOSE 8443
 COPY gobookmarks /bin/gobookmarks
-ENTRYPOINT ["gobookmarks", "serve"]
+ENTRYPOINT ["gobookmarks"]
+CMD ["serve"]
