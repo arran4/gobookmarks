@@ -1,1 +1,8 @@
+{{ define "description/db" }}
+{{ .Command.Name }} exposes database maintenance commands for {{ .Parent.Name }}.
+Use it to inspect or mutate the SQL password tables after configuring the connection string.
+Set the provider in your environment or config file.
+Pair it with the nested `{{ .Command.Name }} help <subcommand>` output to see options for each operation.
+{{ end }}
+
 {{ template "partials/command" . }}

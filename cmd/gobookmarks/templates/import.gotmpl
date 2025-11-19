@@ -1,1 +1,7 @@
+{{ define "description/import" }}
+{{ .Command.Name }} reads a bookmarks export from disk and writes it into the configured provider.
+Use `--path` to point at the source file.
+Provide `--user` when targeting the SQL provider so data is stored under the correct account.
+{{ end }}
+
 {{ template "partials/command" . }}

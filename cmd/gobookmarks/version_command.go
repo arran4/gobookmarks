@@ -39,10 +39,6 @@ func (c *VersionCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *VersionCommand) Description() string {
-	return "Display build and provider information"
-}
-
 func (c *VersionCommand) Execute(args []string) error {
 	if forwardHelpIfRequested(c, args) {
 		return nil

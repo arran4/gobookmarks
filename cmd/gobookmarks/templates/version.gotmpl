@@ -1,1 +1,7 @@
+{{ define "description/version" }}
+{{ .Command.Name }} prints the build metadata for gobookmarks.
+It includes the git commit, build date, and the configured bookmark providers.
+Use it to confirm which binary you are running before deploying or troubleshooting.
+{{ end }}
+
 {{ template "partials/command" . }}

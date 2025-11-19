@@ -40,10 +40,6 @@ func (c *ImportCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *ImportCommand) Description() string {
-	return "Import bookmarks into the configured provider"
-}
-
 func (c *ImportCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

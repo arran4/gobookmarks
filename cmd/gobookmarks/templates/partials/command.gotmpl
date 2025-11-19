@@ -4,13 +4,14 @@
 {{ end -}}
 {{- $cmd := .Command -}}
 {{- $path := commandPath $cmd -}}
+{{- $desc := description $cmd -}}
 Usage: {{ $path }}{{ if .Subcommands }} <subcommand>{{ end }}{{ if .FlagsOutput }} [flags]{{ end }}
 
-{{ if $cmd.Description }}{{ $cmd.Description }}
+{{ if $desc }}{{ $desc }}
 
 {{ end -}}
 {{- if .Subcommands }}Subcommands:
-{{ range .Subcommands }}  {{ .Name }}\t{{ .Description }}
+{{ range .Subcommands }}  {{ .Name }}\t{{ firstLine (description .) }}
 {{ end }}
 {{ end -}}
 {{- if .FlagsOutput }}Flags:

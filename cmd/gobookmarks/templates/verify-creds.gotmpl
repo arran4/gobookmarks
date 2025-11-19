@@ -1,1 +1,6 @@
+{{ define "description/verify-creds" }}
+{{ .Command.Name }} checks a username and password against the provider configured by {{ .Parent.Name }}.
+Supply `--user` and `--pass` to confirm authentication works before exposing the service or rotating credentials.
+{{ end }}
+
 {{ template "partials/command" . }}

@@ -42,10 +42,6 @@ func (c *DbResetPasswordCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *DbResetPasswordCommand) Description() string {
-	return "Reset a user password inside the configured database"
-}
-
 func (c *DbResetPasswordCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {
