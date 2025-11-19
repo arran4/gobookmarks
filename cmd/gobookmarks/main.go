@@ -145,16 +145,14 @@ func (c *RootCommand) loadConfig() error {
 	}
 
 	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
-	if fileCfg, found, err := LoadConfigFile(configPath); err == nil {
-		if found {
-			MergeConfig(&c.cfg, fileCfg)
-		}
-	} else {
-		if os.IsNotExist(err) && !cfgSpecified {
-			log.Printf("config file %s not found", configPath)
-		} else {
-			return fmt.Errorf("unable to load config file %s: %w", configPath, err)
-		}
+	fileCfg, found, err := LoadConfigFile(configPath)
+	if err != nil {
+		return fmt.Errorf("unable to load config file %s: %w", configPath, err)
+	}
+	if found {
+		MergeConfig(&c.cfg, fileCfg)
+	} else if cfgSpecified {
+		return fmt.Errorf("unable to load config file %s: not found", configPath)
 	}
 	return nil
 }
