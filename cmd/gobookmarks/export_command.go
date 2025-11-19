@@ -40,10 +40,6 @@ func (c *ExportCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *ExportCommand) Description() string {
-	return "Export bookmarks from the configured provider"
-}
-
 func (c *ExportCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

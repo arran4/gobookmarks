@@ -1,1 +1,8 @@
+{{ define "description/serve" }}
+{{ .Command.Name }} starts the gobookmarks web server configured by {{ .Parent.Name }}.
+Flags can override values from environment variables or config files.
+Use them to point the service at different OAuth providers, repositories, or SQL backends.
+Use `--dump-config` to review the merged configuration without starting the server.
+{{ end }}
+
 {{ template "partials/command" . }}

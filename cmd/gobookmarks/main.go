@@ -20,7 +20,6 @@ type Command interface {
 	FlagSet() *flag.FlagSet
 	Parent() Command
 	Subcommands() []Command
-	Description() string
 }
 
 type VersionInfo struct {
@@ -77,10 +76,6 @@ func (c *RootCommand) FlagSet() *flag.FlagSet {
 
 func (c *RootCommand) Subcommands() []Command {
 	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.HelpCmd}
-}
-
-func (c *RootCommand) Description() string {
-	return "Command line entrypoint for gobookmarks"
 }
 
 func (c *RootCommand) Execute(args []string) error {

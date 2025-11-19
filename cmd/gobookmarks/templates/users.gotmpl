@@ -1,1 +1,7 @@
+{{ define "description/users" }}
+{{ .Command.Name }} lists every username found in the SQL password table.
+It uses the connection details inherited from {{ .Parent.Name }}.
+It is useful for auditing which accounts have been created before resetting passwords or importing data.
+{{ end }}
+
 {{ template "partials/command" . }}

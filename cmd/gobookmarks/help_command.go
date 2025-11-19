@@ -30,10 +30,6 @@ func (c *HelpCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *HelpCommand) Description() string {
-	return "Display contextual help for a command"
-}
-
 func (c *HelpCommand) Execute(args []string) error {
 	target := c.parent
 	if len(args) > 0 {

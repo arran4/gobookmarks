@@ -1,1 +1,6 @@
+{{ define "description/help" }}
+{{ .Command.Name }} shows contextual usage information.
+Run it as `{{ .Parent.Name }} {{ .Command.Name }}` to see help for the current command or provide a subcommand name (for example `{{ .Parent.Name }} {{ .Command.Name }} serve`) to inspect a specific area without executing it.
+{{ end }}
+
 {{ template "partials/command" . }}

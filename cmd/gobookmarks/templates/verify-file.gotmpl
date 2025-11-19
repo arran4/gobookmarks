@@ -1,1 +1,6 @@
+{{ define "description/verify-file" }}
+{{ .Command.Name }} validates a bookmarks file on disk against the format expected by {{ .Parent.Name }} before you import it.
+Point `--path` at the file to catch schema errors locally instead of failing during an import.
+{{ end }}
+
 {{ template "partials/command" . }}

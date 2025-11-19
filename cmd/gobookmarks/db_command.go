@@ -41,10 +41,6 @@ func (c *DbCommand) Subcommands() []Command {
 	return []Command{c.UsersCommand, c.ResetPasswordCommand, c.HelpCmd}
 }
 
-func (c *DbCommand) Description() string {
-	return "Inspect and modify database state"
-}
-
 func (c *DbCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

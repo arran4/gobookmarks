@@ -38,10 +38,6 @@ func (c *VerifyCredsCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *VerifyCredsCommand) Description() string {
-	return "Verify username and password against configured provider"
-}
-
 func (c *VerifyCredsCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

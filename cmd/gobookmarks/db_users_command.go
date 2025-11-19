@@ -36,10 +36,6 @@ func (c *DbUsersCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *DbUsersCommand) Description() string {
-	return "List users registered in the password table"
-}
-
 func (c *DbUsersCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

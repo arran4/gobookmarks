@@ -1,1 +1,6 @@
+{{ define "description/export" }}
+{{ .Command.Name }} pulls the main branch of bookmarks from the configured provider and writes it to disk.
+Set `--path` to the destination file, and include `--user` when using the SQL provider to export a specific account's data.
+{{ end }}
+
 {{ template "partials/command" . }}

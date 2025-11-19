@@ -106,10 +106,6 @@ func (c *ServeCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *ServeCommand) Description() string {
-	return "Start the gobookmarks web service"
-}
-
 func (c *ServeCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

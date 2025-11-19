@@ -37,10 +37,6 @@ func (c *VerifyFileCommand) Subcommands() []Command {
 	return nil
 }
 
-func (c *VerifyFileCommand) Description() string {
-	return "Validate a bookmarks file on disk"
-}
-
 func (c *VerifyFileCommand) Execute(args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {

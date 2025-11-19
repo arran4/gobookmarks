@@ -1,1 +1,7 @@
+{{ define "description/gobookmarks" }}
+The {{ .Command.Name }} command is the entry point for managing a gobookmarks installation.
+Use its subcommands to serve the web UI, validate configuration, or import and export bookmark data.
+Run `{{ .Command.Name }} help <subcommand>` to see context-aware flags for a specific area.
+{{ end }}
+
 {{ template "partials/command" . }}
