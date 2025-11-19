@@ -11,7 +11,7 @@ Usage: {{ $path }}{{ if .Subcommands }} <subcommand>{{ end }}{{ if .FlagsOutput 
 
 {{ end -}}
 {{- if .Subcommands }}Subcommands:
-{{ range .Subcommands }}  {{ .Name }}\t{{ firstLine (description .) }}
+{{ range .Subcommands }}  {{ .Name }}	{{ firstLine (description .) }}
 {{ end }}
 {{ end -}}
 {{- if .FlagsOutput }}Flags:
