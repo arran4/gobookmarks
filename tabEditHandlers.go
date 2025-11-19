@@ -12,7 +12,7 @@ import (
 
 func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	tabName := r.URL.Query().Get("name")
-	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
+	tabIdx := TabFromRequest(r)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
@@ -79,7 +79,7 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
-	tabIdx, _ := strconv.Atoi(r.PostFormValue("tab"))
+	tabIdx := TabFromRequest(r)
 	sha := r.PostFormValue("sha")
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)

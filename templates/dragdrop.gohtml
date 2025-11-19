@@ -38,12 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabList = document.getElementById('tab-list');
     enableDragSort(tabList, (f,t)=>`/moveTab?from=${f}&to=${t}`);
     const pageList = document.getElementById('page-list');
-    const currentTab = document.body.dataset.tab || '';
-    enableDragSort(pageList, (f,t)=>`/movePage?tab=${encodeURIComponent(currentTab)}&from=${f}&to=${t}`);
+    const currentTab = document.body.dataset.tab || '0';
+    const tabPrefix = currentTab && currentTab !== '0' ? `/tab/${encodeURIComponent(currentTab)}` : '';
+    enableDragSort(pageList, (f,t)=>`${tabPrefix}/movePage?from=${f}&to=${t}`);
     document.querySelectorAll('.bookmark-entries').forEach(ul => {
         const cat = ul.dataset.index;
         const page = ul.dataset.page;
-        enableDragSort(ul, (f,t)=>`/moveEntry?category=${cat}&page=${page}&tab=${encodeURIComponent(currentTab)}&from=${f}&to=${t}`);
+        enableDragSort(ul, (f,t)=>`${tabPrefix}/moveEntry?category=${cat}&page=${page}&from=${f}&to=${t}`);
     });
 });
 </script>

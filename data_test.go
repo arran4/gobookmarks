@@ -59,18 +59,23 @@ func testFuncMap() template.FuncMap {
 			}
 			return 0
 		},
-		"atoi":          func(s string) int { i, _ := strconv.Atoi(s); return i },
-		"tab":           func() string { return "0" },
-		"tabName":       func() string { return "Main" },
-		"page":          func() string { return "" },
-		"historyRef":    func() string { return "refs/heads/main" },
-		"useCssColumns": func() bool { return false },
-		"devMode":       func() bool { return false },
-		"showFooter":    func() bool { return true },
-		"showPages":     func() bool { return true },
-		"loggedIn":      func() (bool, error) { return true, nil },
+		"atoi":           func(s string) int { i, _ := strconv.Atoi(s); return i },
+		"tab":            func() string { return "0" },
+                "tabPath":        func(tab int) string { return "/" },
+                "tabEditPath":   func(tab int) string { return TabEditPath(tab) },
+                "tabEditHref":   func(tab int, ref, name string) string { return TabEditHref(tab, ref, name) },
+                "currentTabPath": func() string { return "/" },
+		"appendQuery":    func(rawURL string, params ...string) string { return AppendQueryParams(rawURL, params...) },
+		"tabName":        func() string { return "Main" },
+		"page":           func() string { return "" },
+		"historyRef":     func() string { return "refs/heads/main" },
+		"useCssColumns":  func() bool { return false },
+		"devMode":        func() bool { return false },
+		"showFooter":     func() bool { return true },
+		"showPages":      func() bool { return true },
+		"loggedIn":       func() (bool, error) { return true, nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
-			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", LastPageSha: ""}}, nil
+			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""}}, nil
 		},
 		"commitShort": func() string {
 			short := commit

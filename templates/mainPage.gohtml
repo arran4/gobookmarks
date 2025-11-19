@@ -6,8 +6,11 @@
         <p>Your bookmarks repository was not found. Click <a href="/edit">here</a> to create it.</p>
         {{- end }}
         {{- range $i, $p := bookmarkPages }}
-        <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{$i}}" data-sha="{{$p.Sha}}">
-            {{- if and (eq $i 0) tab }}<h1>{{ tabName }} <a class="edit-link" href="/editTab?edit=1{{if ref}}&ref={{ref}}{{end}}&tab={{tab}}{{if tabName}}&name={{ tabName }}{{end}}" title="Edit">&#9998;</a></h1>{{ end }}
+        <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" id="page{{add1 $i}}" data-sha="{{$p.Sha}}">
+            {{- if and (eq $i 0) tab }}
+            {{- $editTab := appendQuery (tabEditHref (atoi tab) (ref) (tabName)) "edit" "1" -}}
+            <h1>{{ tabName }} <a class="edit-link" href="{{$editTab}}" title="Edit">&#9998;</a></h1>
+            {{- end }}
             {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
             {{- range .Blocks }}
             {{- if .HR }}

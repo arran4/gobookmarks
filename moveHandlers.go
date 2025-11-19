@@ -37,7 +37,7 @@ func MoveTabAction(w http.ResponseWriter, r *http.Request) error {
 func MovePageAction(w http.ResponseWriter, r *http.Request) error {
 	from, _ := strconv.Atoi(r.URL.Query().Get("from"))
 	to, _ := strconv.Atoi(r.URL.Query().Get("to"))
-	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
+	tabIdx := TabFromRequest(r)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
@@ -67,7 +67,7 @@ func MoveEntryAction(w http.ResponseWriter, r *http.Request) error {
 	from, _ := strconv.Atoi(r.URL.Query().Get("from"))
 	to, _ := strconv.Atoi(r.URL.Query().Get("to"))
 	catIdx, _ := strconv.Atoi(r.URL.Query().Get("category"))
-	tabIdx, _ := strconv.Atoi(r.URL.Query().Get("tab"))
+	tabIdx := TabFromRequest(r)
 	pageIdx, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)

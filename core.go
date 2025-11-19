@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -39,12 +38,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
 		editMode := request.URL.Query().Get("edit") == "1"
-		tab := 0
-		if tabS := request.URL.Query().Get("tab"); tabS != "" {
-			if tabI, err := strconv.Atoi(tabS); err == nil {
-				tab = tabI
-			}
-		}
+		tab := TabFromRequest(request)
 		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
 			UserRef:  login,
 			Title:    title,
