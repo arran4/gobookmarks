@@ -22,6 +22,12 @@ type TabInfo struct {
 	LastPageSha string
 }
 
+// TabWithPages extends TabInfo with the tab's rendered pages.
+type TabWithPages struct {
+	TabInfo
+	Pages []*BookmarkPage
+}
+
 var (
 	defaultBookmarks = "Category: Example 1\nhttp://www.google.com.au Google\nColumn\nCategory: Example 2\nhttp://www.google.com.au Google\nhttp://www.google.com.au Google\n"
 	version          = "dev"
@@ -268,6 +274,49 @@ func NewFuncs(r *http.Request) template.FuncMap {
 						lastSha = t.Pages[len(t.Pages)-1].Sha()
 					}
 					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, EditHref: AppendQueryParams(href, "edit", "1"), LastPageSha: lastSha})
+				}
+			}
+			return tabs, nil
+		},
+		"bookmarkTabsWithPages": func() ([]TabWithPages, error) {
+			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*User)
+			token, _ := session.Values["Token"].(*oauth2.Token)
+
+			login := ""
+			if githubUser != nil {
+				login = githubUser.Login
+			}
+
+			ref := r.URL.Query().Get("ref")
+			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
+			var bookmark = defaultBookmarks
+			if err != nil {
+				if errors.Is(err, ErrRepoNotFound) {
+					bookmark = ""
+				} else {
+					return nil, fmt.Errorf("bookmarkTabsWithPages: %w", err)
+				}
+			} else {
+				bookmark = bookmarks
+			}
+			tabsData := ParseBookmarks(bookmark)
+			var tabs []TabWithPages
+			for i, t := range tabsData {
+				indexName := t.DisplayName()
+				if indexName == "" && i == 0 {
+					indexName = "Main"
+				}
+				if indexName != "" {
+					href := TabHref(i, ref)
+					lastSha := ""
+					if len(t.Pages) > 0 {
+						lastSha = t.Pages[len(t.Pages)-1].Sha()
+					}
+					tabs = append(tabs, TabWithPages{
+						TabInfo: TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, EditHref: AppendQueryParams(href, "edit", "1"), LastPageSha: lastSha},
+						Pages:   t.Pages,
+					})
 				}
 			}
 			return tabs, nil

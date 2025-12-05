@@ -33,7 +33,7 @@
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $t := bookmarkTabs }}
                                                        {{- $editTab := appendQuery (tabEditHref $t.Index (ref) $t.Name) "edit" "1" -}}
-                                                       <li data-page-sha="{{ $t.LastPageSha }}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{$t.EditHref}}{{else}}{{$t.Href}}{{end}}">{{ $t.IndexName }}</a><a class="edit-link" href="{{$editTab}}" title="Edit Tab">&#9998;</a></li>
+                                                       <li data-page-sha="{{ $t.LastPageSha }}" data-tab-index="{{$t.Index}}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{$t.EditHref}}{{else}}{{$t.Href}}{{end}}" data-tab-index="{{$t.Index}}">{{ $t.IndexName }}</a><a class="edit-link" href="{{$editTab}}" title="Edit Tab">&#9998;</a></li>
                                                        {{- end }}
                                                        {{- if $.EditMode }}
                                                                <li><a href="{{appendQuery (tabEditHref 0 (ref) "") "edit" "1"}}">+ Add Tab</a></li>

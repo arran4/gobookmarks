@@ -262,6 +262,23 @@ input.search-widget {
     font-weight: bold;
 }
 
+/* Tab visibility */
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active-tab-panel {
+    display: block;
+}
+
+.tab-panel.tab-hidden {
+    display: none;
+}
+
+#tab-content.search-mode .tab-panel {
+    display: block;
+}
+
 /* Style for the active page */
 #page-list li.active-page a {
     font-weight: bold;

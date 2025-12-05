@@ -61,10 +61,10 @@ func testFuncMap() template.FuncMap {
 		},
 		"atoi":           func(s string) int { i, _ := strconv.Atoi(s); return i },
 		"tab":            func() string { return "0" },
-                "tabPath":        func(tab int) string { return "/" },
-                "tabEditPath":   func(tab int) string { return TabEditPath(tab) },
-                "tabEditHref":   func(tab int, ref, name string) string { return TabEditHref(tab, ref, name) },
-                "currentTabPath": func() string { return "/" },
+		"tabPath":        func(tab int) string { return "/" },
+		"tabEditPath":    func(tab int) string { return TabEditPath(tab) },
+		"tabEditHref":    func(tab int, ref, name string) string { return TabEditHref(tab, ref, name) },
+		"currentTabPath": func() string { return "/" },
 		"appendQuery":    func(rawURL string, params ...string) string { return AppendQueryParams(rawURL, params...) },
 		"tabName":        func() string { return "Main" },
 		"page":           func() string { return "" },
@@ -76,6 +76,33 @@ func testFuncMap() template.FuncMap {
 		"loggedIn":       func() (bool, error) { return true, nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
 			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""}}, nil
+		},
+		"bookmarkTabsWithPages": func() ([]TabWithPages, error) {
+			pages := []*BookmarkPage{
+				{
+					Blocks: []*BookmarkBlock{
+						{
+							Columns: []*BookmarkColumn{
+								{
+									Categories: []*BookmarkCategory{
+										{
+											Name:  "Demo",
+											Index: 0,
+											Entries: []*BookmarkEntry{
+												{Name: "Home", Url: "https://example.com"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			return []TabWithPages{{
+				TabInfo: TabInfo{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""},
+				Pages:   pages,
+			}}, nil
 		},
 		"commitShort": func() string {
 			short := commit
