@@ -1,0 +1,8 @@
+{{ define "description/template" }}
+{{ .Command.Name }} renders a template for verification.
+Usage: {{ commandPath .Command }} <subcommand range> [flags]
+
+The <subcommand range> is an identifier for the specific test scenario to render.
+{{ end }}
+
+{{ template "partials/command" . }}
