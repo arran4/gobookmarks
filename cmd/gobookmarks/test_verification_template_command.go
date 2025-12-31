@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	. "github.com/arran4/gobookmarks"
 )
@@ -164,8 +165,43 @@ https://stackoverflow.com Stack Overflow
 	funcs["bookmarks"] = func() (string, error) {
 		return bookmarksStr, nil
 	}
+	funcs["bookmarksOrEditBookmarks"] = func() (string, error) {
+		if req.PostFormValue("text") != "" {
+			return req.PostFormValue("text"), nil
+		}
+		return bookmarksStr, nil
+	}
 	funcs["bookmarksExist"] = func() (bool, error) {
 		return bookmarksStr != "", nil
+	}
+	funcs["bookmarksSHA"] = func() (string, error) {
+		return "mock-sha-123", nil
+	}
+	funcs["branchOrEditBranch"] = func() (string, error) {
+		return "main", nil
+	}
+	funcs["taskSave"] = func() string { return "Save" }
+	funcs["taskSaveAndDone"] = func() string { return "Save & Done" }
+	funcs["taskSaveAndStopEditing"] = func() string { return "Save & Stop Editing" }
+	funcs["commits"] = func() ([]*Commit, error) {
+		t1, _ := time.Parse(time.RFC3339, "2023-10-27T10:00:00Z")
+		t2, _ := time.Parse(time.RFC3339, "2023-10-26T09:00:00Z")
+		return []*Commit{
+			{SHA: "a1b2c3d", Message: "Update bookmarks", CommitterDate: t1, CommitterName: "Test User", CommitterEmail: "test@example.com"},
+			{SHA: "e5f6g7h", Message: "Initial commit", CommitterDate: t2, CommitterName: "Test User", CommitterEmail: "test@example.com"},
+		}, nil
+	}
+	funcs["tags"] = func() ([]*Tag, error) {
+		return []*Tag{
+			{Name: "v1.0.0"},
+			{Name: "v1.1.0"},
+		}, nil
+	}
+	funcs["branches"] = func() ([]*Branch, error) {
+		return []*Branch{
+			{Name: "main"},
+			{Name: "dev"},
+		}, nil
 	}
 	funcs["bookmarkPages"] = func() ([]*BookmarkPage, error) {
 		tabs := ParseBookmarks(bookmarksStr)
@@ -266,8 +302,16 @@ https://stackoverflow.com Stack Overflow
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "mainPage.gohtml", data); err != nil {
-		return fmt.Errorf("failed to render template: %w", err)
+	templateName := "mainPage.gohtml"
+	if subcommandRange == "edit" {
+		templateName = "edit.gohtml"
+	} else if subcommandRange == "history" {
+		templateName = "history.gohtml"
+	} else if subcommandRange == "commits" {
+		templateName = "historyCommits.gohtml"
+	}
+	if err := tmpl.ExecuteTemplate(&buf, templateName, data); err != nil {
+		return fmt.Errorf("failed to render template %s: %w", templateName, err)
 	}
 
 	output := buf.Bytes()
