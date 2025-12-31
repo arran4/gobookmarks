@@ -43,6 +43,7 @@ type RootCommand struct {
 	VerifyCredsCmd *VerifyCredsCommand
 	ImportCmd      *ImportCommand
 	ExportCmd      *ExportCommand
+	TestCmd        *TestCommand
 	HelpCmd        *HelpCommand
 }
 
@@ -60,6 +61,7 @@ func NewRootCommand() *RootCommand {
 	rc.VerifyCredsCmd, _ = rc.NewVerifyCredsCommand()
 	rc.ImportCmd, _ = rc.NewImportCommand()
 	rc.ExportCmd, _ = rc.NewExportCommand()
+	rc.TestCmd, _ = rc.NewTestCommand()
 	rc.HelpCmd = NewHelpCommand(rc)
 	return rc
 }
@@ -77,7 +79,7 @@ func (c *RootCommand) FlagSet() *flag.FlagSet {
 }
 
 func (c *RootCommand) Subcommands() []Command {
-	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.HelpCmd}
+	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.TestCmd, c.HelpCmd}
 }
 
 func (c *RootCommand) Execute(args []string) error {
@@ -98,6 +100,8 @@ func (c *RootCommand) Execute(args []string) error {
 		return c.HelpCmd.Execute(remaining[1:])
 	case c.VersionCmd.Name():
 		return c.VersionCmd.Execute(remaining[1:])
+	case c.TestCmd.Name():
+		return c.TestCmd.Execute(remaining[1:])
 	case c.ServeCmd.Name(), c.DbCmd.Name(), c.VerifyFileCmd.Name(), c.VerifyCredsCmd.Name(), c.ImportCmd.Name(), c.ExportCmd.Name():
 		loadCfg = true
 	default:
