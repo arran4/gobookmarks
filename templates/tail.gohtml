@@ -64,6 +64,27 @@
                         window.history.replaceState({}, '', url.toString());
                     }
 
+                    function updateEditLink(tabIdx) {
+                        if (!toggleEdit) return;
+                        var isEditMode = document.body.classList.contains('edit-mode');
+                        var basePath = (tabIdx === 0) ? '/' : ('/tab/' + tabIdx);
+                        var url = new URL(basePath, window.location.origin);
+                        if (currentRef) url.searchParams.set('ref', currentRef);
+                        if (!isEditMode) url.searchParams.set('edit', '1');
+                        toggleEdit.href = url.pathname + '?' + url.searchParams.toString();
+
+                        // Update "Edit All" link if it exists
+                        // The selector searches for a link that goes to /edit and has edit=1 param, typically "Edit All"
+                        var editAll = document.querySelector('a[href*="/edit?edit=1"]');
+                        if (editAll && isEditMode) {
+                             var eaUrl = new URL('/edit', window.location.origin);
+                             eaUrl.searchParams.set('edit', '1');
+                             if (currentRef) eaUrl.searchParams.set('ref', currentRef);
+                             if (tabIdx > 0) eaUrl.searchParams.set('tab', tabIdx);
+                             editAll.href = eaUrl.pathname + '?' + eaUrl.searchParams.toString();
+                        }
+                    }
+
                     function setActiveTab(tabIdx) {
                         currentTabIndex = tabIdx;
                         searchMode = false;
@@ -73,6 +94,7 @@
                         updateVisibility(tabIdx, false);
                         updateTabLinks(tabIdx);
                         syncUrl(tabIdx);
+                        updateEditLink(tabIdx);
                         updatePageList(tabIdx);
                         document.dispatchEvent(new Event('gobookmarks:tab-rendered'));
                     }
