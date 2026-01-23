@@ -44,10 +44,11 @@ type ServeCommand struct {
 	ExternalURL      stringFlag
 	Namespace        stringFlag
 	Title            stringFlag
-	FaviconCacheDir  stringFlag
-	FaviconCacheSize stringFlag
-	CommitsPerPage   stringFlag
-	GithubServer     stringFlag
+	FaviconCacheDir      stringFlag
+	FaviconCacheSize     stringFlag
+	FaviconMaxCacheCount stringFlag
+	CommitsPerPage       stringFlag
+	GithubServer         stringFlag
 	GitlabServer     stringFlag
 	LocalGitPath     stringFlag
 	DbProvider       stringFlag
@@ -75,6 +76,7 @@ func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
 	c.Flags.Var(&c.Title, "title", "site title")
 	c.Flags.Var(&c.FaviconCacheDir, "favicon-cache-dir", "directory for cached favicons")
 	c.Flags.Var(&c.FaviconCacheSize, "favicon-cache-size", "max size of favicon cache in bytes")
+	c.Flags.Var(&c.FaviconMaxCacheCount, "favicon-max-cache-count", "max number of items in favicon cache")
 	c.Flags.Var(&c.CommitsPerPage, "commits-per-page", "commits per page")
 	c.Flags.Var(&c.GithubServer, "github-server", "GitHub base URL")
 	c.Flags.Var(&c.GitlabServer, "gitlab-server", "GitLab base URL")
@@ -159,6 +161,11 @@ func (c *ServeCommand) Execute(args []string) error {
 			cfg.FaviconCacheSize = i
 		}
 	}
+	if c.FaviconMaxCacheCount.set {
+		if i, err := strconv.Atoi(c.FaviconMaxCacheCount.value); err == nil {
+			cfg.FaviconMaxCacheCount = i
+		}
+	}
 	if c.CommitsPerPage.set {
 		if i, err := strconv.Atoi(c.CommitsPerPage.value); err == nil {
 			cfg.CommitsPerPage = i
@@ -212,6 +219,11 @@ func (c *ServeCommand) Execute(args []string) error {
 		FaviconCacheSize = cfg.FaviconCacheSize
 	} else {
 		FaviconCacheSize = DefaultFaviconCacheSize
+	}
+	if cfg.FaviconMaxCacheCount != 0 {
+		FaviconMaxCacheCount = cfg.FaviconMaxCacheCount
+	} else {
+		FaviconMaxCacheCount = DefaultFaviconMaxCacheCount
 	}
 	if cfg.CommitsPerPage != 0 {
 		CommitsPerPage = cfg.CommitsPerPage
