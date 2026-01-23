@@ -130,21 +130,19 @@ func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oa
 	}
 	defer db.Close()
 
-	var id int
-	err = db.QueryRowContext(ctx, "SELECT id FROM history WHERE user=? AND sha=?", user, sha).Scan(&id)
+	var prev, next sql.NullString
+	err = db.QueryRowContext(ctx, `
+		SELECT
+			(SELECT sha FROM history WHERE user=? AND id < h.id ORDER BY id DESC LIMIT 1),
+			(SELECT sha FROM history WHERE user=? AND id > h.id ORDER BY id ASC LIMIT 1)
+		FROM history h
+		WHERE h.user=? AND h.sha=?`,
+		user, user, user, sha,
+	).Scan(&prev, &next)
 	if err == sql.ErrNoRows {
 		return "", "", nil
 	}
 	if err != nil {
-		return "", "", err
-	}
-	var prev, next sql.NullString
-	err = db.QueryRowContext(ctx, "SELECT sha FROM history WHERE user=? AND id < ? ORDER BY id DESC LIMIT 1", user, id).Scan(&prev)
-	if err != nil && err != sql.ErrNoRows {
-		return "", "", err
-	}
-	err = db.QueryRowContext(ctx, "SELECT sha FROM history WHERE user=? AND id > ? ORDER BY id ASC LIMIT 1", user, id).Scan(&next)
-	if err != nil && err != sql.ErrNoRows {
 		return "", "", err
 	}
 	return prev.String, next.String, nil
