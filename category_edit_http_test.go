@@ -13,7 +13,7 @@ import (
 
 func setupCategoryEditTest(t *testing.T) (GitProvider, string, *sessions.Session, context.Context) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	user := "alice"
 	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {

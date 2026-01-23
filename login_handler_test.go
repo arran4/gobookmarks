@@ -13,11 +13,11 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 	SessionName = "testsess"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"
-	GithubClientID = "id"
-	GithubClientSecret = "secret"
-	GitlabClientID = "id"
-	GitlabClientSecret = "secret"
-	OauthRedirectURL = JoinURL("http://example.com/", "callback")
+	AppConfig.GithubClientID = "id"
+	AppConfig.GithubSecret = "secret"
+	AppConfig.GitlabClientID = "id"
+	AppConfig.GitlabSecret = "secret"
+	AppConfig.OauthRedirectURL = JoinURL("http://example.com/", "callback")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")

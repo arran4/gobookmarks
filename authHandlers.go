@@ -95,7 +95,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		http.NotFound(w, r)
 		return nil
 	}
-	cfg := p.Config(creds.ID, creds.Secret, OauthRedirectURL)
+	cfg := p.Config(creds.ID, creds.Secret, AppConfig.OauthRedirectURL)
 	if cfg == nil {
 		http.NotFound(w, r)
 		return nil
@@ -129,7 +129,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	if creds == nil {
 		return fmt.Errorf("provider does not support login")
 	}
-	cfg := p.Config(creds.ID, creds.Secret, OauthRedirectURL)
+	cfg := p.Config(creds.ID, creds.Secret, AppConfig.OauthRedirectURL)
 	if cfg == nil {
 		return fmt.Errorf("provider does not support login")
 	}

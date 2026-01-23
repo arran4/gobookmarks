@@ -14,7 +14,7 @@ import (
 
 func TestGitSignupScenario(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 
 	SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
@@ -120,7 +120,7 @@ func TestGitSignupScenario(t *testing.T) {
 
 func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"

@@ -12,35 +12,11 @@ import (
 	"strings"
 )
 
-// Config holds runtime configuration values.
-type Config struct {
-	GithubClientID       string   `json:"github_client_id"`
-	GithubSecret         string   `json:"github_secret"`
-	GitlabClientID       string   `json:"gitlab_client_id"`
-	GitlabSecret         string   `json:"gitlab_secret"`
-	ExternalURL          string   `json:"external_url"`
-	CssColumns           bool     `json:"css_columns"`
-	DevMode              *bool    `json:"dev_mode"`
-	Namespace            string   `json:"namespace"`
-	Title                string   `json:"title"`
-	GithubServer         string   `json:"github_server"`
-	GitlabServer         string   `json:"gitlab_server"`
-	FaviconCacheDir      string   `json:"favicon_cache_dir"`
-	FaviconCacheSize     int64    `json:"favicon_cache_size"`
-	LocalGitPath         string   `json:"local_git_path"`
-	NoFooter             bool     `json:"no_footer"`
-	SessionKey           string   `json:"session_key"`
-	DBConnectionProvider string   `json:"db_connection_provider"`
-	DBConnectionString   string   `json:"db_connection_string"`
-	ProviderOrder        []string `json:"provider_order"`
-	CommitsPerPage       int      `json:"commits_per_page"`
-}
-
 // LoadConfigFile loads configuration from the given path.
-// It returns the loaded Config, a boolean indicating if the file existed,
+// It returns the loaded Configuration, a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
-func LoadConfigFile(path string) (Config, bool, error) {
-	var c Config
+func LoadConfigFile(path string) (*Configuration, bool, error) {
+	c := NewConfiguration()
 
 	log.Printf("attempting to load config from %s", path)
 
@@ -53,7 +29,7 @@ func LoadConfigFile(path string) (Config, bool, error) {
 		return c, false, fmt.Errorf("unable to read config file: %w", err)
 	}
 
-	if err := json.Unmarshal(data, &c); err != nil {
+	if err := json.Unmarshal(data, c); err != nil {
 		return c, true, fmt.Errorf("unable to parse config file: %w", err)
 	}
 
@@ -62,13 +38,20 @@ func LoadConfigFile(path string) (Config, bool, error) {
 	return c, true, nil
 }
 
-func loadedConfigKeys(c Config) []string {
+func loadedConfigKeys(c *Configuration) []string {
 	var keys []string
-	v := reflect.ValueOf(c)
-	t := reflect.TypeOf(c)
+	v := reflect.ValueOf(c).Elem()
+	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
+		// Skip "data" field or others that don't have json tag or are not exported
+		if !v.Field(i).CanInterface() {
+			continue
+		}
 		if !v.Field(i).IsZero() {
 			key := t.Field(i).Tag.Get("json")
+			if key == "-" {
+				continue
+			}
 			if key == "" {
 				key = t.Field(i).Name
 			}
@@ -79,7 +62,7 @@ func loadedConfigKeys(c Config) []string {
 }
 
 // MergeConfig copies values from src into dst if they are non-zero.
-func MergeConfig(dst *Config, src Config) {
+func MergeConfig(dst *Configuration, src *Configuration) {
 	if src.GithubClientID != "" {
 		dst.GithubClientID = src.GithubClientID
 	}
@@ -139,6 +122,16 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if len(src.ProviderOrder) > 0 {
 		dst.ProviderOrder = append([]string(nil), src.ProviderOrder...)
+	}
+
+	// Copy data map
+	if src.data != nil {
+		if dst.data == nil {
+			dst.data = make(map[string]string)
+		}
+		for k, v := range src.data {
+			dst.data[k] = v
+		}
 	}
 }
 

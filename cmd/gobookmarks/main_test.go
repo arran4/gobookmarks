@@ -41,7 +41,7 @@ func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 func TestRunTemplate_BufferedError(t *testing.T) {
 	gb.SessionName = "testsess"
 	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
-	gb.DBConnectionProvider = ""
+	gb.AppConfig.DBConnectionProvider = ""
 
 	req := httptest.NewRequest("GET", "/", nil)
 	sess, _ := gb.SessionStore.New(req, gb.SessionName)

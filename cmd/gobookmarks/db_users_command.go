@@ -50,8 +50,8 @@ func (c *DbUsersCommand) Execute(args []string) error {
 		return err
 	}
 
-	DBConnectionProvider = cfg.DBConnectionProvider
-	DBConnectionString = cfg.DBConnectionString
+	AppConfig.DBConnectionProvider = cfg.DBConnectionProvider
+	AppConfig.DBConnectionString = cfg.DBConnectionString
 
 	db, err := OpenDB()
 	if err != nil {

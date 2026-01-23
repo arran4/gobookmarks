@@ -55,7 +55,7 @@ func (c *ImportCommand) Execute(args []string) error {
 		return err
 	}
 
-	provider, err := getConfiguredProvider(&c.parent.(*RootCommand).cfg)
+	provider, err := getConfiguredProvider(c.parent.(*RootCommand).cfg)
 	if err != nil {
 		printHelp(c, err)
 		return err

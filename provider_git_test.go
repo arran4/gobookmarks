@@ -11,7 +11,7 @@ import (
 
 func TestGitProviderCreateAndGet(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	user := "alice"
 	text := "Category: Test\nhttp://example.com test"
@@ -42,7 +42,7 @@ func TestGitProviderCreateAndGet(t *testing.T) {
 
 func TestGitRepoExists(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	user := "carol"
 	exists, err := p.RepoExists(context.Background(), user, nil, RepoName)
@@ -63,7 +63,7 @@ func TestGitRepoExists(t *testing.T) {
 
 func TestGitPasswordLifecycle(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	ctx := context.Background()
 	user := "bob"
@@ -113,9 +113,9 @@ func TestGitPasswordLifecycle(t *testing.T) {
 }
 
 func TestGitUserDirHash(t *testing.T) {
-	LocalGitPath = "/base"
+	AppConfig.LocalGitPath = "/base"
 	path := userDir("../../etc/passwd")
-	if filepath.Dir(path) != LocalGitPath {
+	if filepath.Dir(path) != AppConfig.LocalGitPath {
 		t.Fatalf("path escaped base: %s", path)
 	}
 	if filepath.Base(path) == "../../etc/passwd" {

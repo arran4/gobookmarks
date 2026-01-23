@@ -37,7 +37,7 @@ func (GitLabProvider) Name() string { return "gitlab" }
 func (GitLabProvider) DefaultServer() string { return "https://gitlab.com" }
 
 func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
-	server := strings.TrimRight(GitlabServer, "/")
+	server := strings.TrimRight(AppConfig.GitlabServer, "/")
 	if server == "" {
 		server = "https://gitlab.com"
 	}
@@ -54,7 +54,7 @@ func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 }
 
 func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
-	server := GitlabServer
+	server := AppConfig.GitlabServer
 	if server == "" {
 		server = "https://gitlab.com"
 	}

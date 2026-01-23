@@ -48,11 +48,11 @@ var (
 
 func cacheFileBase(u string) string {
 	h := sha1.Sum([]byte(strings.ToLower(u)))
-	return filepath.Join(FaviconCacheDir, hex.EncodeToString(h[:]))
+	return filepath.Join(AppConfig.FaviconCacheDir, hex.EncodeToString(h[:]))
 }
 
 func readDiskFavicon(u string) *FavIcon {
-	if FaviconCacheDir == "" {
+	if AppConfig.FaviconCacheDir == "" {
 		return nil
 	}
 	base := cacheFileBase(u)
@@ -80,10 +80,10 @@ func readDiskFavicon(u string) *FavIcon {
 }
 
 func writeDiskFavicon(u string, f *FavIcon, expiry time.Time) {
-	if FaviconCacheDir == "" {
+	if AppConfig.FaviconCacheDir == "" {
 		return
 	}
-	if err := os.MkdirAll(FaviconCacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(AppConfig.FaviconCacheDir, 0o755); err != nil {
 		return
 	}
 	base := cacheFileBase(u)
@@ -97,10 +97,10 @@ func writeDiskFavicon(u string, f *FavIcon, expiry time.Time) {
 }
 
 func enforceCacheLimit() {
-	if FaviconCacheDir == "" || FaviconCacheSize <= 0 {
+	if AppConfig.FaviconCacheDir == "" || AppConfig.FaviconCacheSize <= 0 {
 		return
 	}
-	entries, err := filepath.Glob(filepath.Join(FaviconCacheDir, "*.dat"))
+	entries, err := filepath.Glob(filepath.Join(AppConfig.FaviconCacheDir, "*.dat"))
 	if err != nil {
 		return
 	}
@@ -120,7 +120,7 @@ func enforceCacheLimit() {
 		total += fi.Size()
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].mod.Before(list[j].mod) })
-	for total > FaviconCacheSize && len(list) > 0 {
+	for total > AppConfig.FaviconCacheSize && len(list) > 0 {
 		fi := list[0]
 		list = list[1:]
 		total -= fi.size
@@ -162,13 +162,13 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheValue := getCacheFavicon(urlParam)
-	if FaviconCacheDir != "" && cacheValue != nil {
+	if AppConfig.FaviconCacheDir != "" && cacheValue != nil {
 		if readDiskFavicon(urlParam) == nil {
 			removeCacheFavicon(urlParam)
 			cacheValue = nil
 		}
 	}
-	if cacheValue == nil && FaviconCacheDir != "" {
+	if cacheValue == nil && AppConfig.FaviconCacheDir != "" {
 		if diskVal := readDiskFavicon(urlParam); diskVal != nil {
 			cacheValue = diskVal
 			cacheFavicon(urlParam, diskVal.Data, diskVal.ContentType)
@@ -228,7 +228,7 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	cacheFavicon(urlParam, faviconContent, fileType)
-	if FaviconCacheDir != "" {
+	if AppConfig.FaviconCacheDir != "" {
 		writeDiskFavicon(urlParam, &FavIcon{Data: faviconContent, ContentType: fileType}, expiry)
 	}
 

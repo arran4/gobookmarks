@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+var AppConfig = NewConfiguration()
+
 func init() {
 	gob.Register(&User{})
 	gob.Register(&oauth2.Token{})
@@ -28,7 +30,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 			login = githubUser.Login
 		}
 
-		title := SiteTitle
+		title := AppConfig.Title
 		if title == "" {
 			title = "gobookmarks"
 		}
@@ -58,6 +60,28 @@ type CoreData struct {
 }
 
 type Configuration struct {
+	GithubClientID       string   `json:"github_client_id"`
+	GithubSecret         string   `json:"github_secret"`
+	GitlabClientID       string   `json:"gitlab_client_id"`
+	GitlabSecret         string   `json:"gitlab_secret"`
+	ExternalURL          string   `json:"external_url"`
+	OauthRedirectURL     string   `json:"-"`
+	CssColumns           bool     `json:"css_columns"`
+	DevMode              *bool    `json:"dev_mode"`
+	Namespace            string   `json:"namespace"`
+	Title                string   `json:"title"`
+	GithubServer         string   `json:"github_server"`
+	GitlabServer         string   `json:"gitlab_server"`
+	FaviconCacheDir      string   `json:"favicon_cache_dir"`
+	FaviconCacheSize     int64    `json:"favicon_cache_size"`
+	LocalGitPath         string   `json:"local_git_path"`
+	NoFooter             bool     `json:"no_footer"`
+	SessionKey           string   `json:"session_key"`
+	DBConnectionProvider string   `json:"db_connection_provider"`
+	DBConnectionString   string   `json:"db_connection_string"`
+	ProviderOrder        []string `json:"provider_order"`
+	CommitsPerPage       int      `json:"commits_per_page"`
+
 	data map[string]string
 }
 

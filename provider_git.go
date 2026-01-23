@@ -34,7 +34,7 @@ func (GitProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User,
 
 func userDir(user string) string {
 	h := sha256.Sum256([]byte(user))
-	return filepath.Join(LocalGitPath, hex.EncodeToString(h[:]))
+	return filepath.Join(AppConfig.LocalGitPath, hex.EncodeToString(h[:]))
 }
 
 func openRepo(user string) (*git.Repository, error) {
@@ -345,7 +345,7 @@ func (GitProvider) RepoExists(ctx context.Context, user string, token *oauth2.To
 
 func passwordPath(user string) string {
 	h := sha256.Sum256([]byte(user))
-	return filepath.Join(LocalGitPath, hex.EncodeToString(h[:]), ".password")
+	return filepath.Join(AppConfig.LocalGitPath, hex.EncodeToString(h[:]), ".password")
 }
 
 // CreateUser writes a bcrypt hash for the given user. It returns ErrUserExists

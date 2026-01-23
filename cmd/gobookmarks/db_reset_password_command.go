@@ -67,8 +67,8 @@ func (c *DbResetPasswordCommand) Execute(args []string) error {
 		return err
 	}
 
-	DBConnectionProvider = cfg.DBConnectionProvider
-	DBConnectionString = cfg.DBConnectionString
+	AppConfig.DBConnectionProvider = cfg.DBConnectionProvider
+	AppConfig.DBConnectionString = cfg.DBConnectionString
 
 	p := SQLProvider{}
 	if err := p.SetPassword(context.Background(), c.User, c.Password); err != nil {

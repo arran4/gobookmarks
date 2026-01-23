@@ -6,7 +6,7 @@ import (
 	. "github.com/arran4/gobookmarks"
 )
 
-func getConfiguredProvider(cfg *Config) (Provider, error) {
+func getConfiguredProvider(cfg *Configuration) (Provider, error) {
 	if cfg.DBConnectionProvider != "" && cfg.DBConnectionString != "" {
 		return SQLProvider{}, nil
 	}

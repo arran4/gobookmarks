@@ -189,60 +189,28 @@ func (c *ServeCommand) Execute(args []string) error {
 		return nil
 	}
 
-	UseCssColumns = cfg.CssColumns
-	Namespace = cfg.Namespace
+	*AppConfig = *cfg
 	RepoName = GetBookmarksRepoName()
-	SiteTitle = cfg.Title
-	NoFooter = cfg.NoFooter
-	DevMode = version == "dev"
-	if cfg.DevMode != nil {
-		DevMode = *cfg.DevMode
+
+	if AppConfig.DevMode == nil {
+		isDev := version == "dev"
+		AppConfig.DevMode = &isDev
 	}
 
-	if cfg.GithubServer != "" {
-		GithubServer = cfg.GithubServer
+	if AppConfig.FaviconCacheSize == 0 {
+		AppConfig.FaviconCacheSize = DefaultFaviconCacheSize
 	}
-	if cfg.GitlabServer != "" {
-		GitlabServer = cfg.GitlabServer
+	if AppConfig.CommitsPerPage == 0 {
+		AppConfig.CommitsPerPage = DefaultCommitsPerPage
 	}
-	if cfg.FaviconCacheDir != "" {
-		FaviconCacheDir = cfg.FaviconCacheDir
-	}
-	if cfg.FaviconCacheSize != 0 {
-		FaviconCacheSize = cfg.FaviconCacheSize
-	} else {
-		FaviconCacheSize = DefaultFaviconCacheSize
-	}
-	if cfg.CommitsPerPage != 0 {
-		CommitsPerPage = cfg.CommitsPerPage
-	} else {
-		CommitsPerPage = DefaultCommitsPerPage
-	}
-	if cfg.LocalGitPath != "" {
-		LocalGitPath = cfg.LocalGitPath
-	}
-	if cfg.DBConnectionProvider != "" {
-		DBConnectionProvider = cfg.DBConnectionProvider
-	}
-	if cfg.DBConnectionString != "" {
-		DBConnectionString = cfg.DBConnectionString
-	}
-	githubID := cfg.GithubClientID
-	githubSecret := cfg.GithubSecret
-	gitlabID := cfg.GitlabClientID
-	gitlabSecret := cfg.GitlabSecret
-	externalUrl := strings.TrimRight(cfg.ExternalURL, "/")
-	redirectUrl := JoinURL(externalUrl, "oauth2Callback")
-	GithubClientID = githubID
-	GithubClientSecret = githubSecret
-	GitlabClientID = gitlabID
-	GitlabClientSecret = gitlabSecret
-	OauthRedirectURL = redirectUrl
 
-	SetProviderOrder(cfg.ProviderOrder)
+	externalUrl := strings.TrimRight(AppConfig.ExternalURL, "/")
+	AppConfig.OauthRedirectURL = JoinURL(externalUrl, "oauth2Callback")
+
+	SetProviderOrder(AppConfig.ProviderOrder)
 
 	SessionName = "gobookmarks"
-	SessionStore = sessions.NewCookieStore(loadSessionKey(cfg))
+	SessionStore = sessions.NewCookieStore(loadSessionKey(*AppConfig))
 	if len(ProviderNames()) == 0 {
 		return errors.New("no providers compiled")
 	}
@@ -263,7 +231,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
-	if DevMode {
+	if *AppConfig.DevMode {
 		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
@@ -357,7 +325,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	SetVersion(version, commit, date)
 	RepoName = GetBookmarksRepoName()
-	log.Printf("Redirect URL configured to: %s", redirectUrl)
+	log.Printf("Redirect URL configured to: %s", AppConfig.OauthRedirectURL)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
@@ -730,7 +698,7 @@ func fileExists(filename string) bool {
 	return !os.IsNotExist(err)
 }
 
-func loadSessionKey(cfg Config) []byte {
+func loadSessionKey(cfg Configuration) []byte {
 	if cfg.SessionKey != "" {
 		return []byte(cfg.SessionKey)
 	}

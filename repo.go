@@ -8,7 +8,7 @@ var RepoName = GetBookmarksRepoName()
 // configuration and build mode. When running a development build the name is
 // suffixed with "-dev". The Namespace value is appended if supplied.
 func GetBookmarksRepoName() string {
-	ns := Namespace
+	ns := AppConfig.Namespace
 	if strings.EqualFold(version, "dev") {
 		if ns == "" {
 			ns = version

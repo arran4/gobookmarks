@@ -68,22 +68,22 @@ type ProviderCreds struct {
 func providerCreds(name string) *ProviderCreds {
 	switch name {
 	case "github":
-		if GithubClientID == "" || GithubClientSecret == "" {
+		if AppConfig.GithubClientID == "" || AppConfig.GithubSecret == "" {
 			return nil
 		}
-		return &ProviderCreds{ID: GithubClientID, Secret: GithubClientSecret}
+		return &ProviderCreds{ID: AppConfig.GithubClientID, Secret: AppConfig.GithubSecret}
 	case "gitlab":
-		if GitlabClientID == "" || GitlabClientSecret == "" {
+		if AppConfig.GitlabClientID == "" || AppConfig.GitlabSecret == "" {
 			return nil
 		}
-		return &ProviderCreds{ID: GitlabClientID, Secret: GitlabClientSecret}
+		return &ProviderCreds{ID: AppConfig.GitlabClientID, Secret: AppConfig.GitlabSecret}
 	case "git":
-		if LocalGitPath == "" {
+		if AppConfig.LocalGitPath == "" {
 			return nil
 		}
 		return &ProviderCreds{}
 	case "sql":
-		if DBConnectionProvider == "" {
+		if AppConfig.DBConnectionProvider == "" {
 			return nil
 		}
 		return &ProviderCreds{}

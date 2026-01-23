@@ -28,8 +28,8 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 	srv, hits := newFaviconServer(t, icon)
 	defer srv.Close()
 
-	FaviconCacheDir = t.TempDir()
-	FaviconCacheSize = 1024 * 1024
+	AppConfig.FaviconCacheDir = t.TempDir()
+	AppConfig.FaviconCacheSize = 1024 * 1024
 	FaviconCache.cache = make(map[string]*FavIcon)
 
 	req := httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)

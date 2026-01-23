@@ -10,11 +10,11 @@ import (
 )
 
 func OpenDB() (*sql.DB, error) {
-	if DBConnectionProvider == "" {
+	if AppConfig.DBConnectionProvider == "" {
 		return nil, NewSystemError("Database error", fmt.Errorf("db provider not configured"))
 	}
 
-	db, err := sql.Open(DBConnectionProvider, DBConnectionString)
+	db, err := sql.Open(AppConfig.DBConnectionProvider, AppConfig.DBConnectionString)
 	if err != nil {
 		return nil, NewSystemError("Database error", fmt.Errorf("failed to open db: %w", err))
 	}
@@ -32,14 +32,14 @@ func OpenDB() (*sql.DB, error) {
 }
 
 func ensureSQLSchema(db *sql.DB) error {
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(AppConfig.DBConnectionProvider) {
 	case "mysql":
 	case "sqlite3":
 	default:
-		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite3; you used %s", DBConnectionProvider)
+		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite3; you used %s", AppConfig.DBConnectionProvider)
 	}
 
-	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
+	schemaFile := "sql/schema." + strings.ToLower(AppConfig.DBConnectionProvider) + ".sql"
 	sqlSchema, err := sqlSchemas.ReadFile(schemaFile)
 	if err != nil {
 		return fmt.Errorf("failed to find sql schema %s: %w", schemaFile, err)
