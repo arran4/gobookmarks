@@ -23,6 +23,12 @@ var bookmarksCache = struct {
 
 func cacheKey(user, ref string) string { return user + "|" + ref }
 
+type requestCache map[string]*bookmarkCacheEntry
+
+func InitRequestCache(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ContextValues("requestCache"), make(requestCache))
+}
+
 func getCachedBookmarks(user, ref string) (string, string, bool) {
 	key := cacheKey(user, ref)
 	bookmarksCache.RLock()
@@ -144,6 +150,13 @@ func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, r
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+	key := cacheKey(user, ref)
+	if cache, ok := ctx.Value(ContextValues("requestCache")).(requestCache); ok {
+		if entry, ok := cache[key]; ok {
+			return entry.bookmarks, entry.sha, nil
+		}
+	}
+
 	if b, sha, ok := getCachedBookmarks(user, ref); ok {
 		return b, sha, nil
 	}
@@ -154,6 +167,11 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 	b, sha, err := p.GetBookmarks(ctx, user, ref, token)
 	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return "", "", ErrSignedOut
+	}
+	if err == nil {
+		if cache, ok := ctx.Value(ContextValues("requestCache")).(requestCache); ok {
+			cache[key] = &bookmarkCacheEntry{bookmarks: b, sha: sha}
+		}
 	}
 	return b, sha, err
 }
