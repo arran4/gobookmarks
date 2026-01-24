@@ -161,24 +161,49 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cacheValue := getCacheFavicon(urlParam)
-	if FaviconCacheDir != "" && cacheValue != nil {
-		if readDiskFavicon(urlParam) == nil {
-			removeCacheFavicon(urlParam)
-			cacheValue = nil
+	targetKey := urlParam
+	if size > 0 {
+		targetKey = fmt.Sprintf("%s#size=%d", urlParam, size)
+	}
+
+	getFromCache := func(key string) *FavIcon {
+		val := getCacheFavicon(key)
+		if FaviconCacheDir != "" && val != nil {
+			if readDiskFavicon(key) == nil {
+				removeCacheFavicon(key)
+				val = nil
+			}
+		}
+		if val == nil && FaviconCacheDir != "" {
+			if diskVal := readDiskFavicon(key); diskVal != nil {
+				val = diskVal
+				cacheFavicon(key, diskVal.Data, diskVal.ContentType)
+			}
+		}
+		return val
+	}
+
+	// 1. Try exact match (e.g. resized)
+	if size > 0 {
+		if icon := getFromCache(targetKey); icon != nil {
+			w.Header().Set("Content-Type", icon.ContentType)
+			_, _ = w.Write(icon.Data)
+			return
 		}
 	}
-	if cacheValue == nil && FaviconCacheDir != "" {
-		if diskVal := readDiskFavicon(urlParam); diskVal != nil {
-			cacheValue = diskVal
-			cacheFavicon(urlParam, diskVal.Data, diskVal.ContentType)
-		}
-	}
+
+	// 2. Try base match
+	cacheValue := getFromCache(urlParam)
 	if cacheValue != nil {
 		icon := cacheValue
 		if size > 0 {
 			if data, ct, err := resizeImage(cacheValue.Data, size); err == nil {
 				icon = &FavIcon{Data: data, ContentType: ct}
+				cacheFavicon(targetKey, data, ct)
+				if FaviconCacheDir != "" {
+					// We use DefaultFaviconCacheMaxAge for resized items derived from cache
+					writeDiskFavicon(targetKey, icon, time.Now().Add(DefaultFaviconCacheMaxAge))
+				}
 			}
 		}
 		w.Header().Set("Content-Type", icon.ContentType)
@@ -237,6 +262,10 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	if size > 0 {
 		if data, ct, err := resizeImage(icon.Data, size); err == nil {
 			icon = &FavIcon{Data: data, ContentType: ct}
+			cacheFavicon(targetKey, data, ct)
+			if FaviconCacheDir != "" {
+				writeDiskFavicon(targetKey, icon, expiry)
+			}
 		}
 	}
 	w.Header().Set("Content-Type", icon.ContentType)
