@@ -8,7 +8,7 @@ import (
 
 func getConfiguredProvider(cfg *Config) (Provider, error) {
 	if cfg.DBConnectionProvider != "" && cfg.DBConnectionString != "" {
-		return SQLProvider{}, nil
+		return &SQLProvider{}, nil
 	}
 	if cfg.LocalGitPath != "" {
 		return GitProvider{}, nil

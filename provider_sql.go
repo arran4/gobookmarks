@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -17,7 +18,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type SQLProvider struct{}
+type SQLProvider struct {
+	db *sql.DB
+	mu sync.Mutex
+}
 
 const sqlSchemaVersion = 1
 
@@ -25,22 +29,37 @@ const sqlSchemaVersion = 1
 var sqlSchemas embed.FS
 
 func init() {
-	RegisterProvider(SQLProvider{})
+	RegisterProvider(&SQLProvider{})
 }
 
-func (SQLProvider) Name() string                                                     { return "sql" }
-func (SQLProvider) DefaultServer() string                                            { return "" }
-func (SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
-func (SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
-	return nil, errors.New("not implemented")
-}
+func (p *SQLProvider) getDB() (*sql.DB, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+	if p.db != nil {
+		return p.db, nil
+	}
+
 	db, err := OpenDB()
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
+	p.db = db
+	return p.db, nil
+}
+
+func (p *SQLProvider) Name() string                                                     { return "sql" }
+func (p *SQLProvider) DefaultServer() string                                            { return "" }
+func (p *SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
+func (p *SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+	db, err := p.getDB()
+	if err != nil {
+		return nil, err
+	}
 
 	rows, err := db.QueryContext(ctx, "SELECT name FROM tags WHERE user=? ORDER BY name", user)
 	if err != nil {
@@ -59,12 +78,11 @@ func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Tok
 	return tags, rows.Err()
 }
 
-func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	db, err := OpenDB()
+func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+	db, err := p.getDB()
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 
 	rows, err := db.QueryContext(ctx, "SELECT name FROM branches WHERE user=? ORDER BY name", user)
 	if err != nil {
@@ -86,12 +104,11 @@ func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2
 	return branches, rows.Err()
 }
 
-func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
-	db, err := OpenDB()
+func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+	db, err := p.getDB()
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 
 	query := "SELECT sha, message, date FROM history WHERE user=? ORDER BY id DESC"
 	args := []any{user}
@@ -123,12 +140,11 @@ func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.
 	return commits, rows.Err()
 }
 
-func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
-	db, err := OpenDB()
+func (p *SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
+	db, err := p.getDB()
 	if err != nil {
 		return "", "", err
 	}
-	defer db.Close()
 
 	var prev, next sql.NullString
 	err = db.QueryRowContext(ctx, `
@@ -148,12 +164,11 @@ func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oa
 	return prev.String, next.String, nil
 }
 
-func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	db, err := OpenDB()
+func (p *SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+	db, err := p.getDB()
 	if err != nil {
 		return "", "", err
 	}
-	defer db.Close()
 
 	if ref == "" {
 		ref = "refs/heads/main"
@@ -194,15 +209,14 @@ func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *
 	return text, sha, nil
 }
 
-func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := OpenDB()
+	db, err := p.getDB()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -266,15 +280,14 @@ func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oa
 	return tx.Commit()
 }
 
-func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := OpenDB()
+	db, err := p.getDB()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -350,12 +363,11 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 	return tx.Commit()
 }
 
-func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	db, err := OpenDB()
+func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
+	db, err := p.getDB()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -403,24 +415,22 @@ func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.
 	return tx.Commit()
 }
 
-func (p SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
-	db, err := OpenDB()
+func (p *SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+	db, err := p.getDB()
 	if err != nil {
 		return false, err
 	}
-	defer db.Close()
 
 	var count int
 	err = db.QueryRowContext(ctx, "SELECT COUNT(1) FROM bookmarks WHERE user=?", user).Scan(&count)
 	return count > 0, err
 }
 
-func (p SQLProvider) CreateUser(ctx context.Context, user, password string) error {
-	db, err := OpenDB()
+func (p *SQLProvider) CreateUser(ctx context.Context, user, password string) error {
+	db, err := p.getDB()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	var count int
 	if err := db.QueryRowContext(ctx, "SELECT COUNT(1) FROM passwords WHERE user=?", user).Scan(&count); err != nil {
@@ -438,12 +448,11 @@ func (p SQLProvider) CreateUser(ctx context.Context, user, password string) erro
 	return err
 }
 
-func (p SQLProvider) SetPassword(ctx context.Context, user, password string) error {
-	db, err := OpenDB()
+func (p *SQLProvider) SetPassword(ctx context.Context, user, password string) error {
+	db, err := p.getDB()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -460,12 +469,11 @@ func (p SQLProvider) SetPassword(ctx context.Context, user, password string) err
 	return nil
 }
 
-func (p SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
-	db, err := OpenDB()
+func (p *SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
+	db, err := p.getDB()
 	if err != nil {
 		return false, err
 	}
-	defer db.Close()
 
 	var hash []byte
 	err = db.QueryRowContext(ctx, "SELECT hash FROM passwords WHERE user=?", user).Scan(&hash)
