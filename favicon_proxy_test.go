@@ -54,3 +54,21 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 		t.Fatalf("expected refetch after expiry, hits %d", *hits)
 	}
 }
+
+func TestFaviconMaxCacheCount(t *testing.T) {
+	icon := []byte{0x89, 'P', 'N', 'G'}
+	FaviconCache.cache = make(map[string]*FavIcon)
+	FaviconMaxCacheCount = 2
+
+	// Add 3 items
+	cacheFavicon("url1", icon, "image/png")
+	cacheFavicon("url2", icon, "image/png")
+	cacheFavicon("url3", icon, "image/png")
+
+	FaviconCache.RLock()
+	defer FaviconCache.RUnlock()
+
+	if len(FaviconCache.cache) > 2 {
+		t.Fatalf("expected cache size <= 2, got %d", len(FaviconCache.cache))
+	}
+}

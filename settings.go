@@ -20,6 +20,7 @@ var (
 	OauthRedirectURL string
 	FaviconCacheDir  string
 	FaviconCacheSize int64
+	FaviconMaxCacheCount int
 
 	LocalGitPath string
 
@@ -30,7 +31,8 @@ var (
 )
 
 const (
-	DefaultFaviconCacheSize   int64         = 20 * 1024 * 1024 // 20MB
-	DefaultFaviconCacheMaxAge time.Duration = 24 * time.Hour
-	DefaultCommitsPerPage     int           = 100
+	DefaultFaviconCacheSize     int64         = 20 * 1024 * 1024 // 20MB
+	DefaultFaviconMaxCacheCount int           = 1000
+	DefaultFaviconCacheMaxAge   time.Duration = 24 * time.Hour
+	DefaultCommitsPerPage       int           = 100
 )

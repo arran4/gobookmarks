@@ -27,6 +27,7 @@ type Config struct {
 	GitlabServer         string   `json:"gitlab_server"`
 	FaviconCacheDir      string   `json:"favicon_cache_dir"`
 	FaviconCacheSize     int64    `json:"favicon_cache_size"`
+	FaviconMaxCacheCount int      `json:"favicon_max_cache_count"`
 	LocalGitPath         string   `json:"local_git_path"`
 	NoFooter             bool     `json:"no_footer"`
 	SessionKey           string   `json:"session_key"`
@@ -118,6 +119,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.FaviconCacheSize != 0 {
 		dst.FaviconCacheSize = src.FaviconCacheSize
+	}
+	if src.FaviconMaxCacheCount != 0 {
+		dst.FaviconMaxCacheCount = src.FaviconMaxCacheCount
 	}
 	if src.LocalGitPath != "" {
 		dst.LocalGitPath = src.LocalGitPath
