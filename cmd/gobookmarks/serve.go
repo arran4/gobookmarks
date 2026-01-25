@@ -37,28 +37,28 @@ type ServeCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 
-	GithubClientID   stringFlag
-	GithubSecret     stringFlag
-	GitlabClientID   stringFlag
-	GitlabSecret     stringFlag
-	ExternalURL      stringFlag
-	Namespace        stringFlag
-	Title            stringFlag
+	GithubClientID       stringFlag
+	GithubSecret         stringFlag
+	GitlabClientID       stringFlag
+	GitlabSecret         stringFlag
+	ExternalURL          stringFlag
+	Namespace            stringFlag
+	Title                stringFlag
 	FaviconCacheDir      stringFlag
 	FaviconCacheSize     stringFlag
 	FaviconMaxCacheCount stringFlag
 	CommitsPerPage       stringFlag
 	GithubServer         stringFlag
-	GitlabServer     stringFlag
-	LocalGitPath     stringFlag
-	DbProvider       stringFlag
-	DbConn           stringFlag
-	SessionKey       stringFlag
-	ProviderOrder    stringFlag
-	CssColumns       boolFlag
-	NoFooter         boolFlag
-	DevMode          boolFlag
-	DumpConfig       boolFlag
+	GitlabServer         stringFlag
+	LocalGitPath         stringFlag
+	DbProvider           stringFlag
+	DbConn               stringFlag
+	SessionKey           stringFlag
+	ProviderOrder        stringFlag
+	CssColumns           boolFlag
+	NoFooter             boolFlag
+	DevMode              boolFlag
+	DumpConfig           boolFlag
 }
 
 func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
@@ -196,76 +196,40 @@ func (c *ServeCommand) Execute(args []string) error {
 		return nil
 	}
 
-	UseCssColumns = cfg.CssColumns
-	Namespace = cfg.Namespace
-	RepoName = GetBookmarksRepoName()
-	SiteTitle = cfg.Title
-	NoFooter = cfg.NoFooter
-	DevMode = version == "dev"
-	if cfg.DevMode != nil {
-		DevMode = *cfg.DevMode
+	config := NewConfiguration()
+	config.Config = cfg // Copy struct
+
+	// Apply defaults
+	if config.FaviconCacheSize == 0 {
+		config.FaviconCacheSize = DefaultFaviconCacheSize
+	}
+	if config.FaviconMaxCacheCount == 0 {
+		config.FaviconMaxCacheCount = DefaultFaviconMaxCacheCount
+	}
+	if config.CommitsPerPage == 0 {
+		config.CommitsPerPage = DefaultCommitsPerPage
 	}
 
-	if cfg.GithubServer != "" {
-		GithubServer = cfg.GithubServer
-	}
-	if cfg.GitlabServer != "" {
-		GitlabServer = cfg.GitlabServer
-	}
-	if cfg.FaviconCacheDir != "" {
-		FaviconCacheDir = cfg.FaviconCacheDir
-	}
-	if cfg.FaviconCacheSize != 0 {
-		FaviconCacheSize = cfg.FaviconCacheSize
-	} else {
-		FaviconCacheSize = DefaultFaviconCacheSize
-	}
-	if cfg.FaviconMaxCacheCount != 0 {
-		FaviconMaxCacheCount = cfg.FaviconMaxCacheCount
-	} else {
-		FaviconMaxCacheCount = DefaultFaviconMaxCacheCount
-	}
-	if cfg.CommitsPerPage != 0 {
-		CommitsPerPage = cfg.CommitsPerPage
-	} else {
-		CommitsPerPage = DefaultCommitsPerPage
-	}
-	if cfg.LocalGitPath != "" {
-		LocalGitPath = cfg.LocalGitPath
-	}
-	if cfg.DBConnectionProvider != "" {
-		DBConnectionProvider = cfg.DBConnectionProvider
-	}
-	if cfg.DBConnectionString != "" {
-		DBConnectionString = cfg.DBConnectionString
-	}
-	githubID := cfg.GithubClientID
-	githubSecret := cfg.GithubSecret
-	gitlabID := cfg.GitlabClientID
-	gitlabSecret := cfg.GitlabSecret
-	externalUrl := strings.TrimRight(cfg.ExternalURL, "/")
-	redirectUrl := JoinURL(externalUrl, "oauth2Callback")
-	GithubClientID = githubID
-	GithubClientSecret = githubSecret
-	GitlabClientID = gitlabID
-	GitlabClientSecret = gitlabSecret
-	OauthRedirectURL = redirectUrl
+	externalUrl := strings.TrimRight(config.ExternalURL, "/")
+	config.OauthRedirectURL = JoinURL(externalUrl, "oauth2Callback")
 
-	SetProviderOrder(cfg.ProviderOrder)
+	SetProviderOrder(config.ProviderOrder)
 
-	SessionName = "gobookmarks"
-	SessionStore = sessions.NewCookieStore(loadSessionKey(cfg))
+	config.SessionName = "gobookmarks"
+	config.SessionStore = sessions.NewCookieStore(loadSessionKey(config.Config))
 	if len(ProviderNames()) == 0 {
 		return errors.New("no providers compiled")
 	}
-	if len(ConfiguredProviderNames()) == 0 {
+	if len(ConfiguredProviderNames(config)) == 0 {
 		return errors.New("no providers available")
 	}
 
+	faviconService := NewFaviconService(config)
+
 	r := mux.NewRouter()
 
-	r.Use(UserAdderMiddleware)
-	r.Use(CoreAdderMiddleware)
+	r.Use(config.UserAdderMiddleware)
+	r.Use(config.CoreAdderMiddleware)
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
@@ -275,7 +239,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
-	if DevMode {
+	if config.DevMode != nil && *config.DevMode {
 		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
@@ -286,66 +250,66 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.Handle("/tab/{tab}", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(HasError())
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount(config))
 
-	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editCategory", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
-	r.HandleFunc("/addCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/addCategory", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/addCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/addCategory", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/addCategory", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
-	r.HandleFunc("/moveCategory", runHandlerChain(CategoryMoveBeforeAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/moveCategoryEnd", runHandlerChain(CategoryMoveEndAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/moveCategoryNewColumn", runHandlerChain(CategoryMoveNewColumnAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveCategory", runHandlerChain(CategoryMoveBeforeAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/moveCategoryEnd", runHandlerChain(CategoryMoveEndAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/moveCategoryNewColumn", runHandlerChain(CategoryMoveNewColumnAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
 
-	r.HandleFunc("/editTab", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/editTab", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/editTab", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/editTab", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editTab", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
-	r.HandleFunc("/tab/{tab}/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/tab/{tab}/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/editPage", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/editPage", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
+	r.HandleFunc("/editPage", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/editPage", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSave))
+	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount(config)).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editPage", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/moveTab", runHandlerChain(MoveTabAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveTab", runHandlerChain(MoveTabAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/tab/{tab}/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
+	r.HandleFunc("/tab/{tab}/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount(config))
 
-	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
+	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount(config))
 
-	r.HandleFunc("/history/commits", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/history/commits", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount(config)))
 	r.HandleFunc("/status", runTemplate("statusPage.gohtml")).Methods("GET")
-	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/history/commits", runTemplate("historyCommits.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount(config))
 
 	r.HandleFunc("/login", runTemplate("loginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/git", runTemplate("gitLoginPage.gohtml")).Methods("GET")
@@ -358,7 +322,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
 	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
-	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
+	r.Handle("/proxy/favicon", faviconService).Methods("GET")
 
 	http.Handle("/", r)
 
@@ -366,10 +330,9 @@ func (c *ServeCommand) Execute(args []string) error {
 		CreatePEMFiles()
 	}
 
-	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	SetVersion(version, commit, date)
-	RepoName = GetBookmarksRepoName()
-	log.Printf("Redirect URL configured to: %s", redirectUrl)
+
+	log.Printf("Redirect URL configured to: %s", config.OauthRedirectURL)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
@@ -688,13 +651,13 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 	})
 }
 
-func RequiresAnAccount() mux.MatcherFunc {
+func RequiresAnAccount(config *Configuration) mux.MatcherFunc {
 	return func(request *http.Request, match *mux.RouteMatch) bool {
 		var session *sessions.Session
 		sessioni := request.Context().Value(ContextValues("session"))
 		if sessioni == nil {
 			var err error
-			session, err = SessionStore.Get(request, SessionName)
+			session, err = config.SessionStore.Get(request, config.SessionName)
 			if err != nil {
 				return false
 			}

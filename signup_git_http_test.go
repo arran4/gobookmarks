@@ -13,29 +13,33 @@ import (
 )
 
 func TestGitSignupScenario(t *testing.T) {
+	config := NewConfiguration()
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	config.LocalGitPath = tmp
 
-	SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	config.SessionName = "testsession"
+	config.SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	// signup
 	form := url.Values{"username": {"alice"}, "password": {"secret"}}
 	req := httptest.NewRequest("POST", "/signup/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx := context.WithValue(req.Context(), ContextValues("configuration"), config)
+	req = req.WithContext(ctx)
+
 	w := httptest.NewRecorder()
 	if err := GitSignupAction(w, req); err != nil {
 		t.Fatalf("signup action: %v", err)
 	}
-	if _, err := os.Stat(passwordPath("alice")); err != nil {
+	if _, err := os.Stat(passwordPath(config, "alice")); err != nil {
 		t.Fatalf("password not created: %v", err)
 	}
 
 	p := GitProvider{}
-	if ok, err := p.RepoExists(context.Background(), "alice", nil, RepoName); err != nil || !ok {
+	if ok, err := p.RepoExists(ctx, "alice", nil, config.GetRepoName()); err != nil || !ok {
 		t.Fatalf("repo exists: %v %v", ok, err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), "alice", "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, "alice", "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("get bookmarks: %v", err)
 	}
@@ -46,6 +50,7 @@ func TestGitSignupScenario(t *testing.T) {
 	// login
 	req = httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(ctx) // pass config
 	w = httptest.NewRecorder()
 	if err := GitLoginAction(w, req); err != nil {
 		t.Fatalf("login action: %v", err)
@@ -58,13 +63,14 @@ func TestGitSignupScenario(t *testing.T) {
 	sessReq := httptest.NewRequest("GET", "/", nil)
 	sessReq.AddCookie(cookies[len(cookies)-1])
 	sessW := httptest.NewRecorder()
-	session, err := getSession(sessW, sessReq)
+	session, err := config.getSession(sessW, sessReq)
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
-	ctx := context.WithValue(sessReq.Context(), ContextValues("session"), session)
+	ctx = context.WithValue(sessReq.Context(), ContextValues("session"), session)
 	ctx = context.WithValue(ctx, ContextValues("provider"), "git")
 	ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{})
+	ctx = context.WithValue(ctx, ContextValues("configuration"), config)
 
 	// create bookmarks on new branch
 	createText := "Category: New\nhttp://example.com new"
@@ -76,7 +82,7 @@ func TestGitSignupScenario(t *testing.T) {
 	if err := BookmarksEditCreateAction(w, req); err != nil {
 		t.Fatalf("create action: %v", err)
 	}
-	got, _, err = p.GetBookmarks(context.Background(), "alice", "refs/heads/feature", nil)
+	got, _, err = p.GetBookmarks(ctx, "alice", "refs/heads/feature", nil)
 	if err != nil {
 		t.Fatalf("get feature bookmarks: %v", err)
 	}
@@ -86,7 +92,7 @@ func TestGitSignupScenario(t *testing.T) {
 
 	// update bookmarks on main branch
 	updated := "Category: Updated\nhttp://example.com updated"
-	_, sha, err := p.GetBookmarks(context.Background(), "alice", "refs/heads/main", nil)
+	_, sha, err := p.GetBookmarks(ctx, "alice", "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("get bookmarks sha: %v", err)
 	}
@@ -98,7 +104,7 @@ func TestGitSignupScenario(t *testing.T) {
 	if err := BookmarksEditSaveAction(w, req); err != nil {
 		t.Fatalf("save action: %v", err)
 	}
-	got, _, err = p.GetBookmarks(context.Background(), "alice", "refs/heads/main", nil)
+	got, _, err = p.GetBookmarks(ctx, "alice", "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("get updated bookmarks: %v", err)
 	}
@@ -119,15 +125,17 @@ func TestGitSignupScenario(t *testing.T) {
 }
 
 func TestGitLoginIgnoresInvalidSession(t *testing.T) {
+	config := NewConfiguration()
 	tmp := t.TempDir()
-	LocalGitPath = tmp
-	SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	config.LocalGitPath = tmp
+	config.SessionName = "testsession"
+	config.SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"
 
 	// create user
 	p := GitProvider{}
 	ctx := context.Background()
+	ctx = context.WithValue(ctx, ContextValues("configuration"), config)
 	if err := p.CreateUser(ctx, "alice", "secret"); err != nil {
 		t.Fatalf("create user: %v", err)
 	}
@@ -135,7 +143,8 @@ func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	form := url.Values{"username": {"alice"}, "password": {"secret"}}
 	req := httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(&http.Cookie{Name: SessionName, Value: "invalid"})
+	req.AddCookie(&http.Cookie{Name: config.SessionName, Value: "invalid"})
+	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
 	if err := GitLoginAction(w, req); err != nil {

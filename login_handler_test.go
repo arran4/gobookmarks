@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"net/http"
@@ -10,17 +11,22 @@ import (
 )
 
 func TestLoginRouteProviderVariable(t *testing.T) {
-	SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	config := NewConfiguration()
+	config.SessionName = "testsess"
+	config.SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"
-	GithubClientID = "id"
-	GithubClientSecret = "secret"
-	GitlabClientID = "id"
-	GitlabClientSecret = "secret"
-	OauthRedirectURL = JoinURL("http://example.com/", "callback")
+	config.GithubClientID = "id"
+	config.GithubSecret = "secret"
+	config.GitlabClientID = "id"
+	config.GitlabSecret = "secret"
+	config.OauthRedirectURL = JoinURL("http://example.com/", "callback")
 
 	r := mux.NewRouter()
-	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
+	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), ContextValues("configuration"), config)
+		r = r.WithContext(ctx)
+		_ = LoginWithProvider(w, r)
+	}).Methods("GET")
 
 	req := httptest.NewRequest("GET", "/login/github", nil)
 	w := httptest.NewRecorder()

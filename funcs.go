@@ -42,6 +42,13 @@ func SetVersion(pVersion, pCommit, pDate string) {
 }
 
 func NewFuncs(r *http.Request) template.FuncMap {
+	var c *Configuration
+	if r != nil {
+		if v := r.Context().Value(ContextValues("configuration")); v != nil {
+			c = v.(*Configuration)
+		}
+	}
+
 	return map[string]any{
 		"now": func() time.Time { return time.Now() },
 		"version": func() string {
@@ -71,9 +78,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return "/login/" + p
 		},
 		"Providers": func() []string {
+			if c == nil { return nil }
 			names := make([]string, 0)
 			for _, n := range ProviderNames() {
-				creds := providerCreds(n)
+				creds := c.GetProviderCreds(n)
 				if creds != nil {
 					names = append(names, n)
 				}
@@ -84,14 +92,17 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return ProviderNames()
 		},
 		"ProviderConfigured": func(p string) bool {
-			creds := providerCreds(p)
+			if c == nil { return false }
+			creds := c.GetProviderCreds(p)
 			return creds != nil && GetProvider(p) != nil
 		},
 		"errorMsg": errorMessage,
 		"ref": func() string {
+			if r == nil { return "" }
 			return r.URL.Query().Get("ref")
 		},
 		"tab": func() string {
+			if r == nil { return "0" }
 			return strconv.Itoa(TabFromRequest(r))
 		},
 		"tabPath": func(tab int) string {
@@ -101,6 +112,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return TabEditPath(tab)
 		},
 		"currentTabPath": func() string {
+			if r == nil { return "" }
 			return TabPath(TabFromRequest(r))
 		},
 		"tabEditHref": func(tab int, ref, name string) string {
@@ -110,9 +122,11 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return AppendQueryParams(rawURL, params...)
 		},
 		"page": func() string {
+			if r == nil { return "" }
 			return r.URL.Query().Get("page")
 		},
 		"historyRef": func() string {
+			if r == nil { return "" }
 			return r.URL.Query().Get("historyRef")
 		},
 		"add1": func(i int) int {
@@ -129,19 +143,26 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return i
 		},
 		"useCssColumns": func() bool {
+			// If r is nil (init time), default?
+			if r == nil { return false }
 			sessioni := r.Context().Value(ContextValues("session"))
 			if session, ok := sessioni.(*sessions.Session); ok && session != nil {
 				if v, ok := session.Values["useCssColumns"].(bool); ok {
 					return v
 				}
 			}
-			return UseCssColumns
+			if c == nil { return false }
+			return c.CssColumns
 		},
 		"devMode": func() bool {
-			return DevMode
+			if c != nil && c.DevMode != nil {
+				return *c.DevMode
+			}
+			return version == "dev"
 		},
 		"showFooter": func() bool {
-			return !NoFooter
+			if c == nil { return true }
+			return !c.NoFooter
 		},
 		"showPages": func() bool {
 			if r == nil {
@@ -162,23 +183,28 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return true
 		},
 		"loggedIn": func() (bool, error) {
+			if r == nil { return false, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, ok := session.Values["GithubUser"].(*User)
 			return ok && githubUser != nil, nil
 		},
 		"bookmarks": func() (string, error) {
+			if r == nil { return "", nil }
 			return Bookmarks(r)
 		},
 		"bookmarksOrEditBookmarks": func() (string, error) {
+			if r == nil { return "", nil }
 			if r.PostFormValue("text") != "" {
 				return r.PostFormValue("text"), nil
 			}
 			return Bookmarks(r)
 		},
 		"bookmarksExist": func() (bool, error) {
+			if r == nil { return false, nil }
 			return BookmarksExist(r)
 		},
 		"bookmarksSHA": func() (string, error) {
+			if r == nil { return "", nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -196,6 +222,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return sha, nil
 		},
 		"branchOrEditBranch": func() (string, error) {
+			if r == nil { return "", nil }
 			if r.PostFormValue("branch") != "" {
 				return r.PostFormValue("branch"), nil
 			}
@@ -210,6 +237,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return "main", nil
 		},
 		"bookmarkPages": func() ([]*BookmarkPage, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -239,6 +267,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs[idx].Pages, nil
 		},
 		"bookmarkTabs": func() ([]TabInfo, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -279,6 +308,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs, nil
 		},
 		"bookmarkTabsWithPages": func() ([]TabWithPages, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -322,6 +352,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs, nil
 		},
 		"tabName": func() string {
+			if r == nil { return "" }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -354,6 +385,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return name
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -386,6 +418,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return columns, nil
 		},
 		"tags": func() ([]*Tag, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -402,6 +435,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tags, nil
 		},
 		"branches": func() ([]*Branch, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -417,6 +451,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return branches, nil
 		},
 		"commits": func() ([]*Commit, error) {
+			if r == nil { return nil, nil }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -430,13 +465,14 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				page = 1
 			}
 			ref := r.URL.Query().Get("ref")
-			commits, err := GetCommits(r.Context(), login, token, ref, page, CommitsPerPage)
+			commits, err := GetCommits(r.Context(), login, token, ref, page, c.CommitsPerPage)
 			if err != nil {
 				return nil, fmt.Errorf("GetCommits: %w", err)
 			}
 			return commits, nil
 		},
 		"prevCommit": func() string {
+			if r == nil { return "" }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)
@@ -457,6 +493,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return prev
 		},
 		"nextCommit": func() string {
+			if r == nil { return "" }
 			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 			githubUser, _ := session.Values["GithubUser"].(*User)
 			token, _ := session.Values["Token"].(*oauth2.Token)

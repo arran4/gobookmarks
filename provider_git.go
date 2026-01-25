@@ -27,18 +27,18 @@ func init() { RegisterProvider(GitProvider{}) }
 
 func (GitProvider) Name() string                                                     { return "git" }
 func (GitProvider) DefaultServer() string                                            { return "" }
-func (GitProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
+func (GitProvider) Config(c *Configuration) *oauth2.Config                           { return nil }
 func (GitProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
 	return &User{Login: "local"}, nil
 }
 
-func userDir(user string) string {
+func userDir(c *Configuration, user string) string {
 	h := sha256.Sum256([]byte(user))
-	return filepath.Join(LocalGitPath, hex.EncodeToString(h[:]))
+	return filepath.Join(c.LocalGitPath, hex.EncodeToString(h[:]))
 }
 
-func openRepo(user string) (*git.Repository, error) {
-	r, err := git.PlainOpen(userDir(user))
+func openRepo(c *Configuration, user string) (*git.Repository, error) {
+	r, err := git.PlainOpen(userDir(c, user))
 	if err != nil {
 		if errors.Is(err, git.ErrRepositoryNotExists) {
 			return nil, ErrRepoNotFound
@@ -49,7 +49,8 @@ func openRepo(user string) (*git.Repository, error) {
 }
 
 func (GitProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
-	r, err := openRepo(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	r, err := openRepo(c, user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
 			return nil, nil
@@ -69,7 +70,8 @@ func (GitProvider) GetTags(ctx context.Context, user string, token *oauth2.Token
 }
 
 func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	r, err := openRepo(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	r, err := openRepo(c, user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
 			return []*Branch{{Name: "main"}}, nil
@@ -92,7 +94,8 @@ func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.T
 }
 
 func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
-	r, err := openRepo(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	r, err := openRepo(c, user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
 			return nil, nil
@@ -138,7 +141,8 @@ func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.To
 }
 
 func (GitProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
-	r, err := openRepo(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	r, err := openRepo(c, user)
 	if err != nil {
 		return "", "", err
 	}
@@ -177,7 +181,8 @@ func (GitProvider) AdjacentCommits(ctx context.Context, user string, token *oaut
 }
 
 func (GitProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	r, err := openRepo(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	r, err := openRepo(c, user)
 	if err != nil {
 		return "", "", err
 	}
@@ -210,10 +215,11 @@ func (GitProvider) GetBookmarks(ctx context.Context, user, ref string, token *oa
 }
 
 func (GitProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
 	if branch == "" {
 		branch = "main"
 	}
-	r, err := openRepo(user)
+	r, err := openRepo(c, user)
 	if err != nil {
 		return err
 	}
@@ -232,7 +238,7 @@ func (GitProvider) UpdateBookmarks(ctx context.Context, user string, token *oaut
 	if expectSHA != "" && head.Hash().String() != expectSHA {
 		return errors.New("sha mismatch")
 	}
-	if err := os.WriteFile(filepath.Join(userDir(user), "bookmarks.txt"), []byte(text), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(userDir(c, user), "bookmarks.txt"), []byte(text), 0600); err != nil {
 		return err
 	}
 	if _, err := wt.Add("bookmarks.txt"); err != nil {
@@ -248,10 +254,11 @@ func (GitProvider) UpdateBookmarks(ctx context.Context, user string, token *oaut
 }
 
 func (GitProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
 	if branch == "" {
 		branch = "main"
 	}
-	r, err := openRepo(user)
+	r, err := openRepo(c, user)
 	if err != nil {
 		return err
 	}
@@ -268,7 +275,7 @@ func (GitProvider) CreateBookmarks(ctx context.Context, user string, token *oaut
 			}
 		}
 	}
-	if err := os.WriteFile(filepath.Join(userDir(user), "bookmarks.txt"), []byte(text), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(userDir(c, user), "bookmarks.txt"), []byte(text), 0600); err != nil {
 		return err
 	}
 	if _, err := wt.Add("bookmarks.txt"); err != nil {
@@ -284,7 +291,8 @@ func (GitProvider) CreateBookmarks(ctx context.Context, user string, token *oaut
 }
 
 func (GitProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	path := userDir(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	path := userDir(c, user)
 	if err := os.MkdirAll(path, 0700); err != nil {
 		return err
 	}
@@ -333,7 +341,8 @@ func (GitProvider) CreateRepo(ctx context.Context, user string, token *oauth2.To
 }
 
 func (GitProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
-	path := userDir(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	path := userDir(c, user)
 	if _, err := git.PlainOpen(path); err == nil {
 		return true, nil
 	} else if errors.Is(err, git.ErrRepositoryNotExists) {
@@ -343,19 +352,20 @@ func (GitProvider) RepoExists(ctx context.Context, user string, token *oauth2.To
 	}
 }
 
-func passwordPath(user string) string {
+func passwordPath(c *Configuration, user string) string {
 	h := sha256.Sum256([]byte(user))
-	return filepath.Join(LocalGitPath, hex.EncodeToString(h[:]), ".password")
+	return filepath.Join(c.LocalGitPath, hex.EncodeToString(h[:]), ".password")
 }
 
 // CreateUser writes a bcrypt hash for the given user. It returns ErrUserExists
 // if the password file already exists.
 func (GitProvider) CreateUser(ctx context.Context, user, password string) error {
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
 	gp := GitProvider{}
-	if err := gp.CreateRepo(ctx, user, nil, RepoName); err != nil {
+	if err := gp.CreateRepo(ctx, user, nil, c.GetRepoName()); err != nil {
 		return err
 	}
-	p := passwordPath(user)
+	p := passwordPath(c, user)
 	if _, err := os.Stat(p); err == nil {
 		return ErrUserExists
 	} else if !os.IsNotExist(err) {
@@ -374,7 +384,8 @@ func (GitProvider) CreateUser(ctx context.Context, user, password string) error 
 // SetPassword updates the password for an existing user. ErrUserNotFound is
 // returned when no password file exists.
 func (GitProvider) SetPassword(ctx context.Context, user, password string) error {
-	p := passwordPath(user)
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	p := passwordPath(c, user)
 	if _, err := os.Stat(p); err != nil {
 		if os.IsNotExist(err) {
 			return ErrUserNotFound
@@ -390,7 +401,8 @@ func (GitProvider) SetPassword(ctx context.Context, user, password string) error
 
 // CheckPassword verifies the provided password against the stored bcrypt hash.
 func (GitProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
-	data, err := os.ReadFile(passwordPath(user))
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	data, err := os.ReadFile(passwordPath(c, user))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil

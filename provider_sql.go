@@ -30,13 +30,14 @@ func init() {
 
 func (SQLProvider) Name() string                                                     { return "sql" }
 func (SQLProvider) DefaultServer() string                                            { return "" }
-func (SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
+func (SQLProvider) Config(c *Configuration) *oauth2.Config { return nil }
 func (SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
 	return nil, errors.New("not implemented")
 }
 
 func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,8 @@ func (p SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Tok
 }
 
 func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +89,8 @@ func (p SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2
 }
 
 func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +127,8 @@ func (p SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.
 }
 
 func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return "", "", err
 	}
@@ -149,7 +153,8 @@ func (p SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oa
 }
 
 func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return "", "", err
 	}
@@ -195,10 +200,11 @@ func (p SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *
 }
 
 func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := OpenDB()
+	db, err := OpenDB(c)
 	if err != nil {
 		return err
 	}
@@ -239,7 +245,7 @@ func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oa
 	}
 
 	// dialect-specific insert/update for branches
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(c.DBConnectionProvider) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
@@ -267,10 +273,11 @@ func (p SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *oa
 }
 
 func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := OpenDB()
+	db, err := OpenDB(c)
 	if err != nil {
 		return err
 	}
@@ -282,7 +289,7 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 	}
 
 	// ensure a bookmarks row exists
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(c.DBConnectionProvider) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx,
 			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
@@ -323,7 +330,7 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 	}
 
 	// ensure a branch pointer
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(c.DBConnectionProvider) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
@@ -351,7 +358,8 @@ func (p SQLProvider) CreateBookmarks(ctx context.Context, user string, token *oa
 }
 
 func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return err
 	}
@@ -362,7 +370,7 @@ func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.
 		return err
 	}
 
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(c.DBConnectionProvider) {
 	case "mysql":
 		// bookmarks row
 		if _, err := tx.ExecContext(ctx,
@@ -404,7 +412,8 @@ func (p SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.
 }
 
 func (p SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return false, err
 	}
@@ -416,7 +425,8 @@ func (p SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.
 }
 
 func (p SQLProvider) CreateUser(ctx context.Context, user, password string) error {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return err
 	}
@@ -439,7 +449,8 @@ func (p SQLProvider) CreateUser(ctx context.Context, user, password string) erro
 }
 
 func (p SQLProvider) SetPassword(ctx context.Context, user, password string) error {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return err
 	}
@@ -461,7 +472,8 @@ func (p SQLProvider) SetPassword(ctx context.Context, user, password string) err
 }
 
 func (p SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
-	db, err := OpenDB()
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(c)
 	if err != nil {
 		return false, err
 	}

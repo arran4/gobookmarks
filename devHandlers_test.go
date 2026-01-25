@@ -9,12 +9,13 @@ import (
 )
 
 func TestCssColumnToggle(t *testing.T) {
-	SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	config := NewConfiguration()
+	config.SessionName = "testsession"
+	config.SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	session, err := getSession(w, req)
+	session, err := config.getSession(w, req)
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}

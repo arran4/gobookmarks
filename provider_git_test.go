@@ -10,25 +10,28 @@ import (
 )
 
 func TestGitProviderCreateAndGet(t *testing.T) {
+	config := NewConfiguration()
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	config.LocalGitPath = tmp
+	ctx := context.WithValue(context.Background(), ContextValues("configuration"), config)
+
 	p := GitProvider{}
 	user := "alice"
 	text := "Category: Test\nhttp://example.com test"
-	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+	if err := p.CreateRepo(ctx, user, nil, config.GetRepoName()); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
-	gi, err := os.ReadFile(filepath.Join(userDir(user), ".gitignore"))
+	gi, err := os.ReadFile(filepath.Join(userDir(config, user), ".gitignore"))
 	if err != nil {
 		t.Fatalf("gitignore missing: %v", err)
 	}
 	if !strings.Contains(string(gi), ".password") {
 		t.Fatalf(".password not ignored")
 	}
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", text); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", text); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	got, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, sha, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -41,41 +44,46 @@ func TestGitProviderCreateAndGet(t *testing.T) {
 }
 
 func TestGitRepoExists(t *testing.T) {
+	config := NewConfiguration()
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	config.LocalGitPath = tmp
+	ctx := context.WithValue(context.Background(), ContextValues("configuration"), config)
+
 	p := GitProvider{}
 	user := "carol"
-	exists, err := p.RepoExists(context.Background(), user, nil, RepoName)
+	exists, err := p.RepoExists(ctx, user, nil, config.GetRepoName())
 	if err != nil {
 		t.Fatalf("RepoExists before create: %v", err)
 	}
 	if exists {
 		t.Fatalf("repo should not exist")
 	}
-	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+	if err := p.CreateRepo(ctx, user, nil, config.GetRepoName()); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
-	exists, err = p.RepoExists(context.Background(), user, nil, RepoName)
+	exists, err = p.RepoExists(ctx, user, nil, config.GetRepoName())
 	if err != nil || !exists {
 		t.Fatalf("repo should exist, got %v %v", exists, err)
 	}
 }
 
 func TestGitPasswordLifecycle(t *testing.T) {
+	config := NewConfiguration()
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	config.LocalGitPath = tmp
+	ctx := context.WithValue(context.Background(), ContextValues("configuration"), config)
+
 	p := GitProvider{}
-	ctx := context.Background()
 	user := "bob"
 	pass := "secret"
 
 	if err := p.CreateUser(ctx, user, pass); err != nil {
 		t.Fatalf("CreateUser: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(userDir(user), ".git")); err != nil {
+	if _, err := os.Stat(filepath.Join(userDir(config, user), ".git")); err != nil {
 		t.Fatalf("repo missing after CreateUser: %v", err)
 	}
-	gi, err := os.ReadFile(filepath.Join(userDir(user), ".gitignore"))
+	gi, err := os.ReadFile(filepath.Join(userDir(config, user), ".gitignore"))
 	if err != nil {
 		t.Fatalf("gitignore missing: %v", err)
 	}
@@ -113,9 +121,10 @@ func TestGitPasswordLifecycle(t *testing.T) {
 }
 
 func TestGitUserDirHash(t *testing.T) {
-	LocalGitPath = "/base"
-	path := userDir("../../etc/passwd")
-	if filepath.Dir(path) != LocalGitPath {
+	config := NewConfiguration()
+	config.LocalGitPath = "/base"
+	path := userDir(config, "../../etc/passwd")
+	if filepath.Dir(path) != config.LocalGitPath {
 		t.Fatalf("path escaped base: %s", path)
 	}
 	if filepath.Base(path) == "../../etc/passwd" {

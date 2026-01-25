@@ -50,10 +50,10 @@ func (c *DbUsersCommand) Execute(args []string) error {
 		return err
 	}
 
-	DBConnectionProvider = cfg.DBConnectionProvider
-	DBConnectionString = cfg.DBConnectionString
+	config := NewConfiguration()
+	config.Config = cfg
 
-	db, err := OpenDB()
+	db, err := OpenDB(config)
 	if err != nil {
 		printHelp(c, err)
 		return err

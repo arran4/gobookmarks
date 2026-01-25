@@ -29,7 +29,7 @@ type Commit struct {
 
 type Provider interface {
 	Name() string
-	Config(clientID, clientSecret, redirectURL string) *oauth2.Config
+	Config(c *Configuration) *oauth2.Config
 	CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error)
 	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error)
 	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)
@@ -123,11 +123,11 @@ func ProviderNames() []string {
 
 // ConfiguredProviderNames returns the list of providers that are both
 // compiled in and configured for use. A provider is considered configured
-// when providerCreds returns non-nil.
-func ConfiguredProviderNames() []string {
+// when GetProviderCreds returns non-nil.
+func ConfiguredProviderNames(config *Configuration) []string {
 	names := make([]string, 0, len(providers))
 	for _, n := range ProviderNames() {
-		if providerCreds(n) != nil {
+		if config.GetProviderCreds(n) != nil {
 			names = append(names, n)
 		}
 	}

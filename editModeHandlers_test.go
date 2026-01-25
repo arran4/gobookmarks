@@ -10,16 +10,18 @@ import (
 )
 
 func TestEditModeToggle(t *testing.T) {
-	SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	config := NewConfiguration()
+	config.SessionName = "testsession"
+	config.SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	session, err := getSession(w, req)
+	session, err := config.getSession(w, req)
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
 	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	ctx = context.WithValue(ctx, ContextValues("configuration"), config)
 	req = req.WithContext(ctx)
 
 	// enable edit mode
@@ -32,7 +34,7 @@ func TestEditModeToggle(t *testing.T) {
 	}
 
 	var cd *CoreData
-	handler := CoreAdderMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := config.CoreAdderMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cd = r.Context().Value(ContextValues("coreData")).(*CoreData)
 	}))
 	w = httptest.NewRecorder()

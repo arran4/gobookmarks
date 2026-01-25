@@ -188,16 +188,16 @@ https://stackoverflow.com Stack Overflow
 			}
 			if indexName != "" {
 				href := TabHref(i, "") // No ref in static mode
-				lastSha := "" // No SHA in static mode
+				lastSha := ""          // No SHA in static mode
 				if len(t.Pages) > 0 {
 					lastSha = t.Pages[len(t.Pages)-1].Sha()
 				}
 				tabs = append(tabs, TabInfo{
-					Index: i,
-					Name: t.Name,
-					IndexName: indexName,
-					Href: href,
-					EditHref: AppendQueryParams(href, "edit", "1"),
+					Index:       i,
+					Name:        t.Name,
+					IndexName:   indexName,
+					Href:        href,
+					EditHref:    AppendQueryParams(href, "edit", "1"),
 					LastPageSha: lastSha,
 				})
 			}
@@ -220,14 +220,14 @@ https://stackoverflow.com Stack Overflow
 				}
 				tabs = append(tabs, TabWithPages{
 					TabInfo: TabInfo{
-						Index: i,
-						Name: t.Name,
-						IndexName: indexName,
-						Href: href,
-						EditHref: AppendQueryParams(href, "edit", "1"),
+						Index:       i,
+						Name:        t.Name,
+						IndexName:   indexName,
+						Href:        href,
+						EditHref:    AppendQueryParams(href, "edit", "1"),
 						LastPageSha: lastSha,
 					},
-					Pages:   t.Pages,
+					Pages: t.Pages,
 				})
 			}
 		}
@@ -251,7 +251,6 @@ https://stackoverflow.com Stack Overflow
 	// Override other funcs that might call DB/Git
 	funcs["loggedIn"] = func() (bool, error) { return true, nil }
 	funcs["showPages"] = func() bool { return true }
-
 
 	// Compile templates with our modified funcs
 	tmpl := GetCompiledTemplates(funcs)

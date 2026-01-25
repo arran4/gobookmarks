@@ -28,20 +28,22 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 	srv, hits := newFaviconServer(t, icon)
 	defer srv.Close()
 
-	FaviconCacheDir = t.TempDir()
-	FaviconCacheSize = 1024 * 1024
-	FaviconCache.cache = make(map[string]*FavIcon)
+	config := NewConfiguration()
+	config.FaviconCacheDir = t.TempDir()
+	config.FaviconCacheSize = 1024 * 1024
+	config.FaviconMaxCacheCount = 1000
+	svc := NewFaviconService(config)
 
 	req := httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
 	w := httptest.NewRecorder()
-	FaviconProxyHandler(w, req)
+	svc.ServeHTTP(w, req)
 	if *hits != 1 {
 		t.Fatalf("expected 1 hit, got %d", *hits)
 	}
 
 	req = httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
 	w = httptest.NewRecorder()
-	FaviconProxyHandler(w, req)
+	svc.ServeHTTP(w, req)
 	if *hits != 1 {
 		t.Fatalf("expected cache hit, hits %d", *hits)
 	}
@@ -49,7 +51,7 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 	time.Sleep(1500 * time.Millisecond)
 	req = httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
 	w = httptest.NewRecorder()
-	FaviconProxyHandler(w, req)
+	svc.ServeHTTP(w, req)
 	if *hits != 2 {
 		t.Fatalf("expected refetch after expiry, hits %d", *hits)
 	}
@@ -57,18 +59,19 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 
 func TestFaviconMaxCacheCount(t *testing.T) {
 	icon := []byte{0x89, 'P', 'N', 'G'}
-	FaviconCache.cache = make(map[string]*FavIcon)
-	FaviconMaxCacheCount = 2
+	config := NewConfiguration()
+	config.FaviconMaxCacheCount = 2
+	svc := NewFaviconService(config)
 
 	// Add 3 items
-	cacheFavicon("url1", icon, "image/png")
-	cacheFavicon("url2", icon, "image/png")
-	cacheFavicon("url3", icon, "image/png")
+	svc.cacheFavicon("url1", icon, "image/png")
+	svc.cacheFavicon("url2", icon, "image/png")
+	svc.cacheFavicon("url3", icon, "image/png")
 
-	FaviconCache.RLock()
-	defer FaviconCache.RUnlock()
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
 
-	if len(FaviconCache.cache) > 2 {
-		t.Fatalf("expected cache size <= 2, got %d", len(FaviconCache.cache))
+	if len(svc.cache) > 2 {
+		t.Fatalf("expected cache size <= 2, got %d", len(svc.cache))
 	}
 }

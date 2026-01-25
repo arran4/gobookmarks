@@ -36,15 +36,19 @@ func (GitLabProvider) Name() string { return "gitlab" }
 
 func (GitLabProvider) DefaultServer() string { return "https://gitlab.com" }
 
-func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
-	server := strings.TrimRight(GitlabServer, "/")
+func (p GitLabProvider) Config(c *Configuration) *oauth2.Config {
+	server := strings.TrimRight(c.GitlabServer, "/")
 	if server == "" {
 		server = "https://gitlab.com"
 	}
+	creds := c.GetProviderCreds("gitlab")
+	if creds == nil {
+		return nil
+	}
 	return &oauth2.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURL:  redirectURL,
+		ClientID:     creds.ID,
+		ClientSecret: creds.Secret,
+		RedirectURL:  c.OauthRedirectURL,
 		Scopes:       []string{"api"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  server + "/oauth/authorize",
@@ -53,16 +57,17 @@ func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 	}
 }
 
-func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
-	server := GitlabServer
+func (GitLabProvider) client(ctx context.Context, token *oauth2.Token) (*gitlab.Client, error) {
+	c := ctx.Value(ContextValues("configuration")).(*Configuration)
+	server := c.GitlabServer
 	if server == "" {
 		server = "https://gitlab.com"
 	}
 	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
 }
 
-func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
+	c, err := p.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab CurrentUser client: %v", err)
 		return nil, err
@@ -75,13 +80,15 @@ func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*Us
 	return &User{Login: u.Username}, nil
 }
 
-func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+	c, err := p.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab GetTags client: %v", err)
 		return nil, err
 	}
-	tags, _, err := c.Tags.ListTags(user+"/"+RepoName, &gitlab.ListTagsOptions{})
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
+	tags, _, err := c.Tags.ListTags(user+"/"+repoName, &gitlab.ListTagsOptions{})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut
@@ -96,13 +103,15 @@ func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 	return res, nil
 }
 
-func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+	c, err := p.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab GetBranches client: %v", err)
 		return nil, err
 	}
-	bs, _, err := c.Branches.ListBranches(user+"/"+RepoName, &gitlab.ListBranchesOptions{})
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
+	bs, _, err := c.Branches.ListBranches(user+"/"+repoName, &gitlab.ListBranchesOptions{})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut
@@ -117,13 +126,15 @@ func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth
 	return res, nil
 }
 
-func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+	c, err := p.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab GetCommits client: %v", err)
 		return nil, err
 	}
-	cs, _, err := c.Commits.ListCommits(user+"/"+RepoName, &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: page, PerPage: perPage}})
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
+	cs, _, err := c.Commits.ListCommits(user+"/"+repoName, &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: page, PerPage: perPage}})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut
@@ -144,16 +155,18 @@ func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2
 	return res, nil
 }
 
-func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+	c, err := p.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab GetBookmarks client: %v", err)
 		return "", "", err
 	}
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
 	if ref == "" {
 		ref = "HEAD"
 	}
-	f, _, err := c.RepositoryFiles.GetFile(user+"/"+RepoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(ref)})
+	f, _, err := c.RepositoryFiles.GetFile(user+"/"+repoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(ref)})
 	if err != nil {
 		if errors.Is(err, gitlab.ErrNotFound) {
 			return "", "", nil
@@ -182,8 +195,10 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	return string(data), f.LastCommitID, nil
 }
 
-func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
-	p, _, err := client.Projects.GetProject(user+"/"+RepoName, nil)
+func (p GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
+	proj, _, err := client.Projects.GetProject(user+"/"+repoName, nil)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
@@ -199,21 +214,23 @@ func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client 
 		log.Printf("gitlab getDefaultBranch: %v", err)
 		return "", err
 	}
-	if p.DefaultBranch != "" {
-		branch = p.DefaultBranch
+	if proj.DefaultBranch != "" {
+		branch = proj.DefaultBranch
 	} else {
 		branch = "main"
 	}
 	return branch, nil
 }
-func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+	c, err := p.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab UpdateBookmarks client: %v", err)
 		return err
 	}
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
 	if branch == "" {
-		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+		branch, err = p.getDefaultBranch(ctx, user, c, branch)
 		if err != nil {
 			log.Printf("gitlab UpdateBookmarks default branch: %v", err)
 			return err
@@ -227,7 +244,7 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		LastCommitID:  gitlab.Ptr(expectSHA),
 		CommitMessage: gitlab.Ptr("Auto change from web"),
 	}
-	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+RepoName, "bookmarks.txt", opt)
+	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+repoName, "bookmarks.txt", opt)
 	if err != nil {
 		var respErr *gitlab.ErrorResponse
 		if errors.As(err, &respErr) {
@@ -253,11 +270,13 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 }
 
 func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
-	c, err := GitLabProvider{}.client(token)
+	c, err := GitLabProvider{}.client(ctx, token)
 	if err != nil {
 		log.Printf("gitlab CreateBookmarks client: %v", err)
 		return err
 	}
+	config := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := config.GetRepoName()
 	if branch == "" {
 		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
 		if err != nil {
@@ -272,7 +291,7 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		AuthorName:    gitlab.Ptr("Gobookmarks"),
 		CommitMessage: gitlab.Ptr("Auto create from web"),
 	}
-	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+RepoName, "bookmarks.txt", opt)
+	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+repoName, "bookmarks.txt", opt)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
@@ -294,13 +313,17 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 }
 
 func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	c, err := GitLabProvider{}.client(token)
+	c, err := p.client(ctx, token)
 	if err != nil {
 		return err
 	}
-	RepoName = name
+	// RepoName = name // Removed global. Use name arg.
+	// Note: CreateRepo argument `name` is usually passed as `repoName`.
+	// In GitHub provider I just used `name`.
+	// Here I should use `name` too.
+
 	_, _, err = c.Projects.CreateProject(&gitlab.CreateProjectOptions{
-		Name:                 gitlab.Ptr(RepoName),
+		Name:                 gitlab.Ptr(name),
 		Description:          gitlab.Ptr("Personal bookmarks"),
 		Visibility:           gitlab.Ptr(gitlab.PrivateVisibility),
 		InitializeWithReadme: gitlab.Ptr(true),
@@ -318,7 +341,7 @@ func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oaut
 }
 
 func (p GitLabProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
-	c, err := GitLabProvider{}.client(token)
+	c, err := p.client(ctx, token)
 	if err != nil {
 		return false, err
 	}
