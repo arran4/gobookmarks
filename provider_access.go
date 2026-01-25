@@ -28,18 +28,14 @@ type requestCache struct {
 	data map[string]*bookmarkCacheEntry
 }
 
-func InitRequestCache(ctx context.Context) context.Context {
-	return context.WithValue(ctx, ContextValues("requestCache"), &requestCache{data: make(map[string]*bookmarkCacheEntry)})
-}
-
 func invalidateRequestCache(ctx context.Context, user string) {
-	if cache, ok := ctx.Value(ContextValues("requestCache")).(*requestCache); ok {
-		cache.Lock()
-		defer cache.Unlock()
+	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
+		cd.requestCache.Lock()
+		defer cd.requestCache.Unlock()
 		prefix := user + "|"
-		for k := range cache.data {
+		for k := range cd.requestCache.data {
 			if strings.HasPrefix(k, prefix) {
-				delete(cache.data, k)
+				delete(cd.requestCache.data, k)
 			}
 		}
 	}
@@ -167,13 +163,13 @@ func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, r
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
 	key := cacheKey(user, ref)
-	if cache, ok := ctx.Value(ContextValues("requestCache")).(*requestCache); ok {
-		cache.RLock()
-		if entry, ok := cache.data[key]; ok {
-			cache.RUnlock()
+	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
+		cd.requestCache.RLock()
+		if entry, ok := cd.requestCache.data[key]; ok {
+			cd.requestCache.RUnlock()
 			return entry.bookmarks, entry.sha, nil
 		}
-		cache.RUnlock()
+		cd.requestCache.RUnlock()
 	}
 
 	if b, sha, ok := getCachedBookmarks(user, ref); ok {
@@ -188,10 +184,10 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 		return "", "", ErrSignedOut
 	}
 	if err == nil {
-		if cache, ok := ctx.Value(ContextValues("requestCache")).(*requestCache); ok {
-			cache.Lock()
-			cache.data[key] = &bookmarkCacheEntry{bookmarks: b, sha: sha}
-			cache.Unlock()
+		if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
+			cd.requestCache.Lock()
+			cd.requestCache.data[key] = &bookmarkCacheEntry{bookmarks: b, sha: sha}
+			cd.requestCache.Unlock()
 		}
 	}
 	return b, sha, err
