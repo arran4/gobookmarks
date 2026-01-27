@@ -23,6 +23,24 @@ var bookmarksCache = struct {
 
 func cacheKey(user, ref string) string { return user + "|" + ref }
 
+type requestCache struct {
+	sync.RWMutex
+	data map[string]*bookmarkCacheEntry
+}
+
+func invalidateRequestCache(ctx context.Context, user string) {
+	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
+		cd.requestCache.Lock()
+		defer cd.requestCache.Unlock()
+		prefix := user + "|"
+		for k := range cd.requestCache.data {
+			if strings.HasPrefix(k, prefix) {
+				delete(cd.requestCache.data, k)
+			}
+		}
+	}
+}
+
 func getCachedBookmarks(user, ref string) (string, string, bool) {
 	key := cacheKey(user, ref)
 	bookmarksCache.RLock()
@@ -144,6 +162,16 @@ func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, r
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+	key := cacheKey(user, ref)
+	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
+		cd.requestCache.RLock()
+		if entry, ok := cd.requestCache.data[key]; ok {
+			cd.requestCache.RUnlock()
+			return entry.bookmarks, entry.sha, nil
+		}
+		cd.requestCache.RUnlock()
+	}
+
 	if b, sha, ok := getCachedBookmarks(user, ref); ok {
 		return b, sha, nil
 	}
@@ -154,6 +182,13 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 	b, sha, err := p.GetBookmarks(ctx, user, ref, token)
 	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return "", "", ErrSignedOut
+	}
+	if err == nil {
+		if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
+			cd.requestCache.Lock()
+			cd.requestCache.data[key] = &bookmarkCacheEntry{bookmarks: b, sha: sha}
+			cd.requestCache.Unlock()
+		}
 	}
 	return b, sha, err
 }
@@ -166,6 +201,7 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 	err := p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
 	if err == nil {
 		invalidateBookmarkCache(user)
+		invalidateRequestCache(ctx, user)
 	} else if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return ErrSignedOut
 	}
@@ -180,6 +216,7 @@ func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, bran
 	err := p.CreateBookmarks(ctx, user, token, branch, text)
 	if err == nil {
 		invalidateBookmarkCache(user)
+		invalidateRequestCache(ctx, user)
 	} else if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return ErrSignedOut
 	}
