@@ -32,7 +32,7 @@ func init() {
 	RegisterProvider(&SQLProvider{})
 }
 
-func (p *SQLProvider) getDB() (*sql.DB, error) {
+func (p *SQLProvider) getDB(ctx context.Context) (*sql.DB, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -40,7 +40,8 @@ func (p *SQLProvider) getDB() (*sql.DB, error) {
 		return p.db, nil
 	}
 
-	db, err := OpenDB()
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	db, err := OpenDB(cfg.GetDBConnectionProvider(), cfg.GetDBConnectionString())
 	if err != nil {
 		return nil, err
 	}
@@ -50,13 +51,15 @@ func (p *SQLProvider) getDB() (*sql.DB, error) {
 
 func (p *SQLProvider) Name() string                                                     { return "sql" }
 func (p *SQLProvider) DefaultServer() string                                            { return "" }
-func (p *SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
+func (p *SQLProvider) Config(ctx context.Context, clientID, clientSecret, redirectURL string) *oauth2.Config {
+	return nil
+}
 func (p *SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
 	return nil, errors.New("not implemented")
 }
 
 func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +82,7 @@ func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 }
 
 func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +108,7 @@ func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth
 }
 
 func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +144,7 @@ func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2
 }
 
 func (p *SQLProvider) AdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return "", "", err
 	}
@@ -165,7 +168,7 @@ func (p *SQLProvider) AdjacentCommits(ctx context.Context, user string, token *o
 }
 
 func (p *SQLProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return "", "", err
 	}
@@ -213,7 +216,7 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return err
 	}
@@ -252,8 +255,9 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
 	// dialect-specific insert/update for branches
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(cfg.GetDBConnectionProvider()) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
@@ -284,7 +288,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	if branch == "" {
 		branch = "main"
 	}
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return err
 	}
@@ -294,8 +298,9 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
 	// ensure a bookmarks row exists
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(cfg.GetDBConnectionProvider()) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx,
 			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
@@ -336,7 +341,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	}
 
 	// ensure a branch pointer
-	switch strings.ToLower(DBConnectionProvider) {
+	switch strings.ToLower(cfg.GetDBConnectionProvider()) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
@@ -364,7 +369,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 }
 
 func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return err
 	}
@@ -374,7 +379,8 @@ func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2
 		return err
 	}
 
-	switch strings.ToLower(DBConnectionProvider) {
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	switch strings.ToLower(cfg.GetDBConnectionProvider()) {
 	case "mysql":
 		// bookmarks row
 		if _, err := tx.ExecContext(ctx,
@@ -416,7 +422,7 @@ func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2
 }
 
 func (p *SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -427,7 +433,7 @@ func (p *SQLProvider) RepoExists(ctx context.Context, user string, token *oauth2
 }
 
 func (p *SQLProvider) CreateUser(ctx context.Context, user, password string) error {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return err
 	}
@@ -449,7 +455,7 @@ func (p *SQLProvider) CreateUser(ctx context.Context, user, password string) err
 }
 
 func (p *SQLProvider) SetPassword(ctx context.Context, user, password string) error {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return err
 	}
@@ -470,7 +476,7 @@ func (p *SQLProvider) SetPassword(ctx context.Context, user, password string) er
 }
 
 func (p *SQLProvider) CheckPassword(ctx context.Context, user, password string) (bool, error) {
-	db, err := p.getDB()
+	db, err := p.getDB(ctx)
 	if err != nil {
 		return false, err
 	}

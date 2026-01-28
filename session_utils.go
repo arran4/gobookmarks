@@ -10,7 +10,7 @@ import (
 
 // sanitizeSession returns a new session when err indicates the cookie was
 // invalid. The original session is cleared so the client replaces it.
-func sanitizeSession(w http.ResponseWriter, r *http.Request, session *sessions.Session, err error) (*sessions.Session, error) {
+func sanitizeSession(w http.ResponseWriter, r *http.Request, session *sessions.Session, err error, cfg *Configuration) (*sessions.Session, error) {
 	if err == nil {
 		return session, nil
 	}
@@ -23,7 +23,7 @@ func sanitizeSession(w http.ResponseWriter, r *http.Request, session *sessions.S
 				log.Printf("session clear error: %v", saveErr)
 			}
 		}
-		session, _ = SessionStore.New(r, SessionName)
+		session, _ = cfg.SessionStore.New(r, cfg.SessionName)
 		return session, nil
 	}
 	return session, err
