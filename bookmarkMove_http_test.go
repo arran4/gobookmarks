@@ -1,7 +1,6 @@
 package gobookmarks
 
 import (
-	"context"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -10,10 +9,10 @@ import (
 
 func TestCategoryMoveBeforeAction(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", shaComplex); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", shaComplex); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	text, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	text, sha, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -27,7 +26,7 @@ func TestCategoryMoveBeforeAction(t *testing.T) {
 	if err := CategoryMoveBeforeAction(w, req); err != nil {
 		t.Fatalf("CategoryMoveBeforeAction: %v", err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}
@@ -46,10 +45,10 @@ func TestCategoryMoveBeforeAction(t *testing.T) {
 
 func TestCategoryMoveBeforeActionConcurrent(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", shaComplex); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", shaComplex); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	text, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	text, sha, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -58,7 +57,7 @@ func TestCategoryMoveBeforeActionConcurrent(t *testing.T) {
 	// modify first page so sha changes
 	tabs[0].Pages[0].Blocks[0].Columns[0].Categories[0].Name = "X"
 	modified := tabs.String()
-	if err := p.UpdateBookmarks(context.Background(), user, nil, "refs/heads/main", "main", modified, sha); err != nil {
+	if err := p.UpdateBookmarks(ctx, user, nil, "refs/heads/main", "main", modified, sha); err != nil {
 		t.Fatalf("UpdateBookmarks: %v", err)
 	}
 
@@ -75,10 +74,10 @@ func TestCategoryMoveBeforeActionConcurrent(t *testing.T) {
 
 func TestCategoryMoveEndAction(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", shaComplex); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", shaComplex); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	text, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	text, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -92,7 +91,7 @@ func TestCategoryMoveEndAction(t *testing.T) {
 	if err := CategoryMoveEndAction(w, req); err != nil {
 		t.Fatalf("CategoryMoveEndAction: %v", err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}
@@ -108,10 +107,10 @@ func TestCategoryMoveEndAction(t *testing.T) {
 
 func TestCategoryMoveNewColumnAction(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", shaComplex); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", shaComplex); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	text, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	text, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -126,7 +125,7 @@ func TestCategoryMoveNewColumnAction(t *testing.T) {
 	if err := CategoryMoveNewColumnAction(w, req); err != nil {
 		t.Fatalf("CategoryMoveNewColumnAction: %v", err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}

@@ -34,24 +34,22 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-var (
-	SessionStore sessions.Store
-	SessionName  string
-)
-
 // ensureRepo checks for the bookmarks repository and creates it with
 // some default content when missing.
 func ensureRepo(ctx context.Context, p Provider, user string, token *oauth2.Token) error {
 	log.Printf("checking repo for %s", user)
 
-	exists, err := p.RepoExists(ctx, user, token, RepoName)
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
+
+	exists, err := p.RepoExists(ctx, user, token, repoName)
 	if err != nil {
 		log.Printf("repo check error: %v", err)
 		return err
 	}
 	if !exists {
-		log.Printf("creating repo %s for %s", RepoName, user)
-		if err := p.CreateRepo(ctx, user, token, RepoName); err != nil {
+		log.Printf("creating repo %s for %s", repoName, user)
+		if err := p.CreateRepo(ctx, user, token, repoName); err != nil {
 			log.Printf("create repo: %v", err)
 			return err
 		}
@@ -73,6 +71,7 @@ func ensureRepo(ctx context.Context, p Provider, user string, token *oauth2.Toke
 }
 
 func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
+	cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
 	providerName := mux.Vars(r)["provider"]
 	p := GetProvider(providerName)
 	if p == nil {
@@ -80,8 +79,8 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	session, err := getSession(w, r)
-	if session, err = sanitizeSession(w, r, session, err); err != nil {
+	session, err := getSession(w, r, cfg)
+	if session, err = sanitizeSession(w, r, session, err, cfg); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 
@@ -90,29 +89,30 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("session save: %w", err)
 	}
 
-	creds := providerCreds(providerName)
+	creds := cfg.GetProviderCreds(providerName)
 	if creds == nil {
 		http.NotFound(w, r)
 		return nil
 	}
-	cfg := p.Config(creds.ID, creds.Secret, OauthRedirectURL)
-	if cfg == nil {
+	oacfg := p.Config(r.Context(), creds.ID, creds.Secret, cfg.GetRedirectURL())
+	if oacfg == nil {
 		http.NotFound(w, r)
 		return nil
 	}
-	http.Redirect(w, r, cfg.AuthCodeURL(providerName), http.StatusTemporaryRedirect)
+	http.Redirect(w, r, oacfg.AuthCodeURL(providerName), http.StatusTemporaryRedirect)
 	return nil
 }
 
 func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
+	cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
 
 	type ErrorData struct {
 		*CoreData
 		Error string
 	}
 
-	session, err := getSession(w, r)
-	if session, err = sanitizeSession(w, r, session, err); err != nil {
+	session, err := getSession(w, r, cfg)
+	if session, err = sanitizeSession(w, r, session, err, cfg); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 
@@ -125,15 +125,15 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("unknown provider")
 	}
 
-	creds := providerCreds(providerName)
+	creds := cfg.GetProviderCreds(providerName)
 	if creds == nil {
 		return fmt.Errorf("provider does not support login")
 	}
-	cfg := p.Config(creds.ID, creds.Secret, OauthRedirectURL)
-	if cfg == nil {
+	oacfg := p.Config(r.Context(), creds.ID, creds.Secret, cfg.GetRedirectURL())
+	if oacfg == nil {
 		return fmt.Errorf("provider does not support login")
 	}
-	token, err := cfg.Exchange(r.Context(), r.URL.Query().Get("code"))
+	token, err := oacfg.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
 		var retrieveErr *oauth2.RetrieveError
 		if errors.As(err, &retrieveErr) {
@@ -181,8 +181,9 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 }
 
 func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
-	session, err := getSession(w, r)
-	if session, err = sanitizeSession(w, r, session, err); err != nil {
+	cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+	session, err := getSession(w, r, cfg)
+	if session, err = sanitizeSession(w, r, session, err, cfg); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 	user := r.FormValue("username")
@@ -214,6 +215,8 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 }
 
 func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
+	cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
 	user := r.FormValue("username")
 	pass := r.FormValue("password")
 	prov := GetProvider("git")
@@ -230,8 +233,8 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("git signup create user error for %s: %v", user, err)
 		return err
 	}
-	if exists, err := prov.RepoExists(r.Context(), user, nil, RepoName); err == nil && !exists {
-		if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
+	if exists, err := prov.RepoExists(r.Context(), user, nil, repoName); err == nil && !exists {
+		if err := prov.CreateRepo(r.Context(), user, nil, repoName); err != nil {
 			log.Printf("git signup create repo error for %s: %v", user, err)
 			return err
 		}
@@ -247,8 +250,9 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 }
 
 func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
-	session, err := getSession(w, r)
-	if session, err = sanitizeSession(w, r, session, err); err != nil {
+	cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+	session, err := getSession(w, r, cfg)
+	if session, err = sanitizeSession(w, r, session, err, cfg); err != nil {
 		return fmt.Errorf("session error: %w", err)
 	}
 	user := r.FormValue("username")
@@ -280,6 +284,8 @@ func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
 }
 
 func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
+	cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
 	user := r.FormValue("username")
 	pass := r.FormValue("password")
 	prov := GetProvider("sql")
@@ -296,8 +302,8 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("sql signup create user error for %s: %v", user, err)
 		return err
 	}
-	if exists, err := prov.RepoExists(r.Context(), user, nil, RepoName); err == nil && !exists {
-		if err := prov.CreateRepo(r.Context(), user, nil, RepoName); err != nil {
+	if exists, err := prov.RepoExists(r.Context(), user, nil, repoName); err == nil && !exists {
+		if err := prov.CreateRepo(r.Context(), user, nil, repoName); err != nil {
 			log.Printf("sql signup create repo error for %s: %v", user, err)
 			return err
 		}
@@ -314,9 +320,10 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 
 func UserAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		cfg := request.Context().Value(ContextValues("configuration")).(*Configuration)
 		// Get the session.
-		session, err := getSession(writer, request)
-		if session, err = sanitizeSession(writer, request, session, err); err != nil {
+		session, err := getSession(writer, request, cfg)
+		if session, err = sanitizeSession(writer, request, session, err, cfg); err != nil {
 			log.Printf("session error: %v", err)
 		}
 
@@ -325,8 +332,8 @@ func UserAdderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func getSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
-	session, err := SessionStore.Get(r, SessionName)
+func getSession(w http.ResponseWriter, r *http.Request, cfg *Configuration) (*sessions.Session, error) {
+	session, err := cfg.SessionStore.Get(r, cfg.SessionName)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +342,7 @@ func getSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, erro
 		if err := session.Save(r, w); err != nil {
 			return nil, err
 		}
-		session, err = SessionStore.New(r, SessionName)
+		session, err = cfg.SessionStore.New(r, cfg.SessionName)
 		if err != nil {
 			return nil, err
 		}

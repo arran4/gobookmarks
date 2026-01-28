@@ -83,33 +83,6 @@ type ProviderCreds struct {
 	Secret string
 }
 
-func providerCreds(name string) *ProviderCreds {
-	switch name {
-	case "github":
-		if GithubClientID == "" || GithubClientSecret == "" {
-			return nil
-		}
-		return &ProviderCreds{ID: GithubClientID, Secret: GithubClientSecret}
-	case "gitlab":
-		if GitlabClientID == "" || GitlabClientSecret == "" {
-			return nil
-		}
-		return &ProviderCreds{ID: GitlabClientID, Secret: GitlabClientSecret}
-	case "git":
-		if LocalGitPath == "" {
-			return nil
-		}
-		return &ProviderCreds{}
-	case "sql":
-		if DBConnectionProvider == "" {
-			return nil
-		}
-		return &ProviderCreds{}
-	default:
-		return nil
-	}
-}
-
 func GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
 	p := providerFromContext(ctx)
 	if p == nil {

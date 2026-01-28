@@ -9,17 +9,19 @@ import (
 	"testing"
 
 	gb "github.com/arran4/gobookmarks"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 )
 
 func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
-	gb.SessionName = "testsess"
-	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
+	cfg := gb.NewConfiguration(gb.Config{
+		SessionKey: "secret",
+	})
+	// Override for test determinism if needed, but "secret" key creates a consistent store.
+	cfg.SessionName = "testsess"
 
 	req := httptest.NewRequest("GET", "/submit", nil)
 	req.Header.Set("Referer", "/form")
-	ctx := context.WithValue(req.Context(), gb.ContextValues("coreData"), &gb.CoreData{})
+	ctx := context.WithValue(req.Context(), gb.ContextValues("configuration"), cfg)
+	ctx = context.WithValue(ctx, gb.ContextValues("coreData"), &gb.CoreData{})
 	req = req.WithContext(ctx)
 
 	h := runHandlerChain(func(w http.ResponseWriter, r *http.Request) error {
@@ -39,15 +41,18 @@ func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 }
 
 func TestRunTemplate_BufferedError(t *testing.T) {
-	gb.SessionName = "testsess"
-	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
-	gb.DBConnectionProvider = ""
+	cfg := gb.NewConfiguration(gb.Config{
+		SessionKey: "secret",
+	})
+	cfg.SessionName = "testsess"
 
 	req := httptest.NewRequest("GET", "/", nil)
-	sess, _ := gb.SessionStore.New(req, gb.SessionName)
+
+	sess, _ := cfg.SessionStore.New(req, cfg.SessionName)
 	sess.Values["GithubUser"] = &gb.User{Login: "user"}
-	sess.Values["Token"] = &oauth2.Token{}
-	ctx := context.WithValue(req.Context(), gb.ContextValues("session"), sess)
+
+	ctx := context.WithValue(req.Context(), gb.ContextValues("configuration"), cfg)
+	ctx = context.WithValue(ctx, gb.ContextValues("session"), sess)
 	ctx = context.WithValue(ctx, gb.ContextValues("provider"), "sql")
 	ctx = context.WithValue(ctx, gb.ContextValues("coreData"), &gb.CoreData{UserRef: "user"})
 	req = req.WithContext(ctx)

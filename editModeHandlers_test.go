@@ -10,16 +10,18 @@ import (
 )
 
 func TestEditModeToggle(t *testing.T) {
-	SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	cfg := NewConfiguration(Config{})
+	cfg.SessionName = "testsession"
+	cfg.SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	session, err := getSession(w, req)
+	session, err := getSession(w, req, cfg)
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
-	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	ctx := context.WithValue(req.Context(), ContextValues("configuration"), cfg)
+	ctx = context.WithValue(ctx, ContextValues("session"), session)
 	req = req.WithContext(ctx)
 
 	// enable edit mode

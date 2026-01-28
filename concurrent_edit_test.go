@@ -1,7 +1,6 @@
 package gobookmarks
 
 import (
-	"context"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -12,19 +11,19 @@ func TestBookmarksEditSaveActionConcurrent(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
 
 	original := "Category: A\nhttp://one.com one"
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", original); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", original); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	_, sha1, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	_, sha1, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks sha1: %v", err)
 	}
 
 	updated := "Category: B\nhttp://two.com two"
-	if err := p.UpdateBookmarks(context.Background(), user, nil, "refs/heads/main", "main", updated, sha1); err != nil {
+	if err := p.UpdateBookmarks(ctx, user, nil, "refs/heads/main", "main", updated, sha1); err != nil {
 		t.Fatalf("UpdateBookmarks: %v", err)
 	}
-	_, sha2, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	_, sha2, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks sha2: %v", err)
 	}
@@ -42,7 +41,7 @@ func TestBookmarksEditSaveActionConcurrent(t *testing.T) {
 		t.Fatalf("expected concurrency error, got %v", err)
 	}
 
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks final: %v", err)
 	}

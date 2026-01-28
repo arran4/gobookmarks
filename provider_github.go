@@ -27,8 +27,9 @@ func (GitHubProvider) Name() string { return "github" }
 
 func (GitHubProvider) DefaultServer() string { return "https://github.com" }
 
-func (GitHubProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
-	server := strings.TrimRight(GithubServer, "/")
+func (GitHubProvider) Config(ctx context.Context, clientID, clientSecret, redirectURL string) *oauth2.Config {
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	server := strings.TrimRight(cfg.GithubServer, "/")
 	if server == "" {
 		server = "https://github.com"
 	}
@@ -46,7 +47,8 @@ func (GitHubProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 
 func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.Client {
 	httpClient := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
-	server := strings.TrimRight(GithubServer, "/")
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	server := strings.TrimRight(cfg.GithubServer, "/")
 	if server == "" || server == "https://github.com" {
 		return github.NewClient(httpClient)
 	}
@@ -71,7 +73,9 @@ func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*
 }
 
 func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
-	tags, _, err := p.client(ctx, token).Repositories.ListTags(ctx, user, RepoName, &github.ListOptions{})
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
+	tags, _, err := p.client(ctx, token).Repositories.ListTags(ctx, user, repoName, &github.ListOptions{})
 	if err != nil {
 		log.Printf("github GetTags: %v", err)
 		return nil, fmt.Errorf("ListTags: %w", err)
@@ -84,7 +88,9 @@ func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.
 }
 
 func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
-	bs, _, err := p.client(ctx, token).Repositories.ListBranches(ctx, user, RepoName, &github.BranchListOptions{})
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
+	bs, _, err := p.client(ctx, token).Repositories.ListBranches(ctx, user, repoName, &github.BranchListOptions{})
 	if err != nil {
 		log.Printf("github GetBranches: %v", err)
 		return nil, fmt.Errorf("ListBranches: %w", err)
@@ -97,8 +103,10 @@ func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oau
 }
 
 func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
 	opts := &github.CommitsListOptions{SHA: ref, ListOptions: github.ListOptions{Page: page, PerPage: perPage}}
-	cs, _, err := p.client(ctx, token).Repositories.ListCommits(ctx, user, RepoName, opts)
+	cs, _, err := p.client(ctx, token).Repositories.ListCommits(ctx, user, repoName, opts)
 	if err != nil {
 		log.Printf("github GetCommits: %v", err)
 		return nil, fmt.Errorf("ListCommits: %w", err)
@@ -122,7 +130,9 @@ func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oaut
 }
 
 func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	contents, _, resp, err := p.client(ctx, token).Repositories.GetContents(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: ref})
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
+	contents, _, resp, err := p.client(ctx, token).Repositories.GetContents(ctx, user, repoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: ref})
 	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
 		return "", "", ErrSignedOut
 	}
@@ -151,7 +161,9 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 var commitAuthor = &github.CommitAuthor{Name: SP("Gobookmarks"), Email: SP("Gobookmarks@arran.net.au")}
 
 func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
-	rep, resp, err := client.Repositories.Get(ctx, user, RepoName)
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
+	rep, resp, err := client.Repositories.Get(ctx, user, repoName)
 	if resp != nil && resp.StatusCode == 404 {
 		return "", ErrRepoNotFound
 	}
@@ -169,8 +181,8 @@ func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, clien
 
 func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
 	client := p.client(ctx, token)
-	RepoName = name
-	rep := &github.Repository{Name: &RepoName, Description: SP("Personal bookmarks"), Private: BP(true)}
+	// RepoName = name
+	rep := &github.Repository{Name: &name, Description: SP("Personal bookmarks"), Private: BP(true)}
 	rep, _, err := client.Repositories.Create(ctx, "", rep)
 	if err != nil {
 		if e, ok := err.(*github.ErrorResponse); ok && e.Response != nil && e.Response.StatusCode == http.StatusUnprocessableEntity {
@@ -180,7 +192,7 @@ func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oaut
 			return fmt.Errorf("Repositories.Create: %w", err)
 		}
 	}
-	_, _, err = client.Repositories.CreateFile(ctx, user, RepoName, "readme.md", &github.RepositoryContentFileOptions{
+	_, _, err = client.Repositories.CreateFile(ctx, user, name, "readme.md", &github.RepositoryContentFileOptions{
 		Message: SP("Auto create from web"),
 		Content: []byte(`# Your bookmarks
 
@@ -211,7 +223,9 @@ func (p GitHubProvider) RepoExists(ctx context.Context, user string, token *oaut
 }
 
 func (p GitHubProvider) createRef(ctx context.Context, user string, client *github.Client, sourceRef, branchRef string) error {
-	gsref, resp, err := client.Git.GetRef(ctx, user, RepoName, sourceRef)
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
+	gsref, resp, err := client.Git.GetRef(ctx, user, repoName, sourceRef)
 	if resp != nil && resp.StatusCode == 404 {
 		err = nil
 	}
@@ -219,7 +233,7 @@ func (p GitHubProvider) createRef(ctx context.Context, user string, client *gith
 		log.Printf("github createRef getRef: %v", err)
 		return fmt.Errorf("GetRef: %w", err)
 	}
-	_, _, err = client.Git.CreateRef(ctx, user, RepoName, &github.Reference{Ref: &branchRef, Object: gsref.Object})
+	_, _, err = client.Git.CreateRef(ctx, user, repoName, &github.Reference{Ref: &branchRef, Object: gsref.Object})
 	if err != nil {
 		log.Printf("github createRef create: %v", err)
 		return fmt.Errorf("CreateRef: %w", err)
@@ -228,6 +242,8 @@ func (p GitHubProvider) createRef(ctx context.Context, user string, client *gith
 }
 
 func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
 	client := p.client(ctx, token)
 	defaultBranch, err := p.getDefaultBranch(ctx, user, client, branch)
 	if err != nil {
@@ -240,7 +256,7 @@ func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token 
 	if sourceRef == "" {
 		sourceRef = branchRef
 	}
-	_, grefResp, err := client.Git.GetRef(ctx, user, RepoName, branchRef)
+	_, grefResp, err := client.Git.GetRef(ctx, user, repoName, branchRef)
 	if err != nil && grefResp.StatusCode != 404 {
 		log.Printf("github UpdateBookmarks getRef: %v", err)
 		return fmt.Errorf("GetRef: %w", err)
@@ -251,7 +267,7 @@ func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token 
 			return fmt.Errorf("create ref: %w", err)
 		}
 	}
-	contents, _, resp, err := client.Repositories.GetContents(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: branchRef})
+	contents, _, resp, err := client.Repositories.GetContents(ctx, user, repoName, "bookmarks.txt", &github.RepositoryContentGetOptions{Ref: branchRef})
 	if resp != nil && resp.StatusCode == 404 {
 		return ErrRepoNotFound
 	}
@@ -265,7 +281,7 @@ func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token 
 	if expectSHA != "" && contents.SHA != nil && *contents.SHA != expectSHA {
 		return fmt.Errorf("bookmarks modified concurrently")
 	}
-	_, _, err = client.Repositories.UpdateFile(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
+	_, _, err = client.Repositories.UpdateFile(ctx, user, repoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto change from web"),
 		Content:   []byte(text),
 		Branch:    &branch,
@@ -281,6 +297,8 @@ func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token 
 }
 
 func (p GitHubProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+	cfg := ctx.Value(ContextValues("configuration")).(*Configuration)
+	repoName := cfg.GetRepoName()
 	client := p.client(ctx, token)
 	if branch == "" {
 		var err error
@@ -290,7 +308,7 @@ func (p GitHubProvider) CreateBookmarks(ctx context.Context, user string, token 
 			return err
 		}
 	}
-	_, resp, err := client.Repositories.CreateFile(ctx, user, RepoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
+	_, resp, err := client.Repositories.CreateFile(ctx, user, repoName, "bookmarks.txt", &github.RepositoryContentFileOptions{
 		Message:   SP("Auto create from web"),
 		Content:   []byte(text),
 		Branch:    &branch,

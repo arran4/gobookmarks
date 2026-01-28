@@ -10,16 +10,19 @@ import (
 )
 
 func TestLoginRouteProviderVariable(t *testing.T) {
-	SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	cfg := NewConfiguration(Config{
+		GithubClientID: "id",
+		GithubSecret:   "secret",
+		GitlabClientID: "id",
+		GitlabSecret:   "secret",
+		ExternalURL:    "http://example.com/",
+	})
+	cfg.SessionName = "testsess"
+	cfg.SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"
-	GithubClientID = "id"
-	GithubClientSecret = "secret"
-	GitlabClientID = "id"
-	GitlabClientSecret = "secret"
-	OauthRedirectURL = JoinURL("http://example.com/", "callback")
 
 	r := mux.NewRouter()
+	r.Use(ConfigMiddleware(cfg))
 	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
 
 	req := httptest.NewRequest("GET", "/login/github", nil)

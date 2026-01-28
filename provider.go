@@ -2,9 +2,9 @@ package gobookmarks
 
 import (
 	"context"
-	"golang.org/x/oauth2"
-	"sort"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 type User struct {
@@ -29,7 +29,7 @@ type Commit struct {
 
 type Provider interface {
 	Name() string
-	Config(clientID, clientSecret, redirectURL string) *oauth2.Config
+	Config(ctx context.Context, clientID, clientSecret, redirectURL string) *oauth2.Config
 	CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error)
 	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error)
 	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)
@@ -79,57 +79,10 @@ func RegisterProvider(p Provider) {
 	providerOrder = append(providerOrder, name)
 }
 
-// SetProviderOrder updates the order in which providers are returned by
-// ProviderNames. Names not recognized are ignored. Any registered providers not
-// mentioned remain at the end in alphabetical order.
-func SetProviderOrder(order []string) {
-	if len(order) == 0 {
-		names := make([]string, 0, len(providers))
-		for n := range providers {
-			names = append(names, n)
-		}
-		sort.Strings(names)
-		providerOrder = names
-		return
-	}
-
-	seen := make(map[string]bool)
-	var final []string
-	for _, n := range order {
-		if _, ok := providers[n]; ok && !seen[n] {
-			final = append(final, n)
-			seen[n] = true
-		}
-	}
-	var rest []string
-	for n := range providers {
-		if !seen[n] {
-			rest = append(rest, n)
-		}
-	}
-	sort.Strings(rest)
-	providerOrder = append(final, rest...)
-}
-
-func GetProvider(name string) Provider { return providers[name] }
-
-// ProviderNames returns the list of registered provider names in the order set
-// by SetProviderOrder. The returned slice should not be modified.
-func ProviderNames() []string {
+func GetDefaultProviderOrder() []string {
 	names := make([]string, len(providerOrder))
 	copy(names, providerOrder)
 	return names
 }
 
-// ConfiguredProviderNames returns the list of providers that are both
-// compiled in and configured for use. A provider is considered configured
-// when providerCreds returns non-nil.
-func ConfiguredProviderNames() []string {
-	names := make([]string, 0, len(providers))
-	for _, n := range ProviderNames() {
-		if providerCreds(n) != nil {
-			names = append(names, n)
-		}
-	}
-	return names
-}
+func GetProvider(name string) Provider { return providers[name] }
