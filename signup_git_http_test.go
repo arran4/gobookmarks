@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arran4/gobookmarks/core"
 	"github.com/gorilla/sessions"
 )
 
@@ -62,9 +63,9 @@ func TestGitSignupScenario(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
-	ctx := context.WithValue(sessReq.Context(), ContextValues("session"), session)
-	ctx = context.WithValue(ctx, ContextValues("provider"), "git")
-	ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{})
+	ctx := context.WithValue(sessReq.Context(), core.ContextValues("session"), session)
+	ctx = context.WithValue(ctx, core.ContextValues("provider"), "git")
+	ctx = context.WithValue(ctx, core.ContextValues("coreData"), &core.CoreData{Session: session})
 
 	// create bookmarks on new branch
 	createText := "Category: New\nhttp://example.com new"

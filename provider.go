@@ -2,38 +2,23 @@ package gobookmarks
 
 import (
 	"context"
-	"golang.org/x/oauth2"
 	"sort"
-	"time"
+
+	"github.com/arran4/gobookmarks/core"
+
+	"golang.org/x/oauth2"
 )
 
-type User struct {
-	Login string
-}
-
-type Branch struct {
-	Name string
-}
-
-type Tag struct {
-	Name string
-}
-
-type Commit struct {
-	SHA            string
-	Message        string
-	CommitterName  string
-	CommitterEmail string
-	CommitterDate  time.Time
-}
+// Types moved to core package, used directly now.
 
 type Provider interface {
 	Name() string
 	Config(clientID, clientSecret, redirectURL string) *oauth2.Config
-	CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error)
-	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error)
-	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)
-	GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error)
+	// CurrentUser returns the currently authenticated user
+	CurrentUser(ctx context.Context, token *oauth2.Token) (core.User, error)
+	GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*core.Tag, error)
+	GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*core.Branch, error)
+	GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*core.Commit, error)
 	GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error)
 	UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error
 	CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error

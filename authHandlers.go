@@ -4,23 +4,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/arran4/gobookmarks/core"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
-	"log"
-	"net/http"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 	type Data struct {
-		*CoreData
+		*core.CoreData
 	}
 
 	data := Data{
-		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		CoreData: r.Context().Value(core.ContextValues("coreData")).(*core.CoreData),
 	}
 
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	// Use the Core interface to get the session
+	cc := r.Context().Value(core.ContextValues("coreData")).(core.Core)
+	session := cc.GetSession()
 	delete(session.Values, "GithubUser")
 	delete(session.Values, "Token")
 	delete(session.Values, "Provider")
@@ -107,7 +111,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
 	type ErrorData struct {
-		*CoreData
+		*core.CoreData
 		Error string
 	}
 
@@ -160,7 +164,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("user lookup error: %w", err)
 	}
 
-	if err := ensureRepo(r.Context(), p, user.Login, token); err != nil {
+	if err := ensureRepo(r.Context(), p, user.GetLogin(), token); err != nil {
 		// expire the session from the login step
 		session.Options.MaxAge = -1
 		_ = session.Save(r, w)
@@ -204,7 +208,7 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	session.Values["Provider"] = "git"
-	session.Values["GithubUser"] = &User{Login: user}
+	session.Values["GithubUser"] = &core.BasicUser{Login: user}
 	session.Values["Token"] = nil
 	session.Values["version"] = version
 	if err := session.Save(r, w); err != nil {
@@ -270,7 +274,7 @@ func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 	session.Values["Provider"] = "sql"
-	session.Values["GithubUser"] = &User{Login: user}
+	session.Values["GithubUser"] = &core.BasicUser{Login: user}
 	session.Values["Token"] = nil
 	session.Values["version"] = version
 	if err := session.Save(r, w); err != nil {
@@ -320,7 +324,7 @@ func UserAdderMiddleware(next http.Handler) http.Handler {
 			log.Printf("session error: %v", err)
 		}
 
-		ctx := context.WithValue(request.Context(), ContextValues("session"), session)
+		ctx := context.WithValue(request.Context(), core.ContextValues("session"), session)
 		next.ServeHTTP(writer, request.WithContext(ctx))
 	})
 }

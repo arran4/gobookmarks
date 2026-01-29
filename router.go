@@ -1,57 +1,46 @@
 package gobookmarks
 
 import (
-	"database/sql"
+	"context"
 	"net/http"
 
+	"github.com/arran4/gobookmarks/app"
+	"github.com/arran4/gobookmarks/core"
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 )
 
-// RouterConfig holds the dependencies and configuration for the gobookmarks application
-type RouterConfig struct {
-	// DB is the database connection
-	DB *sql.DB
-
-	// UserProvider handles user authentication and lookup
-	UserProvider UserProvider
-
-	// SessionStore handles session management
-	SessionStore sessions.Store
-	// SessionName is the name of the session cookie
-	SessionName string
-
-	// BaseURL is the prefix for all routes (e.g. "/bookmarks")
-	BaseURL string
-
-	// ExternalURL is the public facing URL
-	ExternalURL string
-
-	// DevMode enables development features
-	DevMode bool
-}
-
-// UserProvider defines the interface for external user management
-type UserProvider interface {
-	// CurrentUser returns the current user from the request context
-	CurrentUser(r *http.Request) (*User, error)
-	// IsLoggedIn checks if a user is logged in
-	IsLoggedIn(r *http.Request) bool
-}
-
-// NewRouter creates a new router with the given configuration
-func NewRouter(cfg *RouterConfig) http.Handler {
+// NewRouter creates a new router with the given application dependencies
+func NewRouter(a *app.App) http.Handler {
 	// Initialize globals temporarily until full refactor
-	if cfg.ExternalURL != "" {
+	// Initialize globals from config
+	if a.Config.ExternalURL != "" {
 		// ExternalUrl is a global in gobookmarks package, need to verify
+	}
+	GithubClientID = a.Config.GithubClientID
+	GithubClientSecret = a.Config.GithubSecret
+	GithubServer = a.Config.GithubServer
+	GitlabClientID = a.Config.GitlabClientID
+	GitlabClientSecret = a.Config.GitlabSecret
+	GitlabServer = a.Config.GitlabServer
+	DevMode = a.Config.DevMode
+
+	UseCssColumns = a.Config.CssColumns
+	SiteTitle = a.Config.Title
+	NoFooter = a.Config.NoFooter
+	LocalGitPath = a.Config.LocalGitPath
+	CommitsPerPage = a.Config.CommitsPerPage
+	FaviconCacheDir = a.Config.FaviconCacheDir
+	FaviconCacheSize = a.Config.FaviconCacheSize
+	FaviconMaxCacheCount = a.Config.FaviconMaxCacheCount
+	if a.Config.ExternalURL != "" {
+		OauthRedirectURL = a.Config.ExternalURL + "/oauth2Callback"
 	}
 	// Note: We are not handling all globals yet, focusing on router structure first
 
 	r := mux.NewRouter()
 
-	r.Use(UserAdderMiddleware) // Middleware needs to be adapted to use UserProvider if present
-	r.Use(CoreAdderMiddleware)
+	r.Use(CoreDataMiddleware(a))
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
@@ -61,7 +50,7 @@ func NewRouter(cfg *RouterConfig) http.Handler {
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
-	if cfg.DevMode {
+	if a.Config.DevMode {
 		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
@@ -152,4 +141,47 @@ func NewRouter(cfg *RouterConfig) http.Handler {
 	}
 
 	return r
+}
+
+func CoreDataMiddleware(a *app.App) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session, _ := a.SessionStore.Get(r, a.Config.SessionName) // Handle error?
+			// ... (Existing logic adaptation)
+
+			// For CoreData construction:
+			cd := &core.CoreData{
+				Title:       SiteTitle, // Use config or global
+				AutoRefresh: false,     // Default
+				EditMode:    r.URL.Query().Get("edit") == "1",
+				Tab:         TabFromRequest(r),
+				Repo:        a.Repo,
+				Session:     session,
+				// User: ... populated below or separate middleware
+			}
+
+			// User logic
+			if a.UserProvider != nil {
+				if u, err := a.UserProvider.CurrentUser(r); err == nil && u != nil {
+					cd.User = u
+					cd.UserRef = u.GetLogin()
+				}
+			} else {
+				// Fallback to legacy session lookup (for standalone if Provider not set)
+				if session != nil {
+					if u, ok := session.Values["GithubUser"].(*core.BasicUser); ok {
+						cd.User = u
+						cd.UserRef = u.GetLogin()
+					}
+				}
+			}
+
+			// Inject CoreData
+			ctx := context.WithValue(r.Context(), core.ContextValues("coreData"), cd)
+			// Also "session" for legacy handlers if needed
+			ctx = context.WithValue(ctx, core.ContextValues("session"), session)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }

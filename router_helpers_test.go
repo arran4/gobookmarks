@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arran4/gobookmarks/core"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
@@ -18,7 +19,7 @@ func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/submit", nil)
 	req.Header.Set("Referer", "/form")
-	ctx := context.WithValue(req.Context(), ContextValues("coreData"), &CoreData{})
+	ctx := context.WithValue(req.Context(), core.ContextValues("coreData"), &core.CoreData{})
 	req = req.WithContext(ctx)
 
 	h := runHandlerChain(func(w http.ResponseWriter, r *http.Request) error {
@@ -44,11 +45,11 @@ func TestRunTemplate_BufferedError(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "/", nil)
 	sess, _ := SessionStore.New(req, SessionName)
-	sess.Values["GithubUser"] = &User{Login: "user"}
+	sess.Values["GithubUser"] = &core.BasicUser{Login: "user"}
 	sess.Values["Token"] = &oauth2.Token{}
-	ctx := context.WithValue(req.Context(), ContextValues("session"), sess)
-	ctx = context.WithValue(ctx, ContextValues("provider"), "sql")
-	ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{UserRef: "user"})
+	ctx := context.WithValue(req.Context(), core.ContextValues("session"), sess)
+	ctx = context.WithValue(ctx, core.ContextValues("provider"), "sql")
+	ctx = context.WithValue(ctx, core.ContextValues("coreData"), &core.CoreData{UserRef: "user"})
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()

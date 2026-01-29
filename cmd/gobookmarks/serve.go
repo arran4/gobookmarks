@@ -18,6 +18,7 @@ import (
 	"time"
 
 	. "github.com/arran4/gobookmarks"
+	"github.com/arran4/gobookmarks/app"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
@@ -251,16 +252,26 @@ func (c *ServeCommand) Execute(args []string) error {
 		return errors.New("no providers available")
 	}
 
-	// Create RouterConfig
-	routerCfg := &RouterConfig{
-		SessionStore: SessionStore, // Globals should be initialized by now (lines 248-257)
-		SessionName:  SessionName,
-		ExternalURL:  cfg.ExternalURL,
-		BaseURL:      "", // Root
-		DevMode:      *cfg.DevMode,
+	// Create App
+	appCfg := &app.Config{
+		SessionName: SessionName,
+		ExternalURL: cfg.ExternalURL,
+		BaseURL:     "", // Root
+		DevMode:     *cfg.DevMode,
 	}
 
-	r := NewRouter(routerCfg)
+	// For standalone serve, we don't fix the Repo in App usually, providing nil allows fallback to session-based provider.
+	// However, if we wanted to enforce SQL we could. Current behavior is dynamic.
+	// We need to pass DB and Store.
+
+	// OpenDB if configured
+	db, _ := OpenDB() // Errors logged inside or handled? OpenDB returns error.
+	// serve.go L43 setup DB config.
+	// OpenDB uses DBConnectionProvider/String globals.
+
+	application := app.NewApp(db, SessionStore, nil, nil, appCfg)
+
+	r := NewRouter(application)
 
 	http.Handle("/", r)
 

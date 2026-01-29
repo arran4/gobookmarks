@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arran4/gobookmarks/core"
 	"github.com/google/go-github/v55/github"
 	"golang.org/x/oauth2"
 )
@@ -20,6 +21,7 @@ type GitHubProvider struct{}
 
 func init() {
 	gob.Register(&github.User{})
+	gob.Register(&core.BasicUser{})
 	RegisterProvider(GitHubProvider{})
 }
 
@@ -57,56 +59,59 @@ func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.C
 	return c
 }
 
-func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
+func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (core.User, error) {
+	if token == nil || !token.Valid() {
+		return nil, nil
+	}
 	u, _, err := p.client(ctx, token).Users.Get(ctx, "")
 	if err != nil {
 		log.Printf("github CurrentUser: %v", err)
 		return nil, err
 	}
-	user := &User{}
+	user := &core.BasicUser{}
 	if u.Login != nil {
 		user.Login = *u.Login
 	}
 	return user, nil
 }
 
-func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*core.Tag, error) {
 	tags, _, err := p.client(ctx, token).Repositories.ListTags(ctx, user, RepoName, &github.ListOptions{})
 	if err != nil {
 		log.Printf("github GetTags: %v", err)
 		return nil, fmt.Errorf("ListTags: %w", err)
 	}
-	res := make([]*Tag, 0, len(tags))
+	res := make([]*core.Tag, 0, len(tags))
 	for _, t := range tags {
-		res = append(res, &Tag{Name: t.GetName()})
+		res = append(res, &core.Tag{Name: t.GetName()})
 	}
 	return res, nil
 }
 
-func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*core.Branch, error) {
 	bs, _, err := p.client(ctx, token).Repositories.ListBranches(ctx, user, RepoName, &github.BranchListOptions{})
 	if err != nil {
 		log.Printf("github GetBranches: %v", err)
 		return nil, fmt.Errorf("ListBranches: %w", err)
 	}
-	res := make([]*Branch, 0, len(bs))
+	res := make([]*core.Branch, 0, len(bs))
 	for _, b := range bs {
-		res = append(res, &Branch{Name: b.GetName()})
+		res = append(res, &core.Branch{Name: b.GetName()})
 	}
 	return res, nil
 }
 
-func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*core.Commit, error) {
 	opts := &github.CommitsListOptions{SHA: ref, ListOptions: github.ListOptions{Page: page, PerPage: perPage}}
 	cs, _, err := p.client(ctx, token).Repositories.ListCommits(ctx, user, RepoName, opts)
 	if err != nil {
 		log.Printf("github GetCommits: %v", err)
 		return nil, fmt.Errorf("ListCommits: %w", err)
 	}
-	res := make([]*Commit, 0, len(cs))
+	res := make([]*core.Commit, 0, len(cs))
 	for _, c := range cs {
 		cm := c.GetCommit()
-		com := &Commit{SHA: c.GetSHA()}
+		com := &core.Commit{SHA: c.GetSHA()}
 		if cm != nil {
 			com.Message = cm.GetMessage()
 			comm := cm.Committer

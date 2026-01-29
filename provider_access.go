@@ -8,34 +8,25 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-)
 
-type bookmarkCacheEntry struct {
-	bookmarks string
-	sha       string
-	expiry    time.Time
-}
+	"github.com/arran4/gobookmarks/core"
+)
 
 var bookmarksCache = struct {
 	sync.RWMutex
-	data map[string]*bookmarkCacheEntry
-}{data: make(map[string]*bookmarkCacheEntry)}
+	Data map[string]*core.BookmarkCacheEntry
+}{Data: make(map[string]*core.BookmarkCacheEntry)}
 
 func cacheKey(user, ref string) string { return user + "|" + ref }
 
-type requestCache struct {
-	sync.RWMutex
-	data map[string]*bookmarkCacheEntry
-}
-
 func invalidateRequestCache(ctx context.Context, user string) {
-	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
-		cd.requestCache.Lock()
-		defer cd.requestCache.Unlock()
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.RequestCache != nil {
+		cd.RequestCache.Lock()
+		defer cd.RequestCache.Unlock()
 		prefix := user + "|"
-		for k := range cd.requestCache.data {
+		for k := range cd.RequestCache.Data {
 			if strings.HasPrefix(k, prefix) {
-				delete(cd.requestCache.data, k)
+				delete(cd.RequestCache.Data, k)
 			}
 		}
 	}
@@ -44,33 +35,33 @@ func invalidateRequestCache(ctx context.Context, user string) {
 func getCachedBookmarks(user, ref string) (string, string, bool) {
 	key := cacheKey(user, ref)
 	bookmarksCache.RLock()
-	entry, ok := bookmarksCache.data[key]
+	entry, ok := bookmarksCache.Data[key]
 	bookmarksCache.RUnlock()
-	if !ok || time.Now().After(entry.expiry) {
+	if !ok || time.Now().After(entry.Expiry) {
 		return "", "", false
 	}
-	return entry.bookmarks, entry.sha, true
+	return entry.Bookmarks, entry.SHA, true
 }
 
 func setCachedBookmarks(user, ref, bookmarks, sha string) {
 	key := cacheKey(user, ref)
 	bookmarksCache.Lock()
-	bookmarksCache.data[key] = &bookmarkCacheEntry{bookmarks: bookmarks, sha: sha, expiry: time.Now().Add(time.Minute)}
+	bookmarksCache.Data[key] = &core.BookmarkCacheEntry{Bookmarks: bookmarks, SHA: sha, Expiry: time.Now().Add(time.Minute)}
 	bookmarksCache.Unlock()
 }
 
 func invalidateBookmarkCache(user string) {
 	bookmarksCache.Lock()
-	for k := range bookmarksCache.data {
+	for k := range bookmarksCache.Data {
 		if strings.HasPrefix(k, user+"|") {
-			delete(bookmarksCache.data, k)
+			delete(bookmarksCache.Data, k)
 		}
 	}
 	bookmarksCache.Unlock()
 }
 
 func providerFromContext(ctx context.Context) Provider {
-	if name, ok := ctx.Value(ContextValues("provider")).(string); ok {
+	if name, ok := ctx.Value(core.ContextValues("provider")).(string); ok {
 		if p := GetProvider(name); p != nil {
 			return p
 		}
@@ -110,7 +101,10 @@ func providerCreds(name string) *ProviderCreds {
 	}
 }
 
-func GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+func GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*core.Tag, error) {
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		return cd.Repo.GetTags(ctx, user, token)
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return nil, ErrNoProvider
@@ -122,7 +116,10 @@ func GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, err
 	return tags, err
 }
 
-func GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+func GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*core.Branch, error) {
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		return cd.Repo.GetBranches(ctx, user, token)
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return nil, ErrNoProvider
@@ -134,7 +131,10 @@ func GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Bran
 	return bs, err
 }
 
-func GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+func GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*core.Commit, error) {
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		return cd.Repo.GetCommits(ctx, user, token, ref, page, perPage)
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return nil, ErrNoProvider
@@ -147,6 +147,9 @@ func GetCommits(ctx context.Context, user string, token *oauth2.Token, ref strin
 }
 
 func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, ref, sha string) (string, string, error) {
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		return cd.Repo.AdjacentCommits(ctx, user, token, ref, sha)
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return "", "", ErrNoProvider
@@ -163,17 +166,26 @@ func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, r
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
 	key := cacheKey(user, ref)
-	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
-		cd.requestCache.RLock()
-		if entry, ok := cd.requestCache.data[key]; ok {
-			cd.requestCache.RUnlock()
-			return entry.bookmarks, entry.sha, nil
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.RequestCache != nil {
+		cd.RequestCache.RLock()
+		if entry, ok := cd.RequestCache.Data[key]; ok {
+			cd.RequestCache.RUnlock()
+			return entry.Bookmarks, entry.SHA, nil
 		}
-		cd.requestCache.RUnlock()
+		cd.RequestCache.RUnlock()
 	}
 
 	if b, sha, ok := getCachedBookmarks(user, ref); ok {
 		return b, sha, nil
+	}
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		b, sha, err := cd.Repo.GetBookmarks(ctx, user, ref, token)
+		if err == nil && cd.RequestCache != nil {
+			cd.RequestCache.Lock()
+			cd.RequestCache.Data[key] = &core.BookmarkCacheEntry{Bookmarks: b, SHA: sha}
+			cd.RequestCache.Unlock()
+		}
+		return b, sha, err
 	}
 	p := providerFromContext(ctx)
 	if p == nil {
@@ -184,16 +196,24 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 		return "", "", ErrSignedOut
 	}
 	if err == nil {
-		if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
-			cd.requestCache.Lock()
-			cd.requestCache.data[key] = &bookmarkCacheEntry{bookmarks: b, sha: sha}
-			cd.requestCache.Unlock()
+		if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.RequestCache != nil {
+			cd.RequestCache.Lock()
+			cd.RequestCache.Data[key] = &core.BookmarkCacheEntry{Bookmarks: b, SHA: sha}
+			cd.RequestCache.Unlock()
 		}
 	}
 	return b, sha, err
 }
 
 func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		err := cd.Repo.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
+		if err == nil {
+			invalidateBookmarkCache(user)
+			invalidateRequestCache(ctx, user)
+		}
+		return err
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return ErrNoProvider
@@ -209,6 +229,14 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 }
 
 func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+	if cd, ok := ctx.Value(core.ContextValues("coreData")).(*core.CoreData); ok && cd.Repo != nil {
+		err := cd.Repo.CreateBookmarks(ctx, user, token, branch, text)
+		if err == nil {
+			invalidateBookmarkCache(user)
+			invalidateRequestCache(ctx, user)
+		}
+		return err
+	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return ErrNoProvider

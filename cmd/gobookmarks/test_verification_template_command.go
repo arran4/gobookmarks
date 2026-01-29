@@ -11,6 +11,7 @@ import (
 	"os"
 
 	. "github.com/arran4/gobookmarks"
+	"github.com/arran4/gobookmarks/core"
 )
 
 type TemplateCommand struct {
@@ -69,7 +70,7 @@ func (c *TemplateCommand) Execute(args []string) error {
 		return c.HelpCmd.Execute(remaining[1:])
 	}
 
-	coreData := &CoreData{
+	coreData := &core.CoreData{
 		Title:    "Test Verification",
 		UserRef:  "testuser",
 		EditMode: false,
@@ -154,7 +155,7 @@ https://stackoverflow.com Stack Overflow
 	// However, some funcs might need session or other context values.
 	// For "useCssColumns" etc.
 
-	ctx := context.WithValue(req.Context(), ContextValues("coreData"), coreData)
+	ctx := context.WithValue(req.Context(), core.ContextValues("coreData"), coreData)
 	req = req.WithContext(ctx)
 
 	// Create funcs that override the default behavior to return our static data
@@ -188,16 +189,16 @@ https://stackoverflow.com Stack Overflow
 			}
 			if indexName != "" {
 				href := TabHref(i, "") // No ref in static mode
-				lastSha := "" // No SHA in static mode
+				lastSha := ""          // No SHA in static mode
 				if len(t.Pages) > 0 {
 					lastSha = t.Pages[len(t.Pages)-1].Sha()
 				}
 				tabs = append(tabs, TabInfo{
-					Index: i,
-					Name: t.Name,
-					IndexName: indexName,
-					Href: href,
-					EditHref: AppendQueryParams(href, "edit", "1"),
+					Index:       i,
+					Name:        t.Name,
+					IndexName:   indexName,
+					Href:        href,
+					EditHref:    AppendQueryParams(href, "edit", "1"),
 					LastPageSha: lastSha,
 				})
 			}
@@ -220,14 +221,14 @@ https://stackoverflow.com Stack Overflow
 				}
 				tabs = append(tabs, TabWithPages{
 					TabInfo: TabInfo{
-						Index: i,
-						Name: t.Name,
-						IndexName: indexName,
-						Href: href,
-						EditHref: AppendQueryParams(href, "edit", "1"),
+						Index:       i,
+						Name:        t.Name,
+						IndexName:   indexName,
+						Href:        href,
+						EditHref:    AppendQueryParams(href, "edit", "1"),
 						LastPageSha: lastSha,
 					},
-					Pages:   t.Pages,
+					Pages: t.Pages,
 				})
 			}
 		}
@@ -252,12 +253,11 @@ https://stackoverflow.com Stack Overflow
 	funcs["loggedIn"] = func() (bool, error) { return true, nil }
 	funcs["showPages"] = func() bool { return true }
 
-
 	// Compile templates with our modified funcs
 	tmpl := GetCompiledTemplates(funcs)
 
 	type Data struct {
-		*CoreData
+		*core.CoreData
 		Error string
 	}
 	data := Data{

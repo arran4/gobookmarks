@@ -12,7 +12,6 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -22,6 +21,8 @@ import (
 	"encoding/pem"
 	"math/big"
 	"time"
+
+	"github.com/arran4/gobookmarks/core"
 )
 
 func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
@@ -43,8 +44,8 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 						if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
 							log.Printf("logout error: %v", logoutErr)
 						}
-						type Data struct{ *CoreData }
-						if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", Data{r.Context().Value(ContextValues("coreData")).(*CoreData)}); err != nil {
+						type Data struct{ *core.CoreData }
+						if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", Data{r.Context().Value(core.ContextValues("coreData")).(*core.CoreData)}); err != nil {
 							log.Printf("Logout Template Error: %s", err)
 							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 						}
@@ -82,11 +83,11 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 					log.Printf("handler error: %v", err)
 
 					type ErrorData struct {
-						*CoreData
+						*core.CoreData
 						Error string
 					}
 					if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-						CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+						CoreData: r.Context().Value(core.ContextValues("coreData")).(*core.CoreData),
 						Error:    display,
 					}); err != nil {
 						log.Printf("Error Template Error: %s", err)
@@ -104,12 +105,12 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
-			*CoreData
+			*core.CoreData
 			Error string
 		}
 
 		data := Data{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			CoreData: r.Context().Value(core.ContextValues("coreData")).(*core.CoreData),
 			Error:    r.URL.Query().Get("error"),
 		}
 
@@ -124,7 +125,7 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 			if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
 				log.Printf("logout error: %v", logoutErr)
 			}
-			type LogoutData struct{ *CoreData }
+			type LogoutData struct{ *core.CoreData }
 			if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", LogoutData{data.CoreData}); tplErr != nil {
 				log.Printf("Logout Template Error: %v", tplErr)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -142,7 +143,7 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		log.Printf("Template %s error: %v", tmpl, err)
 
 		type ErrorData struct {
-			*CoreData
+			*core.CoreData
 			Error string
 		}
 
@@ -168,14 +169,14 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
 		tab := TabFromRequest(r)
-		if v, ok := r.Context().Value(ContextValues("redirectTab")).(string); ok {
+		if v, ok := r.Context().Value(core.ContextValues("redirectTab")).(string); ok {
 			if parsed, err := strconv.Atoi(v); err == nil {
 				tab = parsed
 			}
 		}
 		u.Path = TabPath(tab)
 		page := r.PostFormValue("page")
-		if v, ok := r.Context().Value(ContextValues("redirectPage")).(string); ok {
+		if v, ok := r.Context().Value(core.ContextValues("redirectPage")).(string); ok {
 			page = v
 		}
 		if fragment := PageFragmentFromIndex(page); fragment != "" {
@@ -207,25 +208,21 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 
 func RequiresAnAccount() mux.MatcherFunc {
 	return func(request *http.Request, match *mux.RouteMatch) bool {
-		var session *sessions.Session
-		sessioni := request.Context().Value(ContextValues("session"))
-		if sessioni == nil {
-			var err error
-			session, err = SessionStore.Get(request, SessionName)
-			if err != nil {
-				return false
-			}
-		} else {
-			var ok bool
-			session, ok = sessioni.(*sessions.Session)
-			if !ok {
-				return false
-			}
+		if DevMode {
+			return true
+		}
+		cc := GetCore(request.Context())
+		if cc == nil {
+			return false
+		}
+		session := cc.GetSession()
+		if session == nil {
+			return false
 		}
 		if v, ok := session.Values["version"].(string); !ok || v != version {
 			return false
 		}
-		githubUser, ok := session.Values["GithubUser"].(*User)
+		githubUser, ok := session.Values["GithubUser"].(*core.BasicUser)
 		return ok && githubUser != nil
 	}
 }

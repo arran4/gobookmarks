@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/arran4/gobookmarks/core"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -28,8 +29,8 @@ func init() { RegisterProvider(GitProvider{}) }
 func (GitProvider) Name() string                                                     { return "git" }
 func (GitProvider) DefaultServer() string                                            { return "" }
 func (GitProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
-func (GitProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
-	return &User{Login: "local"}, nil
+func (p GitProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (core.User, error) {
+	return &core.BasicUser{Login: "local"}, nil
 }
 
 func userDir(user string) string {
@@ -48,7 +49,7 @@ func openRepo(user string) (*git.Repository, error) {
 	return r, nil
 }
 
-func (GitProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+func (GitProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*core.Tag, error) {
 	r, err := openRepo(user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
@@ -60,19 +61,19 @@ func (GitProvider) GetTags(ctx context.Context, user string, token *oauth2.Token
 	if err != nil {
 		return nil, err
 	}
-	var tags []*Tag
+	var tags []*core.Tag
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		tags = append(tags, &Tag{Name: ref.Name().Short()})
+		tags = append(tags, &core.Tag{Name: ref.Name().Short()})
 		return nil
 	})
 	return tags, err
 }
 
-func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*core.Branch, error) {
 	r, err := openRepo(user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
-			return []*Branch{{Name: "main"}}, nil
+			return []*core.Branch{{Name: "main"}}, nil
 		}
 		return nil, err
 	}
@@ -80,18 +81,18 @@ func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.T
 	if err != nil {
 		return nil, err
 	}
-	var branches []*Branch
+	var branches []*core.Branch
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		branches = append(branches, &Branch{Name: ref.Name().Short()})
+		branches = append(branches, &core.Branch{Name: ref.Name().Short()})
 		return nil
 	})
 	if len(branches) == 0 {
-		branches = append(branches, &Branch{Name: "main"})
+		branches = append(branches, &core.Branch{Name: "main"})
 	}
 	return branches, err
 }
 
-func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*core.Commit, error) {
 	r, err := openRepo(user)
 	if err != nil {
 		if errors.Is(err, ErrRepoNotFound) {
@@ -112,7 +113,7 @@ func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.To
 	}
 	start := (page - 1) * perPage
 	i := 0
-	var commits []*Commit
+	var commits []*core.Commit
 	err = iter.ForEach(func(c *object.Commit) error {
 		if i < start {
 			i++
@@ -121,7 +122,7 @@ func (GitProvider) GetCommits(ctx context.Context, user string, token *oauth2.To
 		if len(commits) >= perPage {
 			return storer.ErrStop
 		}
-		commits = append(commits, &Commit{
+		commits = append(commits, &core.Commit{
 			SHA:            c.Hash.String(),
 			Message:        c.Message,
 			CommitterName:  c.Committer.Name,

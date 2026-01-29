@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arran4/gobookmarks/core"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
@@ -26,11 +27,11 @@ func setupCategoryEditTest(t *testing.T) (GitProvider, string, *sessions.Session
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
-	sess.Values["GithubUser"] = &User{Login: user}
+	sess.Values["GithubUser"] = &core.BasicUser{Login: user}
 	sess.Values["Token"] = &oauth2.Token{}
-	ctx := context.WithValue(sessReq.Context(), ContextValues("session"), sess)
-	ctx = context.WithValue(ctx, ContextValues("provider"), "git")
-	ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{})
+	ctx := context.WithValue(sessReq.Context(), core.ContextValues("session"), sess)
+	ctx = context.WithValue(ctx, core.ContextValues("provider"), "git")
+	ctx = context.WithValue(ctx, core.ContextValues("coreData"), &core.CoreData{Session: sess})
 	return p, user, sess, ctx
 }
 

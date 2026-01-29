@@ -3,16 +3,18 @@ package gobookmarks
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/arran4/gobookmarks/core"
 )
 
 func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) error {
 	type Data struct {
-		*CoreData
+		*core.CoreData
 		Error string
 	}
 
 	data := Data{
-		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		CoreData: r.Context().Value(core.ContextValues("coreData")).(*core.CoreData),
 		Error:    r.URL.Query().Get("error"),
 	}
 

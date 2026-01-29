@@ -4,23 +4,26 @@ import (
 	"bufio"
 	"context"
 	"encoding/gob"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
+
+	"github.com/arran4/gobookmarks/core"
 )
 
 func init() {
-	gob.Register(&User{})
+	gob.Register(&core.BasicUser{})
 	gob.Register(&oauth2.Token{})
 }
 
 func CoreAdderMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		session := request.Context().Value(ContextValues("session")).(*sessions.Session)
-		githubUser, _ := session.Values["GithubUser"].(*User)
+		session := request.Context().Value(core.ContextValues("session")).(*sessions.Session)
+		githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 		providerName, _ := session.Values["Provider"].(string)
 
 		login := ""
@@ -36,27 +39,18 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 			title = "dev: " + title
 		}
 
-		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
+		ctx := context.WithValue(request.Context(), core.ContextValues("provider"), providerName)
 		editMode := request.URL.Query().Get("edit") == "1"
 		tab := TabFromRequest(request)
-		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
+		ctx = context.WithValue(ctx, core.ContextValues("coreData"), &core.CoreData{
 			UserRef:      login,
 			Title:        title,
 			EditMode:     editMode,
 			Tab:          tab,
-			requestCache: &requestCache{data: make(map[string]*bookmarkCacheEntry)},
+			RequestCache: &core.RequestCache{Data: make(map[string]*core.BookmarkCacheEntry)},
 		})
 		next.ServeHTTP(writer, request.WithContext(ctx))
 	})
-}
-
-type CoreData struct {
-	Title       string
-	AutoRefresh bool
-	UserRef     string
-	EditMode    bool
-	Tab         int
-	requestCache *requestCache
 }
 
 type Configuration struct {
@@ -101,5 +95,3 @@ func (c *Configuration) readConfiguration(filename string) {
 		}
 	}
 }
-
-type ContextValues string

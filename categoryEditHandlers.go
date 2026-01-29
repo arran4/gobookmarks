@@ -2,10 +2,12 @@ package gobookmarks
 
 import (
 	"fmt"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"net/http"
 	"strconv"
+
+	"github.com/arran4/gobookmarks/core"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
@@ -14,8 +16,8 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid index: %w", err)
 	}
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 
@@ -36,14 +38,14 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 	col, _ := strconv.Atoi(r.URL.Query().Get("col"))
 
 	data := struct {
-		*CoreData
+		*core.CoreData
 		Error string
 		Index int
 		Text  string
 		Sha   string
 		Col   int
 	}{
-		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		CoreData: r.Context().Value(core.ContextValues("coreData")).(*core.CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Index:    idx,
 		Text:     text,

@@ -3,13 +3,15 @@ package gobookmarks
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/arran4/gobookmarks/core"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 // TabInfo is used by templates to display tab navigation with indexes.
@@ -129,7 +131,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return i
 		},
 		"useCssColumns": func() bool {
-			sessioni := r.Context().Value(ContextValues("session"))
+			sessioni := r.Context().Value(core.ContextValues("session"))
 			if session, ok := sessioni.(*sessions.Session); ok && session != nil {
 				if v, ok := session.Values["useCssColumns"].(bool); ok {
 					return v
@@ -150,20 +152,20 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			if strings.HasPrefix(r.URL.Path, "/login") || r.URL.Path == "/status" {
 				return false
 			}
-			sessioni := r.Context().Value(ContextValues("session"))
+			sessioni := r.Context().Value(core.ContextValues("session"))
 			session, ok := sessioni.(*sessions.Session)
 			if !ok || session == nil {
 				return false
 			}
-			githubUser, ok := session.Values["GithubUser"].(*User)
+			githubUser, ok := session.Values["GithubUser"].(*core.BasicUser)
 			if !ok || githubUser == nil {
 				return false
 			}
 			return true
 		},
 		"loggedIn": func() (bool, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, ok := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, ok := session.Values["GithubUser"].(*core.BasicUser)
 			return ok && githubUser != nil, nil
 		},
 		"bookmarks": func() (string, error) {
@@ -179,8 +181,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return BookmarksExist(r)
 		},
 		"bookmarksSHA": func() (string, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 			login := ""
 			if githubUser != nil {
@@ -210,8 +212,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return "main", nil
 		},
 		"bookmarkPages": func() ([]*BookmarkPage, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -239,8 +241,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs[idx].Pages, nil
 		},
 		"bookmarkTabs": func() ([]TabInfo, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -279,8 +281,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs, nil
 		},
 		"bookmarkTabsWithPages": func() ([]TabWithPages, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -322,8 +324,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs, nil
 		},
 		"tabName": func() string {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -354,8 +356,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return name
 		},
 		"bookmarkColumns": func() ([]*BookmarkColumn, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -385,9 +387,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return columns, nil
 		},
-		"tags": func() ([]*Tag, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+		"tags": func() ([]*core.Tag, error) {
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -401,9 +403,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return tags, nil
 		},
-		"branches": func() ([]*Branch, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+		"branches": func() ([]*core.Branch, error) {
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -416,9 +418,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return branches, nil
 		},
-		"commits": func() ([]*Commit, error) {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+		"commits": func() ([]*core.Commit, error) {
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -437,8 +439,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return commits, nil
 		},
 		"prevCommit": func() string {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -457,8 +459,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return prev
 		},
 		"nextCommit": func() string {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
+			session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+			githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 			token, _ := session.Values["Token"].(*oauth2.Token)
 
 			login := ""
@@ -489,8 +491,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 }
 
 func Bookmarks(r *http.Request) (string, error) {
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 
@@ -510,8 +512,8 @@ func Bookmarks(r *http.Request) (string, error) {
 }
 
 func BookmarksExist(r *http.Request) (bool, error) {
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 
