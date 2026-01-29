@@ -1,9 +1,11 @@
 package gobookmarks
 
 import (
-	"github.com/gorilla/sessions"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/arran4/gobookmarks/core"
+	"github.com/gorilla/sessions"
 )
 
 // Test that getSession clears outdated sessions and returns a fresh one.
@@ -18,7 +20,7 @@ func Test_getSessionClearsOldVersion(t *testing.T) {
 	// create a session with an old version
 	s, _ := SessionStore.New(req, SessionName)
 	s.Values["version"] = "old"
-	s.Values["GithubUser"] = &User{Login: "old"}
+	s.Values["GithubUser"] = &core.BasicUser{Login: "old"}
 	if err := s.Save(req, w); err != nil {
 		t.Fatalf("save old session: %v", err)
 	}

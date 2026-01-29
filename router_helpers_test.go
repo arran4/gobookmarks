@@ -1,0 +1,68 @@
+package gobookmarks
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/arran4/gobookmarks/core"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
+)
+
+func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
+	SessionName = "testsess"
+	SessionStore = sessions.NewCookieStore([]byte("secret"))
+
+	req := httptest.NewRequest("GET", "/submit", nil)
+	req.Header.Set("Referer", "/form")
+	ctx := context.WithValue(req.Context(), core.ContextValues("coreData"), &core.CoreData{})
+	req = req.WithContext(ctx)
+
+	h := runHandlerChain(func(w http.ResponseWriter, r *http.Request) error {
+		return NewUserError("bad input", errors.New("invalid"))
+	})
+
+	w := httptest.NewRecorder()
+	h(w, req)
+	res := w.Result()
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected redirect, got %d", res.StatusCode)
+	}
+	loc := res.Header.Get("Location")
+	if !strings.Contains(loc, "error=bad+input") {
+		t.Fatalf("redirect missing error param: %s", loc)
+	}
+}
+
+func TestRunTemplate_BufferedError(t *testing.T) {
+	SessionName = "testsess"
+	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	DBConnectionProvider = ""
+
+	req := httptest.NewRequest("GET", "/", nil)
+	sess, _ := SessionStore.New(req, SessionName)
+	sess.Values["GithubUser"] = &core.BasicUser{Login: "user"}
+	sess.Values["Token"] = &oauth2.Token{}
+	ctx := context.WithValue(req.Context(), core.ContextValues("session"), sess)
+	ctx = context.WithValue(ctx, core.ContextValues("provider"), "sql")
+	ctx = context.WithValue(ctx, core.ContextValues("coreData"), &core.CoreData{UserRef: "user"})
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	runTemplate("mainPage.gohtml")(w, req)
+
+	body := w.Body.String()
+	if !strings.Contains(body, "Database error") {
+		t.Fatalf("expected database error message, got %q", body)
+	}
+	if strings.Count(body, "<!DOCTYPE html>") != 1 {
+		t.Fatalf("unexpected partial content: %q", body)
+	}
+	if strings.Contains(body, "tab-list") {
+		t.Fatalf("unexpected partial page content: %q", body)
+	}
+}

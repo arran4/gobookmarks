@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/arran4/gobookmarks/core"
 	"github.com/gorilla/sessions"
 )
 
@@ -19,7 +20,7 @@ func TestEditModeToggle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
-	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	ctx := context.WithValue(req.Context(), core.ContextValues("session"), session)
 	req = req.WithContext(ctx)
 
 	// enable edit mode
@@ -31,9 +32,9 @@ func TestEditModeToggle(t *testing.T) {
 		t.Fatalf("edit mode query not set")
 	}
 
-	var cd *CoreData
+	var cd *core.CoreData
 	handler := CoreAdderMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cd = r.Context().Value(ContextValues("coreData")).(*CoreData)
+		cd = r.Context().Value(core.ContextValues("coreData")).(*core.CoreData)
 	}))
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)

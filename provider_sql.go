@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/arran4/gobookmarks/core"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
@@ -30,6 +31,12 @@ var sqlSchemas embed.FS
 
 func init() {
 	RegisterProvider(&SQLProvider{})
+}
+
+// NewSQLProvider creates a new SQLProvider with the given database connection.
+// This is used for integrating with existing database pools (e.g. goa4web).
+func NewSQLProvider(db *sql.DB) *SQLProvider {
+	return &SQLProvider{db: db}
 }
 
 func (p *SQLProvider) getDB() (*sql.DB, error) {
@@ -51,11 +58,11 @@ func (p *SQLProvider) getDB() (*sql.DB, error) {
 func (p *SQLProvider) Name() string                                                     { return "sql" }
 func (p *SQLProvider) DefaultServer() string                                            { return "" }
 func (p *SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
-func (p *SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
-	return nil, errors.New("not implemented")
+func (p *SQLProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (core.User, error) {
+	return nil, nil
 }
 
-func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*core.Tag, error) {
 	db, err := p.getDB()
 	if err != nil {
 		return nil, err
@@ -67,18 +74,18 @@ func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 	}
 	defer rows.Close()
 
-	var tags []*Tag
+	var tags []*core.Tag
 	for rows.Next() {
 		var n string
 		if err := rows.Scan(&n); err != nil {
 			return nil, err
 		}
-		tags = append(tags, &Tag{Name: n})
+		tags = append(tags, &core.Tag{Name: n})
 	}
 	return tags, rows.Err()
 }
 
-func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*core.Branch, error) {
 	db, err := p.getDB()
 	if err != nil {
 		return nil, err
@@ -90,21 +97,21 @@ func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth
 	}
 	defer rows.Close()
 
-	var branches []*Branch
+	var branches []*core.Branch
 	for rows.Next() {
 		var n string
 		if err := rows.Scan(&n); err != nil {
 			return nil, err
 		}
-		branches = append(branches, &Branch{Name: n})
+		branches = append(branches, &core.Branch{Name: n})
 	}
 	if len(branches) == 0 {
-		branches = append(branches, &Branch{Name: "main"})
+		branches = append(branches, &core.Branch{Name: "main"})
 	}
 	return branches, rows.Err()
 }
 
-func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*core.Commit, error) {
 	db, err := p.getDB()
 	if err != nil {
 		return nil, err
@@ -122,14 +129,14 @@ func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2
 	}
 	defer rows.Close()
 
-	var commits []*Commit
+	var commits []*core.Commit
 	for rows.Next() {
 		var sha, msg string
 		var t time.Time
 		if err := rows.Scan(&sha, &msg, &t); err != nil {
 			return nil, err
 		}
-		commits = append(commits, &Commit{
+		commits = append(commits, &core.Commit{
 			SHA:            sha,
 			Message:        msg,
 			CommitterName:  "gobookmarks",

@@ -3,15 +3,17 @@ package gobookmarks
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"net/http"
 	"strconv"
+
+	"github.com/arran4/gobookmarks/core"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 func EditPagePage(w http.ResponseWriter, r *http.Request) error {
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 	tabIdx := TabFromRequest(r)
@@ -28,13 +30,13 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	data := struct {
-		*CoreData
+		*core.CoreData
 		Error string
 		Name  string
 		Text  string
 		Sha   string
 	}{
-		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+		CoreData: r.Context().Value(core.ContextValues("coreData")).(*core.CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Name:     r.URL.Query().Get("name"),
 		Text:     "",
@@ -65,8 +67,8 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	tabIdx := TabFromRequest(r)
 	pageIdx, pageErr := strconv.Atoi(r.PostFormValue("page"))
 
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 
 	login := ""
@@ -96,8 +98,8 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	} else {
 		newIndex := len(list[tabIdx].Pages)
 		list[tabIdx].AddPage(p)
-		ctx := context.WithValue(r.Context(), ContextValues("redirectTab"), strconv.Itoa(tabIdx))
-		ctx = context.WithValue(ctx, ContextValues("redirectPage"), strconv.Itoa(newIndex))
+		ctx := context.WithValue(r.Context(), core.ContextValues("redirectTab"), strconv.Itoa(tabIdx))
+		ctx = context.WithValue(ctx, core.ContextValues("redirectPage"), strconv.Itoa(newIndex))
 		*r = *r.WithContext(ctx)
 	}
 

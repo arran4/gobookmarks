@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/arran4/gobookmarks/core"
 )
 
 func TestCompileGoHTML(t *testing.T) {
@@ -141,14 +143,14 @@ func testFuncMap() template.FuncMap {
 		"bookmarksExist":           func() (bool, error) { return true, nil },
 		"bookmarksSHA":             func() (string, error) { return "sha", nil },
 		"branchOrEditBranch":       func() (string, error) { return "main", nil },
-		"tags": func() ([]*Tag, error) {
-			return []*Tag{{Name: "v1"}}, nil
+		"tags": func() ([]*core.Tag, error) {
+			return []*core.Tag{{Name: "v1"}}, nil
 		},
-		"branches": func() ([]*Branch, error) {
-			return []*Branch{{Name: "main"}}, nil
+		"branches": func() ([]*core.Branch, error) {
+			return []*core.Branch{{Name: "main"}}, nil
 		},
-		"commits": func() ([]*Commit, error) {
-			return []*Commit{{
+		"commits": func() ([]*core.Commit, error) {
+			return []*core.Commit{{
 				SHA:            "abc",
 				Message:        "msg",
 				CommitterName:  "dev",
@@ -176,14 +178,14 @@ func TestExecuteTemplates(t *testing.T) {
 		t.Fatalf("template parse error: %v", err)
 	}
 	baseData := struct {
-		*CoreData
+		*core.CoreData
 		Error string
 	}{
-		CoreData: &CoreData{Title: "Test", UserRef: "user"},
+		CoreData: &core.CoreData{Title: "Test", UserRef: "user"},
 	}
 
 	catData := struct {
-		*CoreData
+		*core.CoreData
 		Error string
 		Index int
 		Text  string
@@ -198,7 +200,7 @@ func TestExecuteTemplates(t *testing.T) {
 	}
 
 	pageData := struct {
-		*CoreData
+		*core.CoreData
 		Error string
 		Name  string
 		Text  string
@@ -225,7 +227,7 @@ func TestExecuteTemplates(t *testing.T) {
 		{"historyCommits", "historyCommits.gohtml", baseData},
 		{"taskDone", "taskDoneAutoRefreshPage.gohtml", baseData},
 		{"error", "error.gohtml", struct {
-			*CoreData
+			*core.CoreData
 			Error string
 		}{baseData.CoreData, "boom"}},
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/arran4/gobookmarks/core"
 	"github.com/gorilla/sessions"
 )
 
@@ -18,7 +19,7 @@ func TestCssColumnToggle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
-	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	ctx := context.WithValue(req.Context(), core.ContextValues("session"), session)
 	req = req.WithContext(ctx)
 
 	w = httptest.NewRecorder()

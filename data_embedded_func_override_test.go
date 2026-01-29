@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/arran4/gobookmarks/core"
 )
 
 func TestGetCompiledTemplates_FuncOverride(t *testing.T) {
@@ -27,10 +29,10 @@ func TestGetCompiledTemplates_FuncOverride(t *testing.T) {
 	// "loginPage.gohtml" typically uses {{ version }} in the footer
 	var buf bytes.Buffer
 	data := struct {
-		*CoreData
+		*core.CoreData
 		Error string
 	}{
-		CoreData: &CoreData{Title: "Test", UserRef: "user"},
+		CoreData: &core.CoreData{Title: "Test", UserRef: "user"},
 	}
 
 	if err := tmpl.ExecuteTemplate(&buf, "loginPage.gohtml", data); err != nil {

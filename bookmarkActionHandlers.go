@@ -3,16 +3,18 @@ package gobookmarks
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"net/http"
 	"strconv"
+
+	"github.com/arran4/gobookmarks/core"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := GetCore(r.Context()).GetSession()
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
@@ -57,8 +59,8 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 
@@ -80,8 +82,8 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid index: %w", err)
 	}
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
@@ -126,8 +128,8 @@ func CategoryMoveBeforeAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("invalid to index: %w", err)
 	}
 
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 
 	login := ""
@@ -178,8 +180,8 @@ func CategoryMoveEndAction(w http.ResponseWriter, r *http.Request) error {
 		destCol = -1
 	}
 
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 
 	login := ""
@@ -237,8 +239,8 @@ func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
 	}
 	destCol, _ := strconv.Atoi(destColStr)
 
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-	githubUser, _ := session.Values["GithubUser"].(*User)
+	session := r.Context().Value(core.ContextValues("session")).(*sessions.Session)
+	githubUser, _ := session.Values["GithubUser"].(*core.BasicUser)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 
 	login := ""

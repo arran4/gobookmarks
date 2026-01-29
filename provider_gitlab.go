@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arran4/gobookmarks/core"
 	gitlab "github.com/xanzy/go-gitlab"
 	"golang.org/x/oauth2"
 )
@@ -29,6 +30,7 @@ func gitlabUnauthorized(err error) bool {
 
 func init() {
 	gob.Register(&gitlab.User{})
+	gob.Register(&core.BasicUser{})
 	RegisterProvider(GitLabProvider{})
 }
 
@@ -61,8 +63,11 @@ func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
 	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
 }
 
-func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
-	c, err := GitLabProvider{}.client(token)
+func (p GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (core.User, error) {
+	if token == nil || !token.Valid() {
+		return nil, nil
+	}
+	c, err := p.client(token)
 	if err != nil {
 		log.Printf("gitlab CurrentUser client: %v", err)
 		return nil, err
@@ -72,10 +77,10 @@ func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*Us
 		log.Printf("gitlab CurrentUser lookup: %v", err)
 		return nil, err
 	}
-	return &User{Login: u.Username}, nil
+	return &core.BasicUser{Login: u.Username}, nil
 }
 
-func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*core.Tag, error) {
 	c, err := GitLabProvider{}.client(token)
 	if err != nil {
 		log.Printf("gitlab GetTags client: %v", err)
@@ -89,14 +94,14 @@ func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 		log.Printf("gitlab GetTags: %v", err)
 		return nil, fmt.Errorf("ListTags: %w", err)
 	}
-	res := make([]*Tag, 0, len(tags))
+	res := make([]*core.Tag, 0, len(tags))
 	for _, t := range tags {
-		res = append(res, &Tag{Name: t.Name})
+		res = append(res, &core.Tag{Name: t.Name})
 	}
 	return res, nil
 }
 
-func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*core.Branch, error) {
 	c, err := GitLabProvider{}.client(token)
 	if err != nil {
 		log.Printf("gitlab GetBranches client: %v", err)
@@ -110,14 +115,14 @@ func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth
 		log.Printf("gitlab GetBranches: %v", err)
 		return nil, fmt.Errorf("ListBranches: %w", err)
 	}
-	res := make([]*Branch, 0, len(bs))
+	res := make([]*core.Branch, 0, len(bs))
 	for _, b := range bs {
-		res = append(res, &Branch{Name: b.Name})
+		res = append(res, &core.Branch{Name: b.Name})
 	}
 	return res, nil
 }
 
-func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*core.Commit, error) {
 	c, err := GitLabProvider{}.client(token)
 	if err != nil {
 		log.Printf("gitlab GetCommits client: %v", err)
@@ -131,9 +136,9 @@ func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2
 		log.Printf("gitlab GetCommits: %v", err)
 		return nil, fmt.Errorf("ListCommits: %w", err)
 	}
-	res := make([]*Commit, 0, len(cs))
+	res := make([]*core.Commit, 0, len(cs))
 	for _, commit := range cs {
-		res = append(res, &Commit{
+		res = append(res, &core.Commit{
 			SHA:            commit.ID,
 			Message:        commit.Message,
 			CommitterName:  commit.CommitterName,
