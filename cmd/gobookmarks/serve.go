@@ -641,7 +641,7 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 
 func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, toUrl, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, toUrl, http.StatusSeeOther)
 	})
 }
 
@@ -668,7 +668,7 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 			qs.Set("edit", edit)
 		}
 		u.RawQuery = qs.Encode()
-		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, u.String(), http.StatusSeeOther)
 	})
 }
 
@@ -684,7 +684,7 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 			qs.Set("edit", edit)
 		}
 		u.RawQuery = qs.Encode()
-		http.Redirect(w, r, u.String(), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, u.String(), http.StatusSeeOther)
 	})
 }
 
