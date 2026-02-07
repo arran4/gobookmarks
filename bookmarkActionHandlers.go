@@ -33,7 +33,7 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 			if p := providerFromContext(r.Context()); p != nil {
 				if err := p.CreateRepo(r.Context(), login, token, repoName); err == nil {
 					if err := CreateBookmarks(r.Context(), login, token, branch, text); err == nil {
-						http.Redirect(w, r, "/edit?ref=refs/heads/"+branch, http.StatusTemporaryRedirect)
+						http.Redirect(w, r, "/edit?ref=refs/heads/"+branch, http.StatusSeeOther)
 						return ErrHandled
 					}
 				}
