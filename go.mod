@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/arran4/gorillamuxlogic v1.0.1
-	github.com/go-git/go-git/v5 v5.16.2
+	github.com/go-git/go-git/v5 v5.16.5
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v55 v55.0.0
