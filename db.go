@@ -9,12 +9,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func OpenDB() (*sql.DB, error) {
-	if DBConnectionProvider == "" {
+func OpenDB(provider, connString string) (*sql.DB, error) {
+	if provider == "" {
 		return nil, NewSystemError("Database error", fmt.Errorf("db provider not configured"))
 	}
 
-	db, err := sql.Open(DBConnectionProvider, DBConnectionString)
+	db, err := sql.Open(provider, connString)
 	if err != nil {
 		return nil, NewSystemError("Database error", fmt.Errorf("failed to open db: %w", err))
 	}
@@ -24,22 +24,22 @@ func OpenDB() (*sql.DB, error) {
 		return nil, NewSystemError("Database error", err)
 	}
 
-	if err := ensureSQLSchema(db); err != nil {
+	if err := ensureSQLSchema(db, provider); err != nil {
 		db.Close()
 		return nil, NewSystemError("Database error", fmt.Errorf("failed to ensure schema: %w", err))
 	}
 	return db, nil
 }
 
-func ensureSQLSchema(db *sql.DB) error {
-	switch strings.ToLower(DBConnectionProvider) {
+func ensureSQLSchema(db *sql.DB, provider string) error {
+	switch strings.ToLower(provider) {
 	case "mysql":
 	case "sqlite3":
 	default:
-		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite3; you used %s", DBConnectionProvider)
+		return fmt.Errorf("unsupported connection provider, current supported: mysql, sqlite3; you used %s", provider)
 	}
 
-	schemaFile := "sql/schema." + strings.ToLower(DBConnectionProvider) + ".sql"
+	schemaFile := "sql/schema." + strings.ToLower(provider) + ".sql"
 	sqlSchema, err := sqlSchemas.ReadFile(schemaFile)
 	if err != nil {
 		return fmt.Errorf("failed to find sql schema %s: %w", schemaFile, err)

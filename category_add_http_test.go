@@ -1,7 +1,6 @@
 package gobookmarks
 
 import (
-	"context"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -11,10 +10,10 @@ import (
 func TestCategoryAddSaveAction(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
 	original := "Category: First\nhttp://one.com one\n"
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", original); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", original); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	_, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	_, sha, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -27,7 +26,7 @@ func TestCategoryAddSaveAction(t *testing.T) {
 	if err := CategoryAddSaveAction(w, req); err != nil {
 		t.Fatalf("CategoryAddSaveAction: %v", err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}

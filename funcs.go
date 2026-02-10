@@ -71,20 +71,25 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return "/login/" + p
 		},
 		"Providers": func() []string {
-			names := make([]string, 0)
-			for _, n := range ProviderNames() {
-				creds := providerCreds(n)
-				if creds != nil {
-					names = append(names, n)
-				}
+			if r == nil {
+				return nil
 			}
-			return names
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			return cfg.GetConfiguredProviderNames()
 		},
 		"AllProviders": func() []string {
-			return ProviderNames()
+			if r == nil {
+				return nil
+			}
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			return cfg.GetProviderNames()
 		},
 		"ProviderConfigured": func(p string) bool {
-			creds := providerCreds(p)
+			if r == nil {
+				return false
+			}
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			creds := cfg.GetProviderCreds(p)
 			return creds != nil && GetProvider(p) != nil
 		},
 		"errorMsg": errorMessage,
@@ -129,19 +134,31 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return i
 		},
 		"useCssColumns": func() bool {
+			if r == nil {
+				return false
+			}
 			sessioni := r.Context().Value(ContextValues("session"))
 			if session, ok := sessioni.(*sessions.Session); ok && session != nil {
 				if v, ok := session.Values["useCssColumns"].(bool); ok {
 					return v
 				}
 			}
-			return UseCssColumns
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			return cfg.GetUseCssColumns()
 		},
 		"devMode": func() bool {
-			return DevMode
+			if r == nil {
+				return false
+			}
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			return cfg.GetDevMode()
 		},
 		"showFooter": func() bool {
-			return !NoFooter
+			if r == nil {
+				return true
+			}
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			return !cfg.GetNoFooter()
 		},
 		"showPages": func() bool {
 			if r == nil {
@@ -430,7 +447,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				page = 1
 			}
 			ref := r.URL.Query().Get("ref")
-			commits, err := GetCommits(r.Context(), login, token, ref, page, CommitsPerPage)
+			cfg := r.Context().Value(ContextValues("configuration")).(*Configuration)
+			commits, err := GetCommits(r.Context(), login, token, ref, page, cfg.GetCommitsPerPage())
 			if err != nil {
 				return nil, fmt.Errorf("GetCommits: %w", err)
 			}

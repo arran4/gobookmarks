@@ -13,22 +13,26 @@ import (
 
 func setupCategoryEditTest(t *testing.T) (GitProvider, string, *sessions.Session, context.Context) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	cfg := NewConfiguration(Config{LocalGitPath: tmp})
+	cfg.SessionName = "testsession"
+	cfg.SessionStore = sessions.NewCookieStore([]byte("secret"))
+
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, ContextValues("configuration"), cfg)
+
 	p := GitProvider{}
 	user := "alice"
-	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+	if err := p.CreateRepo(ctx, user, nil, cfg.GetRepoName()); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
-	SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	sessReq := httptest.NewRequest("GET", "/", nil)
-	sess, err := getSession(httptest.NewRecorder(), sessReq)
+	sess, err := getSession(httptest.NewRecorder(), sessReq, cfg)
 	if err != nil {
 		t.Fatalf("getSession: %v", err)
 	}
 	sess.Values["GithubUser"] = &User{Login: user}
 	sess.Values["Token"] = &oauth2.Token{}
-	ctx := context.WithValue(sessReq.Context(), ContextValues("session"), sess)
+	ctx = context.WithValue(ctx, ContextValues("session"), sess) // inherit configuration from ctx
 	ctx = context.WithValue(ctx, ContextValues("provider"), "git")
 	ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{})
 	return p, user, sess, ctx
@@ -37,10 +41,10 @@ func setupCategoryEditTest(t *testing.T) (GitProvider, string, *sessions.Session
 func TestCategoryEditSaveAction(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
 	original := "Category: First\nhttp://one.com one\nCategory: Second\nhttp://two.com two\n"
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", original); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", original); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	_, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	_, sha, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -54,7 +58,7 @@ func TestCategoryEditSaveAction(t *testing.T) {
 	if err := CategoryEditSaveAction(w, req); err != nil {
 		t.Fatalf("CategoryEditSaveAction: %v", err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}
@@ -67,10 +71,10 @@ func TestCategoryEditSaveAction(t *testing.T) {
 func TestCategoryEditSaveActionAnonymous(t *testing.T) {
 	p, user, _, ctx := setupCategoryEditTest(t)
 	original := "Category:\nhttp://one.com\nCategory: Named\nhttp://two.com\n"
-	if err := p.CreateBookmarks(context.Background(), user, nil, "main", original); err != nil {
+	if err := p.CreateBookmarks(ctx, user, nil, "main", original); err != nil {
 		t.Fatalf("CreateBookmarks: %v", err)
 	}
-	_, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	_, sha, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks: %v", err)
 	}
@@ -83,7 +87,7 @@ func TestCategoryEditSaveActionAnonymous(t *testing.T) {
 	if err := CategoryEditSaveAction(w, req); err != nil {
 		t.Fatalf("CategoryEditSaveAction: %v", err)
 	}
-	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	got, _, err := p.GetBookmarks(ctx, user, "refs/heads/main", nil)
 	if err != nil {
 		t.Fatalf("GetBookmarks after: %v", err)
 	}

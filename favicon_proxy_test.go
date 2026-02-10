@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,11 +29,16 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 	srv, hits := newFaviconServer(t, icon)
 	defer srv.Close()
 
-	FaviconCacheDir = t.TempDir()
-	FaviconCacheSize = 1024 * 1024
+	cfg := NewConfiguration(Config{
+		FaviconCacheDir:  t.TempDir(),
+		FaviconCacheSize: 1024 * 1024,
+	})
+	ctx := context.WithValue(context.Background(), ContextValues("configuration"), cfg)
+
 	FaviconCache.cache = make(map[string]*FavIcon)
 
 	req := httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
+	req = req.WithContext(ctx)
 	w := httptest.NewRecorder()
 	FaviconProxyHandler(w, req)
 	if *hits != 1 {
@@ -40,6 +46,7 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 	}
 
 	req = httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
+	req = req.WithContext(ctx)
 	w = httptest.NewRecorder()
 	FaviconProxyHandler(w, req)
 	if *hits != 1 {
@@ -48,6 +55,7 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 
 	time.Sleep(1500 * time.Millisecond)
 	req = httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
+	req = req.WithContext(ctx)
 	w = httptest.NewRecorder()
 	FaviconProxyHandler(w, req)
 	if *hits != 2 {
@@ -58,12 +66,15 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 func TestFaviconMaxCacheCount(t *testing.T) {
 	icon := []byte{0x89, 'P', 'N', 'G'}
 	FaviconCache.cache = make(map[string]*FavIcon)
-	FaviconMaxCacheCount = 2
+	cfg := NewConfiguration(Config{
+		FaviconMaxCacheCount: 2,
+	})
 
 	// Add 3 items
-	cacheFavicon("url1", icon, "image/png")
-	cacheFavicon("url2", icon, "image/png")
-	cacheFavicon("url3", icon, "image/png")
+	cacheFavicon("url1", icon, "image/png", cfg)
+	cacheFavicon("url2", icon, "image/png", cfg)
+	cacheFavicon("url3", icon, "image/png", cfg,
+	)
 
 	FaviconCache.RLock()
 	defer FaviconCache.RUnlock()
