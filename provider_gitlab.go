@@ -37,7 +37,7 @@ func (GitLabProvider) Name() string { return "gitlab" }
 func (GitLabProvider) DefaultServer() string { return "https://gitlab.com" }
 
 func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
-	server := strings.TrimRight(GitlabServer, "/")
+	server := strings.TrimRight(Config.GitlabServer, "/")
 	if server == "" {
 		server = "https://gitlab.com"
 	}
@@ -54,7 +54,7 @@ func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 }
 
 func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
-	server := GitlabServer
+	server := Config.GitlabServer
 	if server == "" {
 		server = "https://gitlab.com"
 	}
@@ -81,7 +81,7 @@ func (GitLabProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 		log.Printf("gitlab GetTags client: %v", err)
 		return nil, err
 	}
-	tags, _, err := c.Tags.ListTags(user+"/"+RepoName, &gitlab.ListTagsOptions{})
+	tags, _, err := c.Tags.ListTags(user+"/"+Config.GetRepoName(), &gitlab.ListTagsOptions{})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut
@@ -102,7 +102,7 @@ func (GitLabProvider) GetBranches(ctx context.Context, user string, token *oauth
 		log.Printf("gitlab GetBranches client: %v", err)
 		return nil, err
 	}
-	bs, _, err := c.Branches.ListBranches(user+"/"+RepoName, &gitlab.ListBranchesOptions{})
+	bs, _, err := c.Branches.ListBranches(user+"/"+Config.GetRepoName(), &gitlab.ListBranchesOptions{})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut
@@ -123,7 +123,7 @@ func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2
 		log.Printf("gitlab GetCommits client: %v", err)
 		return nil, err
 	}
-	cs, _, err := c.Commits.ListCommits(user+"/"+RepoName, &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: page, PerPage: perPage}})
+	cs, _, err := c.Commits.ListCommits(user+"/"+Config.GetRepoName(), &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: page, PerPage: perPage}})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut
@@ -153,7 +153,7 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	if ref == "" {
 		ref = "HEAD"
 	}
-	f, _, err := c.RepositoryFiles.GetFile(user+"/"+RepoName, "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(ref)})
+	f, _, err := c.RepositoryFiles.GetFile(user+"/"+Config.GetRepoName(), "bookmarks.txt", &gitlab.GetFileOptions{Ref: gitlab.Ptr(ref)})
 	if err != nil {
 		if errors.Is(err, gitlab.ErrNotFound) {
 			return "", "", nil
@@ -183,7 +183,7 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 }
 
 func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
-	p, _, err := client.Projects.GetProject(user+"/"+RepoName, nil)
+	p, _, err := client.Projects.GetProject(user+"/"+Config.GetRepoName(), nil)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
@@ -227,7 +227,7 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		LastCommitID:  gitlab.Ptr(expectSHA),
 		CommitMessage: gitlab.Ptr("Auto change from web"),
 	}
-	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+RepoName, "bookmarks.txt", opt)
+	_, _, err = c.RepositoryFiles.UpdateFile(user+"/"+Config.GetRepoName(), "bookmarks.txt", opt)
 	if err != nil {
 		var respErr *gitlab.ErrorResponse
 		if errors.As(err, &respErr) {
@@ -272,7 +272,7 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		AuthorName:    gitlab.Ptr("Gobookmarks"),
 		CommitMessage: gitlab.Ptr("Auto create from web"),
 	}
-	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+RepoName, "bookmarks.txt", opt)
+	_, _, err = c.RepositoryFiles.CreateFile(user+"/"+Config.GetRepoName(), "bookmarks.txt", opt)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
 			if respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
@@ -298,9 +298,8 @@ func (p GitLabProvider) CreateRepo(ctx context.Context, user string, token *oaut
 	if err != nil {
 		return err
 	}
-	RepoName = name
 	_, _, err = c.Projects.CreateProject(&gitlab.CreateProjectOptions{
-		Name:                 gitlab.Ptr(RepoName),
+		Name:                 gitlab.Ptr(name),
 		Description:          gitlab.Ptr("Personal bookmarks"),
 		Visibility:           gitlab.Ptr(gitlab.PrivateVisibility),
 		InitializeWithReadme: gitlab.Ptr(true),

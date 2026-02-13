@@ -8,7 +8,7 @@ import (
 
 // Test that getSession clears outdated sessions and returns a fresh one.
 func Test_getSessionClearsOldVersion(t *testing.T) {
-	SessionName = "testsession"
+	Config.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret-key"))
 	version = "current"
 
@@ -16,7 +16,7 @@ func Test_getSessionClearsOldVersion(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// create a session with an old version
-	s, _ := SessionStore.New(req, SessionName)
+	s, _ := SessionStore.New(req, Config.SessionName)
 	s.Values["version"] = "old"
 	s.Values["GithubUser"] = &User{Login: "old"}
 	if err := s.Save(req, w); err != nil {

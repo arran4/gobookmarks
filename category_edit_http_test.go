@@ -13,13 +13,13 @@ import (
 
 func setupCategoryEditTest(t *testing.T) (GitProvider, string, *sessions.Session, context.Context) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	Config.LocalGitPath = tmp
 	p := GitProvider{}
 	user := "alice"
-	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+	if err := p.CreateRepo(context.Background(), user, nil, Config.GetRepoName()); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
-	SessionName = "testsession"
+	Config.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	sessReq := httptest.NewRequest("GET", "/", nil)
 	sess, err := getSession(httptest.NewRecorder(), sessReq)

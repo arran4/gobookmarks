@@ -33,7 +33,7 @@ type VersionInfo struct {
 type RootCommand struct {
 	Flags       *flag.FlagSet
 	ConfigPath  string
-	cfg         Config
+	cfg         Configuration
 	VersionInfo VersionInfo
 
 	ServeCmd       *ServeCommand
@@ -142,7 +142,7 @@ func (c *RootCommand) loadConfig() error {
 		log.Printf("unable to load env file %s: %v", envPath, err)
 	}
 
-	c.cfg = Config{
+	c.cfg = Configuration{
 		GithubClientID:       os.Getenv("GITHUB_CLIENT_ID"),
 		GithubSecret:         os.Getenv("GITHUB_SECRET"),
 		GitlabClientID:       os.Getenv("GITLAB_CLIENT_ID"),

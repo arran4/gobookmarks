@@ -10,10 +10,22 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 )
 
-// Config holds runtime configuration values.
-type Config struct {
+var (
+	Config Configuration
+)
+
+const (
+	DefaultFaviconCacheSize     int64         = 20 * 1024 * 1024 // 20MB
+	DefaultFaviconMaxCacheCount int           = 1000
+	DefaultFaviconCacheMaxAge   time.Duration = 24 * time.Hour
+	DefaultCommitsPerPage       int           = 100
+)
+
+// Configuration holds runtime configuration values.
+type Configuration struct {
 	GithubClientID       string   `json:"github_client_id"`
 	GithubSecret         string   `json:"github_secret"`
 	GitlabClientID       string   `json:"gitlab_client_id"`
@@ -31,17 +43,53 @@ type Config struct {
 	LocalGitPath         string   `json:"local_git_path"`
 	NoFooter             bool     `json:"no_footer"`
 	SessionKey           string   `json:"session_key"`
+	SessionName          string   `json:"session_name"`
 	DBConnectionProvider string   `json:"db_connection_provider"`
 	DBConnectionString   string   `json:"db_connection_string"`
 	ProviderOrder        []string `json:"provider_order"`
 	CommitsPerPage       int      `json:"commits_per_page"`
 }
 
+func (c Configuration) GetDevMode() bool {
+	if c.DevMode != nil {
+		return *c.DevMode
+	}
+	return strings.EqualFold(version, "dev")
+}
+
+func (c Configuration) GetRepoName() string {
+	ns := c.Namespace
+	if c.GetDevMode() {
+		if ns == "" {
+			ns = version
+		}
+	}
+
+	name := "MyBookmarks"
+	if ns != "" {
+		name += "-" + ns
+	}
+	return name
+}
+
+func (c Configuration) GetOauthRedirectURL() string {
+	externalUrl := strings.TrimRight(c.ExternalURL, "/")
+	return JoinURL(externalUrl, "oauth2Callback")
+}
+
+func (c Configuration) GetSessionName() string {
+	if c.SessionName != "" {
+		return c.SessionName
+	}
+	return "gobookmarks"
+}
+
+
 // LoadConfigFile loads configuration from the given path.
-// It returns the loaded Config, a boolean indicating if the file existed,
+// It returns the loaded Configuration, a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
-func LoadConfigFile(path string) (Config, bool, error) {
-	var c Config
+func LoadConfigFile(path string) (Configuration, bool, error) {
+	var c Configuration
 
 	log.Printf("attempting to load config from %s", path)
 
@@ -63,7 +111,7 @@ func LoadConfigFile(path string) (Config, bool, error) {
 	return c, true, nil
 }
 
-func loadedConfigKeys(c Config) []string {
+func loadedConfigKeys(c Configuration) []string {
 	var keys []string
 	v := reflect.ValueOf(c)
 	t := reflect.TypeOf(c)
@@ -80,7 +128,7 @@ func loadedConfigKeys(c Config) []string {
 }
 
 // MergeConfig copies values from src into dst if they are non-zero.
-func MergeConfig(dst *Config, src Config) {
+func MergeConfig(dst *Configuration, src Configuration) {
 	if src.GithubClientID != "" {
 		dst.GithubClientID = src.GithubClientID
 	}
@@ -131,6 +179,9 @@ func MergeConfig(dst *Config, src Config) {
 	}
 	if src.SessionKey != "" {
 		dst.SessionKey = src.SessionKey
+	}
+	if src.SessionName != "" {
+		dst.SessionName = src.SessionName
 	}
 	if src.DBConnectionProvider != "" {
 		dst.DBConnectionProvider = src.DBConnectionProvider

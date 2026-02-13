@@ -17,7 +17,7 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
-	repoName := RepoName
+	repoName := Config.GetRepoName()
 
 	login := ""
 	if githubUser != nil {
