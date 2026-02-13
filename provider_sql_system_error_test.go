@@ -3,7 +3,7 @@ package gobookmarks
 import "testing"
 
 func TestOpenDB_SystemError(t *testing.T) {
-	AppConfig.DBConnectionProvider = ""
+	Config.DBConnectionProvider = ""
 	if _, err := OpenDB(); err == nil {
 		t.Fatalf("expected error when DB not configured")
 	} else if serr, ok := err.(SystemError); !ok || serr.Msg != "Database error" {

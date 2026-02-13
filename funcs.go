@@ -135,13 +135,13 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					return v
 				}
 			}
-			return AppConfig.CssColumns
+			return Config.CssColumns
 		},
 		"devMode": func() bool {
-			return AppConfig.GetDevMode()
+			return Config.GetDevMode()
 		},
 		"showFooter": func() bool {
-			return !AppConfig.NoFooter
+			return !Config.NoFooter
 		},
 		"showPages": func() bool {
 			if r == nil {
@@ -430,7 +430,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				page = 1
 			}
 			ref := r.URL.Query().Get("ref")
-			commits, err := GetCommits(r.Context(), login, token, ref, page, AppConfig.CommitsPerPage)
+			commits, err := GetCommits(r.Context(), login, token, ref, page, Config.CommitsPerPage)
 			if err != nil {
 				return nil, fmt.Errorf("GetCommits: %w", err)
 			}

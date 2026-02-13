@@ -25,7 +25,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 			login = githubUser.Login
 		}
 
-		title := AppConfig.Title
+		title := Config.Title
 		if title == "" {
 			title = "gobookmarks"
 		}

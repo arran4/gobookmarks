@@ -57,7 +57,7 @@ func (c *VerifyCredsCommand) Execute(args []string) error {
 	}
 
 	cfg := c.parent.(*RootCommand).cfg
-	AppConfig = cfg
+	Config = cfg
 
 	provider, err := getConfiguredProvider(&cfg)
 	if err != nil {

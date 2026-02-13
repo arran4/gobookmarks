@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	AppConfig Configuration
+	Config Configuration
 )
 
 const (

@@ -43,7 +43,7 @@ var (
 func ensureRepo(ctx context.Context, p Provider, user string, token *oauth2.Token) error {
 	log.Printf("checking repo for %s", user)
 
-	repoName := AppConfig.GetRepoName()
+	repoName := Config.GetRepoName()
 	exists, err := p.RepoExists(ctx, user, token, repoName)
 	if err != nil {
 		log.Printf("repo check error: %v", err)
@@ -95,7 +95,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		http.NotFound(w, r)
 		return nil
 	}
-	cfg := p.Config(creds.ID, creds.Secret, AppConfig.GetOauthRedirectURL())
+	cfg := p.Config(creds.ID, creds.Secret, Config.GetOauthRedirectURL())
 	if cfg == nil {
 		http.NotFound(w, r)
 		return nil
@@ -129,7 +129,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	if creds == nil {
 		return fmt.Errorf("provider does not support login")
 	}
-	cfg := p.Config(creds.ID, creds.Secret, AppConfig.GetOauthRedirectURL())
+	cfg := p.Config(creds.ID, creds.Secret, Config.GetOauthRedirectURL())
 	if cfg == nil {
 		return fmt.Errorf("provider does not support login")
 	}
@@ -230,7 +230,7 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("git signup create user error for %s: %v", user, err)
 		return err
 	}
-	repoName := AppConfig.GetRepoName()
+	repoName := Config.GetRepoName()
 	if exists, err := prov.RepoExists(r.Context(), user, nil, repoName); err == nil && !exists {
 		if err := prov.CreateRepo(r.Context(), user, nil, repoName); err != nil {
 			log.Printf("git signup create repo error for %s: %v", user, err)
@@ -297,7 +297,7 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("sql signup create user error for %s: %v", user, err)
 		return err
 	}
-	repoName := AppConfig.GetRepoName()
+	repoName := Config.GetRepoName()
 	if exists, err := prov.RepoExists(r.Context(), user, nil, repoName); err == nil && !exists {
 		if err := prov.CreateRepo(r.Context(), user, nil, repoName); err != nil {
 			log.Printf("sql signup create repo error for %s: %v", user, err)
@@ -328,7 +328,7 @@ func UserAdderMiddleware(next http.Handler) http.Handler {
 }
 
 func getSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, error) {
-	session, err := SessionStore.Get(r, AppConfig.GetSessionName())
+	session, err := SessionStore.Get(r, Config.GetSessionName())
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func getSession(w http.ResponseWriter, r *http.Request) (*sessions.Session, erro
 		if err := session.Save(r, w); err != nil {
 			return nil, err
 		}
-		session, err = SessionStore.New(r, AppConfig.GetSessionName())
+		session, err = SessionStore.New(r, Config.GetSessionName())
 		if err != nil {
 			return nil, err
 		}

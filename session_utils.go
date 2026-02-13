@@ -23,7 +23,7 @@ func sanitizeSession(w http.ResponseWriter, r *http.Request, session *sessions.S
 				log.Printf("session clear error: %v", saveErr)
 			}
 		}
-		session, _ = SessionStore.New(r, AppConfig.GetSessionName())
+		session, _ = SessionStore.New(r, Config.GetSessionName())
 		return session, nil
 	}
 	return session, err

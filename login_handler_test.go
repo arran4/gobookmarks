@@ -10,14 +10,14 @@ import (
 )
 
 func TestLoginRouteProviderVariable(t *testing.T) {
-	AppConfig.SessionName = "testsess"
+	Config.SessionName = "testsess"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"
-	AppConfig.GithubClientID = "id"
-	AppConfig.GithubSecret = "secret"
-	AppConfig.GitlabClientID = "id"
-	AppConfig.GitlabSecret = "secret"
-	AppConfig.ExternalURL = "http://example.com/"
+	Config.GithubClientID = "id"
+	Config.GithubSecret = "secret"
+	Config.GitlabClientID = "id"
+	Config.GitlabSecret = "secret"
+	Config.ExternalURL = "http://example.com/"
 
 	r := mux.NewRouter()
 	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")

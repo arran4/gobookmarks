@@ -196,28 +196,28 @@ func (c *ServeCommand) Execute(args []string) error {
 		return nil
 	}
 
-	// Update global AppConfig
-	AppConfig = cfg
-	if AppConfig.FaviconCacheSize == 0 {
-		AppConfig.FaviconCacheSize = DefaultFaviconCacheSize
+	// Update global Config
+	Config = cfg
+	if Config.FaviconCacheSize == 0 {
+		Config.FaviconCacheSize = DefaultFaviconCacheSize
 	}
-	if AppConfig.FaviconMaxCacheCount == 0 {
-		AppConfig.FaviconMaxCacheCount = DefaultFaviconMaxCacheCount
+	if Config.FaviconMaxCacheCount == 0 {
+		Config.FaviconMaxCacheCount = DefaultFaviconMaxCacheCount
 	}
-	if AppConfig.CommitsPerPage == 0 {
-		AppConfig.CommitsPerPage = DefaultCommitsPerPage
+	if Config.CommitsPerPage == 0 {
+		Config.CommitsPerPage = DefaultCommitsPerPage
 	}
 
 	// Initialize global settings that were previously done via copying variables
-	SetProviderOrder(AppConfig.ProviderOrder)
-	// No need to copy to global vars anymore as we use AppConfig
+	SetProviderOrder(Config.ProviderOrder)
+	// No need to copy to global vars anymore as we use Config
 
-	redirectUrl := AppConfig.GetOauthRedirectURL()
+	redirectUrl := Config.GetOauthRedirectURL()
 
-	// Update SessionName if needed (though it's in AppConfig now, SessionStore logic uses AppConfig.SessionName)
+	// Update SessionName if needed (though it's in Config now, SessionStore logic uses Config.SessionName)
 	// But SessionStore is global.
 	// We need to initialize SessionStore
-	SessionStore = sessions.NewCookieStore(loadSessionKey(AppConfig))
+	SessionStore = sessions.NewCookieStore(loadSessionKey(Config))
 
 	if len(ProviderNames()) == 0 {
 		return errors.New("no providers compiled")
@@ -239,7 +239,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
-	if AppConfig.GetDevMode() {
+	if Config.GetDevMode() {
 		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
@@ -657,7 +657,7 @@ func RequiresAnAccount() mux.MatcherFunc {
 		sessioni := request.Context().Value(ContextValues("session"))
 		if sessioni == nil {
 			var err error
-			session, err = SessionStore.Get(request, AppConfig.GetSessionName())
+			session, err = SessionStore.Get(request, Config.GetSessionName())
 			if err != nil {
 				return false
 			}

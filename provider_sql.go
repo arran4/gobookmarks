@@ -253,7 +253,7 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	}
 
 	// dialect-specific insert/update for branches
-	switch strings.ToLower(AppConfig.DBConnectionProvider) {
+	switch strings.ToLower(Config.DBConnectionProvider) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
@@ -295,7 +295,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	}
 
 	// ensure a bookmarks row exists
-	switch strings.ToLower(AppConfig.DBConnectionProvider) {
+	switch strings.ToLower(Config.DBConnectionProvider) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx,
 			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
@@ -336,7 +336,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 	}
 
 	// ensure a branch pointer
-	switch strings.ToLower(AppConfig.DBConnectionProvider) {
+	switch strings.ToLower(Config.DBConnectionProvider) {
 	case "mysql":
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO branches(user, name, sha)
@@ -374,7 +374,7 @@ func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2
 		return err
 	}
 
-	switch strings.ToLower(AppConfig.DBConnectionProvider) {
+	switch strings.ToLower(Config.DBConnectionProvider) {
 	case "mysql":
 		// bookmarks row
 		if _, err := tx.ExecContext(ctx,
