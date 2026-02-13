@@ -14,7 +14,7 @@ import (
 )
 
 func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
-	gb.SessionName = "testsess"
+	gb.AppConfig.SessionName = "testsess"
 	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/submit", nil)
@@ -39,12 +39,12 @@ func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 }
 
 func TestRunTemplate_BufferedError(t *testing.T) {
-	gb.SessionName = "testsess"
+	gb.AppConfig.SessionName = "testsess"
 	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
-	gb.DBConnectionProvider = ""
+	gb.AppConfig.DBConnectionProvider = ""
 
 	req := httptest.NewRequest("GET", "/", nil)
-	sess, _ := gb.SessionStore.New(req, gb.SessionName)
+	sess, _ := gb.SessionStore.New(req, gb.AppConfig.SessionName)
 	sess.Values["GithubUser"] = &gb.User{Login: "user"}
 	sess.Values["Token"] = &oauth2.Token{}
 	ctx := context.WithValue(req.Context(), gb.ContextValues("session"), sess)

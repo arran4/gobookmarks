@@ -11,11 +11,11 @@ import (
 
 func TestGitProviderCreateAndGet(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	user := "alice"
 	text := "Category: Test\nhttp://example.com test"
-	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+	if err := p.CreateRepo(context.Background(), user, nil, AppConfig.GetRepoName()); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
 	gi, err := os.ReadFile(filepath.Join(userDir(user), ".gitignore"))
@@ -42,20 +42,20 @@ func TestGitProviderCreateAndGet(t *testing.T) {
 
 func TestGitRepoExists(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	user := "carol"
-	exists, err := p.RepoExists(context.Background(), user, nil, RepoName)
+	exists, err := p.RepoExists(context.Background(), user, nil, AppConfig.GetRepoName())
 	if err != nil {
 		t.Fatalf("RepoExists before create: %v", err)
 	}
 	if exists {
 		t.Fatalf("repo should not exist")
 	}
-	if err := p.CreateRepo(context.Background(), user, nil, RepoName); err != nil {
+	if err := p.CreateRepo(context.Background(), user, nil, AppConfig.GetRepoName()); err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
-	exists, err = p.RepoExists(context.Background(), user, nil, RepoName)
+	exists, err = p.RepoExists(context.Background(), user, nil, AppConfig.GetRepoName())
 	if err != nil || !exists {
 		t.Fatalf("repo should exist, got %v %v", exists, err)
 	}
@@ -63,7 +63,7 @@ func TestGitRepoExists(t *testing.T) {
 
 func TestGitPasswordLifecycle(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 	p := GitProvider{}
 	ctx := context.Background()
 	user := "bob"
@@ -113,9 +113,9 @@ func TestGitPasswordLifecycle(t *testing.T) {
 }
 
 func TestGitUserDirHash(t *testing.T) {
-	LocalGitPath = "/base"
+	AppConfig.LocalGitPath = "/base"
 	path := userDir("../../etc/passwd")
-	if filepath.Dir(path) != LocalGitPath {
+	if filepath.Dir(path) != AppConfig.LocalGitPath {
 		t.Fatalf("path escaped base: %s", path)
 	}
 	if filepath.Base(path) == "../../etc/passwd" {

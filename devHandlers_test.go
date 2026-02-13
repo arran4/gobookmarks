@@ -9,7 +9,7 @@ import (
 )
 
 func TestCssColumnToggle(t *testing.T) {
-	SessionName = "testsession"
+	AppConfig.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/", nil)

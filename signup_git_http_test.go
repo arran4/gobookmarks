@@ -14,9 +14,9 @@ import (
 
 func TestGitSignupScenario(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
+	AppConfig.LocalGitPath = tmp
 
-	SessionName = "testsession"
+	AppConfig.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 
 	// signup
@@ -32,7 +32,7 @@ func TestGitSignupScenario(t *testing.T) {
 	}
 
 	p := GitProvider{}
-	if ok, err := p.RepoExists(context.Background(), "alice", nil, RepoName); err != nil || !ok {
+	if ok, err := p.RepoExists(context.Background(), "alice", nil, AppConfig.GetRepoName()); err != nil || !ok {
 		t.Fatalf("repo exists: %v %v", ok, err)
 	}
 	got, _, err := p.GetBookmarks(context.Background(), "alice", "refs/heads/main", nil)
@@ -120,8 +120,8 @@ func TestGitSignupScenario(t *testing.T) {
 
 func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	tmp := t.TempDir()
-	LocalGitPath = tmp
-	SessionName = "testsession"
+	AppConfig.LocalGitPath = tmp
+	AppConfig.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	version = "vtest"
 
@@ -135,7 +135,7 @@ func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	form := url.Values{"username": {"alice"}, "password": {"secret"}}
 	req := httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.AddCookie(&http.Cookie{Name: SessionName, Value: "invalid"})
+	req.AddCookie(&http.Cookie{Name: AppConfig.SessionName, Value: "invalid"})
 
 	w := httptest.NewRecorder()
 	if err := GitLoginAction(w, req); err != nil {
