@@ -31,8 +31,9 @@ changelog:
       - '^test:'
 dockers:
   - image_templates:
-    - "arran4/gobookmarks:{{ .Version }}"
+    - "arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
     - '{{- if ne .Env.LATEST_TAG "disabled" }}arran4/gobookmarks:{{ .Env.LATEST_TAG }}{{ end -}}'
+    - '{{- if ne .Env.LATEST_TAG "disabled" }}arran4/gobookmarks:{{ .Env.LATEST_TAG }}-{{ .Runtime.Goarch }}{{ end -}}'
     - "ghcr.io/arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
     - '{{- if ne .Env.LATEST_TAG "disabled" }}ghcr.io/arran4/gobookmarks:{{ .Env.LATEST_TAG }}{{ end -}}'
     - '{{- if ne .Env.LATEST_TAG "disabled" }}ghcr.io/arran4/gobookmarks:{{ .Env.LATEST_TAG }}-{{ .Runtime.Goarch }}{{ end -}}'
@@ -43,7 +44,7 @@ dockers:
 docker_manifests:
   - name_template: "arran4/gobookmarks:{{ .Version }}"
     image_templates:
-      - "arran4/gobookmarks:{{ .Version }}"
+      - "arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
   - name_template: "ghcr.io/arran4/gobookmarks:{{ .Version }}"
     image_templates:
       - "ghcr.io/arran4/gobookmarks:{{ .Version }}-{{ .Runtime.Goarch }}"
