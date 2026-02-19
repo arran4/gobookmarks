@@ -77,6 +77,7 @@ func (c *TemplateCommand) Execute(args []string) error {
 	}
 
 	var bookmarksStr string
+	templateName := "mainPage.gohtml"
 	switch subcommandRange {
 	case "default":
 		bookmarksStr = `
@@ -107,6 +108,15 @@ Category: Coding
 https://github.com GitHub
 https://stackoverflow.com Stack Overflow
 `
+	case "edit":
+		templateName = "edit.gohtml"
+		bookmarksStr = `
+Tab: Default Tab
+Page: Default Page
+Category: Default Category
+https://example.com Example Link
+`
+		coreData.EditMode = true
 	default:
 		// If unknown range, maybe treat it as empty or minimal
 		bookmarksStr = "Tab: Empty\n"
@@ -253,6 +263,14 @@ https://stackoverflow.com Stack Overflow
 	funcs["showPages"] = func() bool { return true }
 
 
+	// Override additional functions for edit pages
+	funcs["bookmarksOrEditBookmarks"] = func() (string, error) {
+		return bookmarksStr, nil
+	}
+	funcs["branchOrEditBranch"] = func() string { return "main" }
+	funcs["ref"] = func() string { return "sha123" }
+	funcs["bookmarksSHA"] = func() string { return "sha123" }
+
 	// Compile templates with our modified funcs
 	tmpl := GetCompiledTemplates(funcs)
 
@@ -266,8 +284,8 @@ https://stackoverflow.com Stack Overflow
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&buf, "mainPage.gohtml", data); err != nil {
-		return fmt.Errorf("failed to render template: %w", err)
+	if err := tmpl.ExecuteTemplate(&buf, templateName, data); err != nil {
+		return fmt.Errorf("failed to render template %s: %w", templateName, err)
 	}
 
 	output := buf.Bytes()
