@@ -491,6 +491,22 @@
                             return;
                         }
 
+                        if (inInput && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            if (!e.defaultPrevented) {
+                                var form = active.form;
+                                if (form) {
+                                    var submitBtn = form.querySelector('[type="submit"]');
+                                    if (submitBtn) {
+                                        submitBtn.click();
+                                    } else {
+                                        form.submit();
+                                    }
+                                    e.preventDefault();
+                                    return;
+                                }
+                            }
+                        }
+
                         if (!inInput) {
                             if (e.key === 'ArrowDown') { moveSelection(1); e.preventDefault(); }
                             else if (e.key === 'ArrowUp') { moveSelection(-1); e.preventDefault(); }
