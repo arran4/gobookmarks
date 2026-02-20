@@ -12,6 +12,8 @@ func TestJoinURL(t *testing.T) {
 		{"http://example.com/", "oauth2Callback", "http://example.com/oauth2Callback"},
 		{"http://example.com///", "oauth2Callback", "http://example.com/oauth2Callback"},
 		{"http://example.com/base", "oauth2Callback", "http://example.com/base/oauth2Callback"},
+		{"http://example.com/base/", "/oauth2Callback///", "http://example.com/base/oauth2Callback"},
+		{"", "///oauth2Callback///", "/oauth2Callback"},
 	}
 	for _, tt := range tests {
 		got := JoinURL(tt.base, tt.elem)

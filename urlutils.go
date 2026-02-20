@@ -6,7 +6,7 @@ import "strings"
 // Additional leading or trailing slashes are removed from elem.
 func JoinURL(base, elem string) string {
 	base = strings.TrimRight(base, "/")
-	elem = strings.TrimLeft(elem, "/")
+	elem = strings.Trim(elem, "/")
 	if base == "" {
 		return "/" + elem
 	}
