@@ -4,7 +4,8 @@
 
 `gobookmarks` is a self-hosted personal landing page / start page that renders your bookmarks from a simple text file you own. Edit and store your data with visual tools or plain text, backed by Git (GitHub, GitLab, local Git, or SQL) so there is no lock-in and you always have history.
 
-![Screenshot_20250716_161941.png](media/Screenshot_20250716_161941.png)
+![media/popup_edit_mode.png](media/popup_edit_mode.png)
+![media/popup_saved.png](media/popup_saved.png)
 
 ## Features
 
@@ -265,7 +266,7 @@ Use a link starting with the `search:` scheme followed by a URL containing `$que
 search:https://www.google.com/search?q=$query
 ```
 
-![Screencast_20250723_111959.webm.gif](media/Screencast_20250723_111959.webm.gif)
+![media/popup_demo.webm](media/popup_demo.webm)
 
 ## Keyboard shortcuts
 
