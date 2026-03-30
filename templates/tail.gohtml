@@ -88,7 +88,11 @@
             };
             if (titleEl) titleEl.textContent = titles[u.pathname] || 'Edit';
 
-            if (iframe) iframe.src = link.href;
+                        if (iframe) {
+                var linkUrl = new URL(link.href);
+                linkUrl.searchParams.set('popup', '1');
+                iframe.src = linkUrl.toString();
+            }
             if (dialog) dialog.showModal();
         }
     });

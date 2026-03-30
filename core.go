@@ -52,6 +52,7 @@ type CoreData struct {
 	AutoRefresh bool
 	UserRef     string
 	EditMode    bool
+	IsPopup     bool
 	Tab         int
 	requestCache *requestCache
 }
