@@ -18,6 +18,146 @@
                 {{ end }}
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
+    if (!document.getElementById('edit-dialog')) {
+        var dialog = document.createElement('dialog');
+        dialog.id = 'edit-dialog';
+        dialog.className = 'edit-dialog';
+        dialog.innerHTML = `
+            <div class="edit-dialog-header">
+                <h2 id="edit-dialog-title" style="margin: 0;">Edit</h2>
+                <button id="edit-dialog-close">&times;</button>
+            </div>
+            <div id="edit-dialog-content"></div>
+        `;
+        document.body.appendChild(dialog);
+
+        document.getElementById('edit-dialog-close').addEventListener('click', function(e) {
+            e.preventDefault();
+            dialog.close();
+        });
+    }
+
+    document.body.addEventListener('click', function(e) {
+        var link = e.target.closest('a');
+        if (!link) return;
+        var href = link.getAttribute('href');
+        if (!href) return;
+
+        var u;
+        try { u = new URL(href, window.location.origin); } catch(err) { return; }
+        var path = u.pathname;
+
+        if (path === '/editCategory' || path === '/editPage' || path === '/editTab' || path === '/edit' || path === '/addCategory' || path === '/addPage' || path === '/addTab') {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || link.target === '_blank') return;
+            e.preventDefault();
+
+            var dialog = document.getElementById('edit-dialog');
+            var contentDiv = document.getElementById('edit-dialog-content');
+            var titleEl = document.getElementById('edit-dialog-title');
+
+            if (path === '/editCategory') titleEl.textContent = 'Edit Category';
+            else if (path === '/editPage') titleEl.textContent = 'Edit Page';
+            else if (path === '/editTab') titleEl.textContent = 'Edit Tab';
+            else if (path === '/edit') titleEl.textContent = 'Edit All';
+            else if (path === '/addCategory') titleEl.textContent = 'Add Category';
+            else if (path === '/addPage') titleEl.textContent = 'Add Page';
+            else if (path === '/addTab') titleEl.textContent = 'Add Tab';
+
+            contentDiv.innerHTML = '<p>Loading...</p>';
+            dialog.showModal();
+
+            fetch(link.href)
+                .then(function(res) { return res.text(); })
+                .then(function(html) {
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(html, 'text/html');
+                    var form = doc.querySelector('form.edit-form');
+                    var notes = doc.querySelector('.edit-notes');
+                    var error = doc.querySelector('p[style="color: #FF0000"]');
+
+                    contentDiv.innerHTML = '';
+                    if (error) {
+                        contentDiv.appendChild(error);
+                    }
+                    if (form) {
+                        var actionUrl = form.getAttribute('action') || '';
+                        form.action = new URL(actionUrl, link.href).toString();
+
+                        var clickedButton = null;
+                        form.addEventListener('click', function(e) {
+                            if (e.target.tagName === 'INPUT' && e.target.type === 'submit') {
+                                clickedButton = e.target;
+                            }
+                        });
+
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            var formData = new FormData(form);
+                            if (clickedButton && clickedButton.name) {
+                                formData.append(clickedButton.name, clickedButton.value);
+                            }
+
+                            var submitBtns = form.querySelectorAll('input[type="submit"]');
+                            submitBtns.forEach(function(btn) { btn.disabled = true; });
+
+                            fetch(form.action, {
+                                method: form.method || 'POST',
+                                body: formData,
+                                redirect: 'follow'
+                            }).then(function(res) {
+                                if (res.ok && res.redirected) {
+                                    if (clickedButton && clickedButton.value.indexOf('Stop') !== -1) {
+                                        var url = new URL(window.location.href);
+                                        url.searchParams.delete('edit');
+                                        window.location.href = url.toString();
+                                    } else {
+                                        window.location.reload();
+                                    }
+                                } else if (res.ok) {
+                                    res.text().then(function(html) {
+                                        var parser = new DOMParser();
+                                        var doc = parser.parseFromString(html, 'text/html');
+                                        var error = doc.querySelector('p[style="color: #FF0000"]');
+                                        if (error) {
+                                            var existingError = contentDiv.querySelector('p[style="color: #FF0000"]');
+                                            if (existingError) {
+                                                existingError.textContent = error.textContent;
+                                            } else {
+                                                contentDiv.insertBefore(error, contentDiv.firstChild);
+                                            }
+                                            submitBtns.forEach(function(btn) { btn.disabled = false; });
+                                        } else {
+                                            if (clickedButton && clickedButton.value.indexOf('Done') !== -1) {
+                                                 window.location.reload();
+                                            } else {
+                                                 window.location.reload();
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    alert('Error saving. HTTP ' + res.status);
+                                    submitBtns.forEach(function(btn) { btn.disabled = false; });
+                                }
+                            }).catch(function(err) {
+                                alert('Error saving: ' + err);
+                                submitBtns.forEach(function(btn) { btn.disabled = false; });
+                            });
+                        });
+                        contentDiv.appendChild(form);
+                    } else {
+                        contentDiv.innerHTML = '<p>Error loading form.</p>';
+                    }
+
+                    if (notes) {
+                        contentDiv.appendChild(notes);
+                    }
+                })
+                .catch(function(err) {
+                    contentDiv.innerHTML = '<p>Error loading: ' + err + '</p>';
+                });
+        }
+    });
+
                     var toggleEdit = document.getElementById('toggle-edit');
                     var tabContent = document.getElementById('tab-content');
                     var tabPanels = tabContent ? Array.from(tabContent.querySelectorAll('.tab-panel')) : [];

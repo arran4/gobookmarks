@@ -283,3 +283,45 @@ input.search-widget {
 #page-list li.active-page a {
     font-weight: bold;
 }
+
+/* Edit Dialog Styles */
+.edit-dialog {
+    width: 80vw;
+    max-width: 800px;
+    padding: 20px;
+    border: 1px solid #800000;
+    border-radius: 5px;
+    background-color: #FFFBF0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.edit-dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.edit-dialog form.edit-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-dialog .edit-form textarea {
+    width: 100% !important;
+    height: 60vh !important;
+    max-height: 500px;
+    box-sizing: border-box;
+}
+
+.edit-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1em;
+}
+
+#edit-dialog-close {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #800000;
+}
