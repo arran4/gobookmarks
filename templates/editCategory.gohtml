@@ -1,14 +1,4 @@
-{{ if not $.IsPopup }}{{ template "head" $ }}{{ else }}
-<html>
-<head>
-    <style type="text/css">
-    @import url("/main.css");
-    body { background-color: transparent; margin: 0; padding: 10px; }
-    textarea { width: 100% !important; height: 50vh !important; box-sizing: border-box; }
-    </style>
-</head>
-<body class="edit-mode">
-{{ end }}
+{{ if not $.IsPopup }}{{ template "head" $ }}{{ else }}{{ template "popupHead" $ }}{{ end }}
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
@@ -26,7 +16,4 @@
         <input type=hidden name="col" value="{{.Col}}" />
     </form>
     {{ template "editNotes" $ }}
-{{ if not $.IsPopup }}{{ template "tail" $ }}{{ else }}
-</body>
-</html>
-{{ end }}
+{{ if not $.IsPopup }}{{ template "tail" $ }}{{ else }}{{ template "popupTail" $ }}{{ end }}
