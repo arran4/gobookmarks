@@ -16,26 +16,19 @@
                        </div>
 </footer>
                 {{ end }}
+                {{ template "editDialog" $ }}
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
     function setupEditDialog() {
-        if (document.getElementById('edit-dialog')) return;
-        var dialog = document.createElement('dialog');
-        dialog.id = 'edit-dialog';
-        dialog.className = 'edit-dialog';
-        dialog.innerHTML = `
-            <div class="edit-dialog-header">
-                <h2 id="edit-dialog-title" style="margin: 0;">Edit</h2>
-                <button id="edit-dialog-close">&times;</button>
-            </div>
-            <div id="edit-dialog-content"></div>
-        `;
-        document.body.appendChild(dialog);
-
-        document.getElementById('edit-dialog-close').addEventListener('click', function(e) {
-            e.preventDefault();
-            dialog.close();
-        });
+        var dialog = document.getElementById('edit-dialog');
+        var closeBtn = document.getElementById('edit-dialog-close');
+        if (closeBtn && !closeBtn.hasAttribute('data-bound')) {
+            closeBtn.setAttribute('data-bound', 'true');
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                dialog.close();
+            });
+        }
     }
 
     function getDialogTitle(path) {
