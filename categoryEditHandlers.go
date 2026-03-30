@@ -51,7 +51,11 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 		Col:      col,
 	}
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editCategory.gohtml", data); err != nil {
+	tplName := "editCategory.gohtml"
+	if r.URL.Query().Get("modal") == "1" {
+		tplName = "editCategoryForm"
+	}
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil

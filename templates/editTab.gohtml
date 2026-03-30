@@ -1,4 +1,8 @@
 {{ template "head" $ }}
+{{ template "editTabForm" $ }}
+{{ template "tail" $ }}
+
+{{define "editTabForm"}}
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
@@ -16,4 +20,4 @@
         {{if page}}<input type=hidden name="page" value="{{page}}" />{{end}}
     </form>
     {{ template "editNotes" $ }}
-{{ template "tail" $ }}
+{{end}}

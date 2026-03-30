@@ -1,4 +1,8 @@
 {{ template "head" $ }}
+{{ template "editCategoryForm" $ }}
+{{ template "tail" $ }}
+
+{{define "editCategoryForm"}}
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
@@ -16,4 +20,4 @@
         <input type=hidden name="col" value="{{.Col}}" />
     </form>
     {{ template "editNotes" $ }}
-{{ template "tail" $ }}
+{{end}}

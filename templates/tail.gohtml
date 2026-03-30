@@ -1,6 +1,12 @@
 {{define "tail"}}
                  </table>
                  <div id="bottom"></div>
+
+                <dialog id="edit-modal">
+                    <div id="edit-modal-content"></div>
+                    <button id="edit-modal-close" type="button">Close</button>
+                </dialog>
+
                 {{ if showFooter }}
                 <hr>
                 <footer class="footnote">
@@ -214,6 +220,64 @@
                     }
 
                     attach(toggleEdit);
+
+                    var editModal = document.getElementById('edit-modal');
+                    var editModalContent = document.getElementById('edit-modal-content');
+                    var editModalClose = document.getElementById('edit-modal-close');
+
+                    if (editModalClose) {
+                        editModalClose.addEventListener('click', function() {
+                            editModal.close();
+                        });
+                    }
+
+                    if (editModal) {
+                        editModal.addEventListener('click', function(e) {
+                            var rect = editModal.getBoundingClientRect();
+                            var isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+                                              rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+                            if (!isInDialog) {
+                                editModal.close();
+                            }
+                        });
+                    }
+
+                    document.addEventListener('click', function(e) {
+                        var link = e.target.closest('a.edit-link, a.add-category-link');
+                        if (!link) return;
+                        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                            return;
+                        }
+                        // Don't intercept "Edit All" links
+                        if (link.href.indexOf('/edit?edit=1') !== -1 && link.href.indexOf('/editCategory') === -1 && link.href.indexOf('/editPage') === -1 && link.href.indexOf('/editTab') === -1) {
+                            return;
+                        }
+                        if (editModal && editModalContent) {
+                            e.preventDefault();
+                            var url = new URL(link.href, window.location.origin);
+                            url.searchParams.set('modal', '1');
+
+                            fetch(url.toString(), {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            }).then(function(res) {
+                                return res.text();
+                            }).then(function(html) {
+                                editModalContent.innerHTML = html;
+                                editModal.showModal();
+
+                                // Focus the first input or textarea
+                                var firstInput = editModalContent.querySelector('input:not([type="hidden"]), textarea');
+                                if (firstInput) {
+                                    firstInput.focus();
+                                }
+                            }).catch(function(err) {
+                                console.error('Error fetching edit form:', err);
+                                window.location.href = link.href; // Fallback
+                            });
+                        }
+                    });
 
                     attachTabListeners();
                     if (!tabPanels.some(function (panel) { return parseInt(panel.dataset.tabIndex || '-1', 10) === currentTabIndex; })) {

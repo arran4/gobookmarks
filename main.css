@@ -283,3 +283,42 @@ input.search-widget {
 #page-list li.active-page a {
     font-weight: bold;
 }
+
+/* Modal styles */
+dialog#edit-modal {
+    border: 1px solid #800000;
+    border-radius: 8px;
+    background-color: #FFFBF0;
+    color: #800000;
+    padding: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+dialog#edit-modal::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#edit-modal-content {
+    margin-bottom: 1rem;
+}
+
+#edit-modal-content textarea {
+    width: 80vw;
+    height: 60vh;
+}
+
+dialog#edit-modal #edit-modal-close {
+    background-color: transparent;
+    color: #800000;
+    border: 1px solid #800000;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+#edit-modal-close:hover {
+    background-color: #800000;
+    color: #FFFBF0;
+}
