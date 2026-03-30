@@ -258,37 +258,89 @@
 
                             fetch(url.toString(), {
                                 headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
+                                    'Accept': 'application/json'
                                 }
                             }).then(function(res) {
-                                return res.text();
-                            }).then(function(html) {
-                                var parser = new DOMParser();
-                                var doc = parser.parseFromString(html, 'text/html');
-                                var editForm = doc.querySelector('.edit-form');
+                                if (!res.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return res.json();
+                            }).then(function(data) {
+                                var isEditMode = document.body.classList.contains('edit-mode');
+                                var searchParams = new URLSearchParams(window.location.search);
+                                var branch = searchParams.get('ref') || 'main'; // Provide a default if needed
+                                var ref = searchParams.get('ref') || '';
+                                var tab = searchParams.get('tab') || '';
+                                var page = searchParams.get('page') || '';
+                                var col = searchParams.get('col') || '';
 
-                                if (editForm) {
-                                    editModalContent.innerHTML = '';
+                                var actionUrl = new URL(link.href, window.location.origin);
+                                // The form action usually includes edit=1 if we are in edit mode
+                                if (isEditMode) {
+                                    actionUrl.searchParams.set('edit', '1');
+                                }
 
-                                    // Check if there are any error messages to display
-                                    var errorPara = doc.querySelector('p[style="color: #FF0000"]');
-                                    if (errorPara) {
-                                        editModalContent.appendChild(errorPara);
-                                    }
+                                var formHtml = '';
+                                if (data.error) {
+                                    formHtml += '<p style="color: #FF0000">Error: ' + data.error + '</p>';
+                                }
 
-                                    editModalContent.appendChild(editForm);
-                                    editModal.showModal();
+                                // Determine form type based on link URL or data payload
+                                if (link.href.indexOf('editCategory') !== -1 || link.href.indexOf('addCategory') !== -1) {
+                                    actionUrl.searchParams.set('index', data.index);
+                                    formHtml += '<form method=post action="?' + actionUrl.searchParams.toString() + '" class="edit-form category-form">';
+                                    formHtml += '<label for="code">Category</label><br/>';
+                                    formHtml += '<textarea id="code" name="text" rows="10">' + (data.text || '') + '</textarea><br>';
+                                    formHtml += '<input type=hidden name="branch" value="' + branch + '" />';
+                                    formHtml += '<input type=submit name="task" value="Save" />';
+                                    formHtml += '<input type=submit name="task" value="Save &amp; Back" />';
+                                    formHtml += '<input type=submit name="task" value="Save &amp; Stop Editing" /><br>';
+                                    formHtml += '<input type=hidden name="ref" value="' + ref + '" />';
+                                    formHtml += '<input type=hidden name="sha" value="' + (data.sha || '') + '" />';
+                                    formHtml += '<input type=hidden name="tab" value="' + tab + '" />';
+                                    formHtml += '<input type=hidden name="page" value="' + page + '" />';
+                                    formHtml += '<input type=hidden name="col" value="' + (data.col || col) + '" />';
+                                    formHtml += '</form>';
+                                } else if (link.href.indexOf('editPage') !== -1) {
+                                    formHtml += '<form method=post action="?' + actionUrl.searchParams.toString() + '" class="edit-form page-form">';
+                                    formHtml += '<label for="name">Name</label>: <input id="name" type="text" name="name" value="' + (data.name || '') + '" /><br>';
+                                    formHtml += '<label for="code">Page Contents</label><br/>';
+                                    formHtml += '<textarea id="code" name="text" rows="10">' + (data.text || '') + '</textarea><br>';
+                                    formHtml += '<input type=hidden name="branch" value="' + branch + '" />';
+                                    formHtml += '<input type=submit name="task" value="Save" />';
+                                    formHtml += '<input type=submit name="task" value="Save &amp; Back" />';
+                                    formHtml += '<input type=submit name="task" value="Save &amp; Stop Editing" /><br>';
+                                    formHtml += '<input type=hidden name="ref" value="' + ref + '" />';
+                                    formHtml += '<input type=hidden name="sha" value="' + (data.sha || '') + '" />';
+                                    formHtml += '<input type=hidden name="tab" value="' + tab + '" />';
+                                    if (page !== '') formHtml += '<input type=hidden name="page" value="' + page + '" />';
+                                    formHtml += '</form>';
+                                } else if (link.href.indexOf('editTab') !== -1) {
+                                    actionUrl.searchParams.set('name', data.oldName || data.name || '');
+                                    formHtml += '<form method=post action="?' + actionUrl.searchParams.toString() + '" class="edit-form tab-form">';
+                                    formHtml += '<label for="name">Name</label>: <input id="name" type="text" name="name" value="' + (data.name || '') + '" /><br>';
+                                    formHtml += '<label for="code">Tab Contents</label><br/>';
+                                    formHtml += '<textarea id="code" name="text" rows="10">' + (data.text || '') + '</textarea><br>';
+                                    formHtml += '<input type=hidden name="branch" value="' + branch + '" />';
+                                    formHtml += '<input type=submit name="task" value="Save" />';
+                                    formHtml += '<input type=submit name="task" value="Save &amp; Back" />';
+                                    formHtml += '<input type=submit name="task" value="Save &amp; Stop Editing" /><br>';
+                                    formHtml += '<input type=hidden name="ref" value="' + ref + '" />';
+                                    formHtml += '<input type=hidden name="sha" value="' + (data.sha || '') + '" />';
+                                    if (tab !== '') formHtml += '<input type=hidden name="tab" value="' + tab + '" />';
+                                    if (page !== '') formHtml += '<input type=hidden name="page" value="' + page + '" />';
+                                    formHtml += '</form>';
+                                }
 
-                                    // Focus the first input or textarea
-                                    var firstInput = editModalContent.querySelector('input:not([type="hidden"]), textarea');
-                                    if (firstInput) {
-                                        firstInput.focus();
-                                    }
-                                } else {
-                                    window.location.href = link.href; // Fallback if no form found
+                                editModalContent.innerHTML = formHtml;
+                                editModal.showModal();
+
+                                var firstInput = editModalContent.querySelector('input:not([type="hidden"]), textarea');
+                                if (firstInput) {
+                                    firstInput.focus();
                                 }
                             }).catch(function(err) {
-                                console.error('Error fetching edit form:', err);
+                                console.error('Error fetching edit form JSON:', err);
                                 window.location.href = link.href; // Fallback
                             });
                         }

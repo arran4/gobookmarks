@@ -2,11 +2,13 @@ package gobookmarks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func EditPagePage(w http.ResponseWriter, r *http.Request) error {
@@ -28,11 +30,11 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	data := struct {
-		*CoreData
-		Error string
-		Name  string
-		Text  string
-		Sha   string
+		*CoreData `json:"-"`
+		Error     string `json:"error"`
+		Name      string `json:"name"`
+		Text      string `json:"text"`
+		Sha       string `json:"sha"`
 	}{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
@@ -48,6 +50,11 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		}
 		data.Name = pageName
 		data.Text = pageText
+	}
+
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		return json.NewEncoder(w).Encode(data)
 	}
 
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editPage.gohtml", data); err != nil {
