@@ -1,4 +1,4 @@
-{{ if not $.IsPopup }}{{ template "head" $ }}{{ else }}{{ template "popupHead" $ }}{{ end }}
+{{ template "head" $ }}
     {{ if $.Error }}
         <p style="color: #FF0000">
             Error: {{ $.Error }}
@@ -17,4 +17,4 @@
     </form>
 
     {{ template "editNotes" $ }}
-{{ if not $.IsPopup }}{{ template "tail" $ }}{{ else }}{{ template "popupTail" $ }}{{ end }}
+{{ template "tail" $ }}

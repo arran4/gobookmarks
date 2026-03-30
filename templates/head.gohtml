@@ -12,6 +12,12 @@
         {{ end }}
         </head>
         <body{{if $.EditMode}} class="edit-mode"{{end}}{{if tab}} data-tab="{{tab}}"{{end}}>
+        {{ if $.IsPopup }}
+            <style type="text/css">
+                body { background-color: transparent; margin: 0; padding: 10px; }
+                textarea { width: 100% !important; height: 50vh !important; box-sizing: border-box; }
+            </style>
+        {{ else }}
                 <table border=0 id="layout">
                         <tr valign=top>
                                 <td width=200px id="nav">
@@ -68,4 +74,5 @@
                                                 <a href="/login">Login</a><br/>
                                         {{ end }}
                                 <td>
+        {{ end }}
 {{end}}
