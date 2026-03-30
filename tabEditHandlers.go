@@ -67,11 +67,7 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 		Sha:      sha,
 	}
 
-	tplName := "editTab.gohtml"
-	if r.URL.Query().Get("modal") == "1" {
-		tplName = "editTabForm"
-	}
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tplName, data); err != nil {
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editTab.gohtml", data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil

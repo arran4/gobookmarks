@@ -255,7 +255,6 @@
                         if (editModal && editModalContent) {
                             e.preventDefault();
                             var url = new URL(link.href, window.location.origin);
-                            url.searchParams.set('modal', '1');
 
                             fetch(url.toString(), {
                                 headers: {
@@ -264,13 +263,29 @@
                             }).then(function(res) {
                                 return res.text();
                             }).then(function(html) {
-                                editModalContent.innerHTML = html;
-                                editModal.showModal();
+                                var parser = new DOMParser();
+                                var doc = parser.parseFromString(html, 'text/html');
+                                var editForm = doc.querySelector('.edit-form');
 
-                                // Focus the first input or textarea
-                                var firstInput = editModalContent.querySelector('input:not([type="hidden"]), textarea');
-                                if (firstInput) {
-                                    firstInput.focus();
+                                if (editForm) {
+                                    editModalContent.innerHTML = '';
+
+                                    // Check if there are any error messages to display
+                                    var errorPara = doc.querySelector('p[style="color: #FF0000"]');
+                                    if (errorPara) {
+                                        editModalContent.appendChild(errorPara);
+                                    }
+
+                                    editModalContent.appendChild(editForm);
+                                    editModal.showModal();
+
+                                    // Focus the first input or textarea
+                                    var firstInput = editModalContent.querySelector('input:not([type="hidden"]), textarea');
+                                    if (firstInput) {
+                                        firstInput.focus();
+                                    }
+                                } else {
+                                    window.location.href = link.href; // Fallback if no form found
                                 }
                             }).catch(function(err) {
                                 console.error('Error fetching edit form:', err);
