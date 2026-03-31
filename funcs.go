@@ -221,10 +221,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
-					bookmark = ""
+					bookmark = defaultBookmarks
 				} else {
 					return nil, fmt.Errorf("bookmarkPages: %w", err)
 				}
@@ -250,10 +250,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
-					bookmark = ""
+					bookmark = defaultBookmarks
 				} else {
 					return nil, fmt.Errorf("bookmarkTabs: %w", err)
 				}
@@ -290,10 +290,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
-					bookmark = ""
+					bookmark = defaultBookmarks
 				} else {
 					return nil, fmt.Errorf("bookmarkTabsWithPages: %w", err)
 				}
@@ -332,10 +332,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
-					bookmark = ""
+					bookmark = defaultBookmarks
 				} else {
 					return ""
 				}
@@ -364,10 +364,10 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
-					bookmark = ""
+					bookmark = defaultBookmarks
 				} else {
 					return nil, fmt.Errorf("bookmarkColumns: %w", err)
 				}
