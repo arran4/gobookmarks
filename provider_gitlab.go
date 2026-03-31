@@ -200,11 +200,9 @@ func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client 
 		return "", err
 	}
 	if p.DefaultBranch != "" {
-		branch = p.DefaultBranch
-	} else {
-		branch = "main"
+		return p.DefaultBranch, nil
 	}
-	return branch, nil
+	return "main", nil
 }
 func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	c, err := GitLabProvider{}.client(token)

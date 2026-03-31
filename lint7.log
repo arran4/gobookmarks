@@ -1,0 +1,63 @@
+config.go:282:15: Error return value of `f.Close` is not checked (errcheck)
+	defer f.Close()
+	             ^
+config.go:297:13: Error return value of `os.Setenv` is not checked (errcheck)
+			os.Setenv(key, val)
+			         ^
+db.go:23:11: Error return value of `db.Close` is not checked (errcheck)
+		db.Close()
+		        ^
+db.go:28:11: Error return value of `db.Close` is not checked (errcheck)
+		db.Close()
+		        ^
+favicon_proxy_test.go:15:10: Error return value of `w.Write` is not checked (errcheck)
+		w.Write([]byte("<link rel='icon' href='/favicon.ico'>"))
+		       ^
+favicon_proxy_test.go:21:10: Error return value of `w.Write` is not checked (errcheck)
+		w.Write(icon)
+		       ^
+provider_sql.go:68:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:91:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:123:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:229:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+provider_sql.go:233:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+provider_sql.go:244:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+authHandlers.go:109:7: type `ErrorData` is unused (unused)
+	type ErrorData struct {
+	     ^
+autoRefreshPage.go:27:6: func `taskRedirectWithoutQueryArgs` is unused (unused)
+func taskRedirectWithoutQueryArgs(w http.ResponseWriter, r *http.Request) {
+     ^
+bookmark_model.go:567:6: func `indexAfterColumn` is unused (unused)
+func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
+     ^
+provider_access.go:55:6: func `setCachedBookmarks` is unused (unused)
+func setCachedBookmarks(user, ref, bookmarks, sha string) {
+     ^
+cmd/gobookmarks/db_users_command.go:60:16: Error return value of `db.Close` is not checked (errcheck)
+	defer db.Close()
+	              ^
+cmd/gobookmarks/help_command.go:43:19: Error return value of `(*flag.FlagSet).Parse` is not checked (errcheck)
+	c.FlagSet().Parse(args)
+	                 ^
+cmd/gobookmarks/serve.go:455:22: Error return value of `certFile.Close` is not checked (errcheck)
+	defer certFile.Close()
+	                    ^
+cmd/gobookmarks/serve.go:464:21: Error return value of `keyFile.Close` is not checked (errcheck)
+	defer keyFile.Close()
+	                   ^
+cmd/gobookmarks/test_verification_template_command.go:303:11: Error return value of `w.Write` is not checked (errcheck)
+			w.Write(output)
+			       ^

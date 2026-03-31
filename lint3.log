@@ -1,0 +1,93 @@
+config.go:283:15: Error return value of `f.Close` is not checked (errcheck)
+	defer f.Close()
+	             ^
+config.go:298:13: Error return value of `os.Setenv` is not checked (errcheck)
+			os.Setenv(key, val)
+			         ^
+db.go:23:11: Error return value of `db.Close` is not checked (errcheck)
+		db.Close()
+		        ^
+db.go:28:11: Error return value of `db.Close` is not checked (errcheck)
+		db.Close()
+		        ^
+favicon_proxy_test.go:15:10: Error return value of `w.Write` is not checked (errcheck)
+		w.Write([]byte("<link rel='icon' href='/favicon.ico'>"))
+		       ^
+favicon_proxy_test.go:21:10: Error return value of `w.Write` is not checked (errcheck)
+		w.Write(icon)
+		       ^
+provider_sql.go:68:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:91:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:123:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:229:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+provider_sql.go:233:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+provider_sql.go:244:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+cmd/gobookmarks/db_users_command.go:60:16: Error return value of `db.Close` is not checked (errcheck)
+	defer db.Close()
+	              ^
+cmd/gobookmarks/help_command.go:43:19: Error return value of `(*flag.FlagSet).Parse` is not checked (errcheck)
+	c.FlagSet().Parse(args)
+	                 ^
+cmd/gobookmarks/serve.go:455:22: Error return value of `certFile.Close` is not checked (errcheck)
+	defer certFile.Close()
+	                    ^
+cmd/gobookmarks/serve.go:464:21: Error return value of `keyFile.Close` is not checked (errcheck)
+	defer keyFile.Close()
+	                   ^
+cmd/gobookmarks/test_verification_template_command.go:306:11: Error return value of `w.Write` is not checked (errcheck)
+			w.Write(output)
+			       ^
+authHandlers.go:109:7: type `ErrorData` is unused (unused)
+	type ErrorData struct {
+	     ^
+autoRefreshPage.go:27:6: func `taskRedirectWithoutQueryArgs` is unused (unused)
+func taskRedirectWithoutQueryArgs(w http.ResponseWriter, r *http.Request) {
+     ^
+bookmark_model.go:567:6: func `indexAfterColumn` is unused (unused)
+func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
+     ^
+provider_access.go:55:6: func `setCachedBookmarks` is unused (unused)
+func setCachedBookmarks(user, ref, bookmarks, sha string) {
+     ^
+provider_github.go:53:12: SA1019: github.NewEnterpriseClient is deprecated: Use NewClient(httpClient).WithOptions(WithEnterpriseURLs(baseURL, uploadURL)) instead. (staticcheck)
+	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
+	          ^
+provider_gitlab.go:56:53: SA1019: gitlab.Client is deprecated: use gitlab.com/gitlab-org/api/client-go instead. See https://gitlab.com/gitlab-org/api/client-go (staticcheck)
+func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
+                                                    ^
+provider_gitlab.go:61:9: SA1019: gitlab.NewOAuthClient is deprecated: This module has been migrated to gitlab.com/gitlab-org/api/client-go. See https://gitlab.com/gitlab-org/api/client-go (staticcheck)
+	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
+	       ^
+provider_gitlab.go:185:82: SA1019: gitlab.Client is deprecated: use gitlab.com/gitlab-org/api/client-go instead. See https://gitlab.com/gitlab-org/api/client-go (staticcheck)
+func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
+                                                                                 ^
+config.go:7:2: SA1019: "io/ioutil" has been deprecated since Go 1.19: As of Go 1.16, the same functionality is now provided by package [io] or package [os], and those implementations should be preferred in new code. See the specific function documentation for details. (staticcheck)
+	"io/ioutil"
+	^
+provider_github.go:153:99: SA4009: argument branch is overwritten before first use (staticcheck)
+func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
+                                                                                                  ^
+provider_github.go:163:3: SA4009(related information): assignment to branch (staticcheck)
+		branch = *rep.DefaultBranch
+		^
+provider_gitlab.go:203:3: SA4009(related information): assignment to branch (staticcheck)
+		branch = p.DefaultBranch
+		^
+cmd/gobookmarks/serve.go:480:4: SA4020: unreachable case clause: net/http.Handler will always match before net/http.HandlerFunc (staticcheck)
+			case http.HandlerFunc:
+			^
+cmd/gobookmarks/test_verification_template_command.go:152:9: SA9003: empty branch (staticcheck)
+	} else {
+	       ^

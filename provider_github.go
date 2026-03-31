@@ -151,6 +151,9 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 var commitAuthor = &github.CommitAuthor{Name: SP("Gobookmarks"), Email: SP("Gobookmarks@arran.net.au")}
 
 func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
+	if branch != "" {
+		return branch, nil
+	}
 	rep, resp, err := client.Repositories.Get(ctx, user, Config.GetRepoName())
 	if resp != nil && resp.StatusCode == 404 {
 		return "", ErrRepoNotFound
@@ -160,11 +163,9 @@ func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, clien
 		return "", fmt.Errorf("Repositories.Get: %w", err)
 	}
 	if rep.DefaultBranch != nil {
-		branch = *rep.DefaultBranch
-	} else {
-		branch = "main"
+		return *rep.DefaultBranch, nil
 	}
-	return branch, nil
+	return "main", nil
 }
 
 func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {

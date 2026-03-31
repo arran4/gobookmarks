@@ -1,0 +1,347 @@
+config.go:283:15: Error return value of `f.Close` is not checked (errcheck)
+	defer f.Close()
+	             ^
+config.go:298:13: Error return value of `os.Setenv` is not checked (errcheck)
+			os.Setenv(key, val)
+			         ^
+db.go:23:11: Error return value of `db.Close` is not checked (errcheck)
+		db.Close()
+		        ^
+db.go:28:11: Error return value of `db.Close` is not checked (errcheck)
+		db.Close()
+		        ^
+favicon_proxy_test.go:15:10: Error return value of `w.Write` is not checked (errcheck)
+		w.Write([]byte("<link rel='icon' href='/favicon.ico'>"))
+		       ^
+favicon_proxy_test.go:21:10: Error return value of `w.Write` is not checked (errcheck)
+		w.Write(icon)
+		       ^
+provider_sql.go:68:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:91:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:123:18: Error return value of `rows.Close` is not checked (errcheck)
+	defer rows.Close()
+	                ^
+provider_sql.go:229:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+provider_sql.go:233:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+provider_sql.go:244:14: Error return value of `tx.Rollback` is not checked (errcheck)
+		tx.Rollback()
+		           ^
+categoryAddHandlers.go:51:28: unused-parameter: parameter 'w' seems to be unused, consider removing or renaming it as _ (revive)
+func CategoryAddSaveAction(w http.ResponseWriter, r *http.Request) error {
+                           ^
+bookmarkActionHandlers.go:58:32: unused-parameter: parameter 'w' seems to be unused, consider removing or renaming it as _ (revive)
+func BookmarksEditCreateAction(w http.ResponseWriter, r *http.Request) error {
+                               ^
+bookmarkActionHandlers.go:76:29: unused-parameter: parameter 'w' seems to be unused, consider removing or renaming it as _ (revive)
+func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
+                            ^
+provider_git.go:30:27: unused-parameter: parameter 'clientID' seems to be unused, consider removing or renaming it as _ (revive)
+func (GitProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
+                          ^
+data_test.go:64:26: unused-parameter: parameter 'tab' seems to be unused, consider removing or renaming it as _ (revive)
+		"tabPath":        func(tab int) string { return "/" },
+		                       ^
+provider_git.go:31:32: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (GitProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
+                               ^
+provider_git.go:51:28: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (GitProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+                           ^
+provider_git.go:71:32: unused-parameter: parameter 'ctx' seems to be unused, consider removing or renaming it as _ (revive)
+func (GitProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+                               ^
+favicon_proxy_test.go:11:23: unused-parameter: parameter 't' seems to be unused, consider removing or renaming it as _ (revive)
+func newFaviconServer(t *testing.T, icon []byte) (*httptest.Server, *int) {
+                      ^
+favicon_proxy_test.go:14:50: unused-parameter: parameter 'r' seems to be unused, consider removing or renaming it as _ (revive)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	                                                ^
+favicon_proxy_test.go:17:61: unused-parameter: parameter 'r' seems to be unused, consider removing or renaming it as _ (revive)
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+	                                                           ^
+provider_sql.go:53:30: unused-parameter: parameter 'clientID' seems to be unused, consider removing or renaming it as _ (revive)
+func (p *SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
+                             ^
+provider_sql.go:58:65: unused-parameter: parameter 'token' seems to be unused, consider removing or renaming it as _ (revive)
+func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+                                                                ^
+provider_sql.go:81:69: unused-parameter: parameter 'token' seems to be unused, consider removing or renaming it as _ (revive)
+func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+                                                                    ^
+provider_sql.go:107:68: unused-parameter: parameter 'token' seems to be unused, consider removing or renaming it as _ (revive)
+func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+                                                                   ^
+authHandlers.go:1:1: package-comments: should have a package comment (revive)
+package gobookmarks
+^
+categoryAddHandlers.go:11:1: exported: exported function AddCategoryPage should have comment or be unexported (revive)
+func AddCategoryPage(w http.ResponseWriter, r *http.Request) error {
+^
+tabEditHandlers.go:13:1: exported: exported function EditTabPage should have comment or be unexported (revive)
+func EditTabPage(w http.ResponseWriter, r *http.Request) error {
+^
+provider_github.go:175:127: empty-block: this block is empty, you can remove it (revive)
+		if e, ok := err.(*github.ErrorResponse); ok && e.Response != nil && e.Response.StatusCode == http.StatusUnprocessableEntity {
+			// repository already exists
+		} else {
+bookmarkActionHandlers.go:12:1: exported: exported function BookmarksEditSaveAction should have comment or be unexported (revive)
+func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
+^
+provider_github.go:26:1: exported: exported method GitHubProvider.Name should have comment or be unexported (revive)
+func (GitHubProvider) Name() string { return "github" }
+^
+provider_git.go:341:9: indent-error-flow: if block ends with a return statement, so drop this else and outdent its block (move short variable declaration to its own line if necessary) (revive)
+	} else {
+		return false, err
+	}
+provider_github.go:28:1: exported: exported method GitHubProvider.DefaultServer should have comment or be unexported (revive)
+func (GitHubProvider) DefaultServer() string { return "https://github.com" }
+^
+provider_git.go:28:1: exported: exported method GitProvider.Name should have comment or be unexported (revive)
+func (GitProvider) Name() string                                                     { return "git" }
+^
+provider_github.go:30:1: exported: exported method GitHubProvider.Config should have comment or be unexported (revive)
+func (GitHubProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
+^
+provider_github.go:60:1: exported: exported method GitHubProvider.CurrentUser should have comment or be unexported (revive)
+func (p GitHubProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
+^
+provider_git.go:29:1: exported: exported method GitProvider.DefaultServer should have comment or be unexported (revive)
+func (GitProvider) DefaultServer() string                                            { return "" }
+^
+provider_github.go:73:1: exported: exported method GitHubProvider.GetTags should have comment or be unexported (revive)
+func (p GitHubProvider) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+^
+provider_github.go:86:1: exported: exported method GitHubProvider.GetBranches should have comment or be unexported (revive)
+func (p GitHubProvider) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+^
+pageEditHandlers.go:12:1: exported: exported function EditPagePage should have comment or be unexported (revive)
+func EditPagePage(w http.ResponseWriter, r *http.Request) error {
+^
+pointer_utils.go:3:1: exported: exported function SP should have comment or be unexported (revive)
+func SP(s string) *string { return &s }
+^
+bookmark_methods_test.go:122:11: var-declaration: should omit type BookmarkList from declaration of var list; it will be inferred from the right-hand side (revive)
+	var list BookmarkList = tabs
+	         ^
+provider_github.go:99:1: exported: exported method GitHubProvider.GetCommits should have comment or be unexported (revive)
+func (p GitHubProvider) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+^
+bookmark_methods_test.go:136:11: var-declaration: should omit type BookmarkList from declaration of var list; it will be inferred from the right-hand side (revive)
+	var list BookmarkList = tabs
+	         ^
+pointer_utils.go:4:1: exported: exported function BP should have comment or be unexported (revive)
+func BP(b bool) *bool     { return &b }
+^
+provider_github.go:124:1: exported: exported method GitHubProvider.GetBookmarks should have comment or be unexported (revive)
+func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+^
+provider_sql.go:15:2: blank-imports: a blank import should be only in a main or test package, or have a comment justifying it (revive)
+	_ "github.com/go-sql-driver/mysql"
+	^
+bookmark_model.go:10:2: var-naming: struct field Url should be URL (revive)
+	Url  string
+	^
+categoryEditHandlers.go:11:1: exported: exported function EditCategoryPage should have comment or be unexported (revive)
+func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
+^
+bookmark_methods_test.go:146:11: var-declaration: should omit type BookmarkList from declaration of var list; it will be inferred from the right-hand side (revive)
+	var list BookmarkList = tabs
+	         ^
+autoRefreshPage.go:8:1: exported: exported function TaskDoneAutoRefreshPage should have comment or be unexported (revive)
+func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) error {
+^
+provider_sql.go:21:6: exported: exported type SQLProvider should have comment or be unexported (revive)
+type SQLProvider struct {
+     ^
+provider_github.go:170:1: exported: exported method GitHubProvider.CreateRepo should have comment or be unexported (revive)
+func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
+^
+bookmark_sha.go:13:1: exported: exported method BookmarkEntry.Sha should have comment or be unexported (revive)
+func (e *BookmarkEntry) Sha() string { return shaOf(e.String()) }
+^
+config.go:34:2: var-naming: struct field CssColumns should be CSSColumns (revive)
+	CssColumns           bool     `json:"css_columns"`
+	^
+data_embedded.go:41:1: exported: exported function GetMainCSSData should have comment or be unexported (revive)
+func GetMainCSSData() []byte {
+^
+bookmark_model.go:407:1: receiver-naming: receiver name tabs should be consistent with previous receiver name b for BookmarkList (revive)
+func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destPage *BookmarkPage, destCol int) error {
+	type loc struct {
+		block  *BookmarkBlock
+		column *BookmarkColumn
+		cat    *BookmarkCategory
+		colIdx int
+		catIdx int
+	}
+	var cats []loc
+	idx := 0
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			for _, b := range p.Blocks {
+				for ci, col := range b.Columns {
+					for cj, c := range col.Categories {
+						cats = append(cats, loc{b, col, c, ci, cj})
+						c.Index = idx
+						idx++
+					}
+				}
+			}
+		}
+	}
+
+	if fromIndex < 0 || fromIndex >= len(cats) {
+		return fmt.Errorf("category index %d not found", fromIndex)
+	}
+	var beforeLoc *loc
+	if toIndex >= 0 && toIndex < len(cats) {
+		beforeLoc = &cats[toIndex]
+	}
+
+	src := cats[fromIndex]
+	// remove from source column
+	src.column.Categories = append(src.column.Categories[:src.catIdx], src.column.Categories[src.catIdx+1:]...)
+	if beforeLoc != nil && toIndex > fromIndex && src.column == beforeLoc.column {
+		beforeLoc.catIdx--
+	}
+
+	var destColumn *BookmarkColumn
+	if beforeLoc == nil { // append to end or specified column
+		destBlock := cats[len(cats)-1].block
+		destColObj := destBlock.Columns[len(destBlock.Columns)-1]
+		destColIdx := len(destBlock.Columns) - 1
+		if destPage != nil {
+			destBlock = destPage.Blocks[len(destPage.Blocks)-1]
+			if destCol >= len(destBlock.Columns) {
+				destCol = len(destBlock.Columns) - 1
+			}
+			destColObj = destBlock.Columns[destCol]
+			destColIdx = destCol
+		}
+		if newColumn {
+			destColIdx++
+			newCol := &BookmarkColumn{}
+			destBlock.Columns = append(destBlock.Columns, nil)
+			copy(destBlock.Columns[destColIdx+1:], destBlock.Columns[destColIdx:])
+			destBlock.Columns[destColIdx] = newCol
+			destColObj = newCol
+		}
+		destColObj.Categories = append(destColObj.Categories, src.cat)
+		destColumn = destColObj
+	} else {
+		dest := *beforeLoc
+		destBlock := dest.block
+		destColObj := dest.column
+		destColIdx := dest.colIdx
+		insertIdx := dest.catIdx
+		if newColumn {
+			destColIdx++
+			newCol := &BookmarkColumn{}
+			destBlock.Columns = append(destBlock.Columns, nil)
+			copy(destBlock.Columns[destColIdx+1:], destBlock.Columns[destColIdx:])
+			destBlock.Columns[destColIdx] = newCol
+			destColObj = newCol
+			insertIdx = 0
+		}
+		destColObj.InsertCategory(insertIdx, src.cat)
+		destColumn = destColObj
+	}
+
+	if len(src.column.Categories) == 0 && src.column != destColumn {
+		src.block.Columns = append(src.block.Columns[:src.colIdx], src.block.Columns[src.colIdx+1:]...)
+	}
+
+	// reindex
+	idx = 0
+	for _, t := range tabs {
+		for _, p := range t.Pages {
+			for _, b := range p.Blocks {
+				for _, col := range b.Columns {
+					for _, c := range col.Categories {
+						c.Index = idx
+						idx++
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+provider_sql.go:51:1: exported: exported method SQLProvider.Name should have comment or be unexported (revive)
+func (p *SQLProvider) Name() string                                                     { return "sql" }
+^
+bookmark_sha.go:15:1: exported: exported method BookmarkCategory.Sha should have comment or be unexported (revive)
+func (c *BookmarkCategory) Sha() string { return shaOf(c.String()) }
+^
+provider_github.go:197:1: exported: exported method GitHubProvider.RepoExists should have comment or be unexported (revive)
+func (p GitHubProvider) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+^
+authHandlers.go:109:7: type `ErrorData` is unused (unused)
+	type ErrorData struct {
+	     ^
+autoRefreshPage.go:27:6: func `taskRedirectWithoutQueryArgs` is unused (unused)
+func taskRedirectWithoutQueryArgs(w http.ResponseWriter, r *http.Request) {
+     ^
+bookmark_model.go:567:6: func `indexAfterColumn` is unused (unused)
+func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
+     ^
+provider_access.go:55:6: func `setCachedBookmarks` is unused (unused)
+func setCachedBookmarks(user, ref, bookmarks, sha string) {
+     ^
+funcs.go:224:8: ineffectual assignment to bookmark (ineffassign)
+			var bookmark = defaultBookmarks
+			    ^
+funcs.go:253:8: ineffectual assignment to bookmark (ineffassign)
+			var bookmark = defaultBookmarks
+			    ^
+funcs.go:293:8: ineffectual assignment to bookmark (ineffassign)
+			var bookmark = defaultBookmarks
+			    ^
+provider_github.go:53:12: SA1019: github.NewEnterpriseClient is deprecated: Use NewClient(httpClient).WithOptions(WithEnterpriseURLs(baseURL, uploadURL)) instead. (staticcheck)
+	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
+	          ^
+provider_gitlab.go:56:53: SA1019: gitlab.Client is deprecated: use gitlab.com/gitlab-org/api/client-go instead. See https://gitlab.com/gitlab-org/api/client-go (staticcheck)
+func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
+                                                    ^
+provider_gitlab.go:61:9: SA1019: gitlab.NewOAuthClient is deprecated: This module has been migrated to gitlab.com/gitlab-org/api/client-go. See https://gitlab.com/gitlab-org/api/client-go (staticcheck)
+	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
+	       ^
+config.go:7:2: SA1019: "io/ioutil" has been deprecated since Go 1.19: As of Go 1.16, the same functionality is now provided by package [io] or package [os], and those implementations should be preferred in new code. See the specific function documentation for details. (staticcheck)
+	"io/ioutil"
+	^
+provider_github.go:153:99: SA4009: argument branch is overwritten before first use (staticcheck)
+func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
+                                                                                                  ^
+provider_github.go:163:3: SA4009(related information): assignment to branch (staticcheck)
+		branch = *rep.DefaultBranch
+		^
+provider_gitlab.go:203:3: SA4009(related information): assignment to branch (staticcheck)
+		branch = p.DefaultBranch
+		^
+cmd/gobookmarks/db_users_command.go:60:16: Error return value of `db.Close` is not checked (errcheck)
+	defer db.Close()
+	              ^
+cmd/gobookmarks/help_command.go:43:19: Error return value of `(*flag.FlagSet).Parse` is not checked (errcheck)
+	c.FlagSet().Parse(args)
+	                 ^
+cmd/gobookmarks/serve.go:455:22: Error return value of `certFile.Close` is not checked (errcheck)
+	defer certFile.Close()
+	                    ^
+cmd/gobookmarks/serve.go:464:21: Error return value of `keyFile.Close` is not checked (errcheck)
+	defer keyFile.Close()
+	                   ^
+cmd/gobookmarks/test_verification_template_command.go:306:11: Error return value of `w.Write` is not checked (errcheck)
+			w.Write(output)
+			       ^
+cmd/gobookmarks/serve.go:480:4: SA4020: unreachable case clause: net/http.Handler will always match before net/http.HandlerFunc (staticcheck)
+			case http.HandlerFunc:
+			^
