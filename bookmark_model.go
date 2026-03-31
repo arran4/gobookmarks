@@ -563,20 +563,3 @@ func FindPageBySha(tabs BookmarkList, sha string) *BookmarkPage {
 	return nil
 }
 
-// indexAfterColumn returns the global index after the last category in the specified column.
-func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
-	idx := 0
-	for _, t := range tabs {
-		for _, p := range t.Pages {
-			for _, b := range p.Blocks {
-				for ci, col := range b.Columns {
-					idx += len(col.Categories)
-					if p == page && ci == colIdx {
-						return idx
-					}
-				}
-			}
-		}
-	}
-	return idx
-}
