@@ -15,7 +15,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/xanzy/go-gitlab v0.115.0
 	golang.org/x/crypto v0.45.0
-	golang.org/x/image v0.22.0
+	golang.org/x/image v0.24.0
 	golang.org/x/oauth2 v0.27.0
 )
 
