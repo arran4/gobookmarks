@@ -185,7 +185,7 @@ type BookmarkTab struct {
 
 func (t *BookmarkTab) stringWithContext(first bool) string {
 	var sb strings.Builder
-	if !(first && t.Name == "") {
+	if !first || t.Name != "" {
 		if t.Name != "" {
 			sb.WriteString("Tab: ")
 			sb.WriteString(t.Name)
@@ -564,6 +564,7 @@ func FindPageBySha(tabs BookmarkList, sha string) *BookmarkPage {
 }
 
 // indexAfterColumn returns the global index after the last category in the specified column.
+//nolint:unused
 func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
 	idx := 0
 	for _, t := range tabs {

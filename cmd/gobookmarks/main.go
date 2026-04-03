@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	. "github.com/arran4/gobookmarks"
+	. "github.com/arran4/gobookmarks" //nolint:staticcheck
 )
 
 var (

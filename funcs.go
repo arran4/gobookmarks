@@ -221,7 +221,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			bookmark := defaultBookmarks
+			_ = bookmark
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -250,7 +251,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			bookmark := defaultBookmarks
+			_ = bookmark
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -290,7 +292,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			bookmark := defaultBookmarks
+			_ = bookmark
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -332,7 +335,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			bookmark := defaultBookmarks
+			_ = bookmark
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -364,7 +368,8 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			bookmark := defaultBookmarks
+			_ = bookmark
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""

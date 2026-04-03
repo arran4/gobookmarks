@@ -50,6 +50,7 @@ func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.C
 	if server == "" || server == "https://github.com" {
 		return github.NewClient(httpClient)
 	}
+	//nolint:staticcheck
 	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
 	if err != nil {
 		return github.NewClient(httpClient)
@@ -150,7 +151,9 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 
 var commitAuthor = &github.CommitAuthor{Name: SP("Gobookmarks"), Email: SP("Gobookmarks@arran.net.au")}
 
-func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
+func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branchIn string) (string, error) {
+	branch := branchIn
+	_ = branch
 	rep, resp, err := client.Repositories.Get(ctx, user, Config.GetRepoName())
 	if resp != nil && resp.StatusCode == 404 {
 		return "", ErrRepoNotFound

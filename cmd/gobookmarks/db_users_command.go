@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	. "github.com/arran4/gobookmarks"
+	. "github.com/arran4/gobookmarks" //nolint:staticcheck
 )
 
 type DbUsersCommand struct {
@@ -57,14 +57,14 @@ func (c *DbUsersCommand) Execute(args []string) error {
 		printHelp(c, err)
 		return err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows, err := db.Query("SELECT user FROM passwords")
 	if err != nil {
 		printHelp(c, err)
 		return err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var user string

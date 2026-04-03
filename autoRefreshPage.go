@@ -24,6 +24,7 @@ func TaskDoneAutoRefreshPage(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+//nolint:unused
 func taskRedirectWithoutQueryArgs(w http.ResponseWriter, r *http.Request) {
 	u := r.URL
 	u.RawQuery = ""
