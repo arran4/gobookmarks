@@ -53,6 +53,7 @@ func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 	}
 }
 
+//nolint:staticcheck
 func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
 	server := Config.GitlabServer
 	if server == "" {
@@ -182,7 +183,9 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	return string(data), f.LastCommitID, nil
 }
 
-func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
+//nolint:staticcheck
+func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branchIn string) (string, error) {
+	branch := branchIn
 	p, _, err := client.Projects.GetProject(user+"/"+Config.GetRepoName(), nil)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {

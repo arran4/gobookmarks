@@ -452,7 +452,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create cert.pem file: %v", err)
 	}
-	defer certFile.Close()
+	defer func() { _ = certFile.Close() }()
 	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		log.Fatalf("Failed to write data to cert.pem: %v", err)
 	}
@@ -461,7 +461,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create key.pem file: %v", err)
 	}
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 	privBytes, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		log.Fatalf("Failed to marshal private key: %v", err)
@@ -475,10 +475,10 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, each := range chain {
 			switch each := each.(type) {
-			case http.Handler:
-				each.ServeHTTP(w, r)
 			case http.HandlerFunc:
 				each(w, r)
+			case http.Handler:
+				each.ServeHTTP(w, r)
 			case func(http.ResponseWriter, *http.Request):
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request) error:

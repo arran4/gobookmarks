@@ -52,6 +52,7 @@ func getCachedBookmarks(user, ref string) (string, string, bool) {
 	return entry.bookmarks, entry.sha, true
 }
 
+//nolint:unused
 func setCachedBookmarks(user, ref, bookmarks, sha string) {
 	key := cacheKey(user, ref)
 	bookmarksCache.Lock()
