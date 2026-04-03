@@ -304,10 +304,10 @@ https://example.com Example Link
 		})
 		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/css")
-			w.Write(GetMainCSSData())
+			_, _ = w.Write(GetMainCSSData())
 		})
 		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-			w.Write(GetFavicon())
+			_, _ = w.Write(GetFavicon())
 		})
 		// Also proxy/favicon if possible, but that might require internet or network
 		mux.HandleFunc("/proxy/favicon", func(w http.ResponseWriter, r *http.Request) {

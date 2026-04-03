@@ -153,6 +153,7 @@ var commitAuthor = &github.CommitAuthor{Name: SP("Gobookmarks"), Email: SP("Gobo
 
 func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branchIn string) (string, error) {
 	branch := branchIn
+	_ = branch
 	rep, resp, err := client.Repositories.Get(ctx, user, Config.GetRepoName())
 	if resp != nil && resp.StatusCode == 404 {
 		return "", ErrRepoNotFound

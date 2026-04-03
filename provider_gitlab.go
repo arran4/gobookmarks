@@ -186,6 +186,7 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 //nolint:staticcheck
 func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branchIn string) (string, error) {
 	branch := branchIn
+	_ = branch
 	p, _, err := client.Projects.GetProject(user+"/"+Config.GetRepoName(), nil)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
