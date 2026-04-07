@@ -231,7 +231,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			if bookmark == "" {
+			if err != nil && !errors.Is(err, ErrRepoNotFound) {
 				bookmark = defaultBookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
@@ -263,7 +263,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			if bookmark == "" {
+			if err != nil && !errors.Is(err, ErrRepoNotFound) {
 				bookmark = defaultBookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
@@ -306,7 +306,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			if bookmark == "" {
+			if err != nil && !errors.Is(err, ErrRepoNotFound) {
 				bookmark = defaultBookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
@@ -351,7 +351,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			if bookmark == "" {
+				if err != nil && !errors.Is(err, ErrRepoNotFound) {
 				bookmark = defaultBookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
@@ -386,7 +386,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-				if bookmark == "" {
+				if err != nil && !errors.Is(err, ErrRepoNotFound) {
 					bookmark = defaultBookmarks
 				}
 			tabsData := ParseBookmarks(bookmark)
