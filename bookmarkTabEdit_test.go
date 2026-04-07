@@ -27,20 +27,20 @@ func TestExtractTab(t *testing.T) {
 }
 
 func TestExtractTabError(t *testing.T) {
-        if _, err := ExtractTab(tabBookmarkText, "X"); err == nil {
-                t.Fatalf("expected error")
-        }
+	if _, err := ExtractTab(tabBookmarkText, "X"); err == nil {
+		t.Fatalf("expected error")
+	}
 }
 
 func TestExtractTabByIndex(t *testing.T) {
-        got, err := ExtractTabByIndex(tabBookmarkWithoutHeader, 0)
-        if err != nil {
-                t.Fatalf("unexpected err: %v", err)
-        }
-        expected := "Category: A\n--"
-        if got != expected {
-                t.Fatalf("expected %q got %q", expected, got)
-        }
+	got, err := ExtractTabByIndex(tabBookmarkWithoutHeader, 0)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	expected := "Category: A\n--"
+	if got != expected {
+		t.Fatalf("expected %q got %q", expected, got)
+	}
 }
 
 func TestReplaceTab(t *testing.T) {
@@ -55,20 +55,20 @@ func TestReplaceTab(t *testing.T) {
 }
 
 func TestAppendTab(t *testing.T) {
-        updated := AppendTab("Category: X", "New", "Category: Y")
-        expected := "Category: X\nTab: New\nCategory: Y\n"
-        if updated != expected {
-                t.Fatalf("expected %q got %q", expected, updated)
-        }
+	updated := AppendTab("Category: X", "New", "Category: Y")
+	expected := "Category: X\nTab: New\nCategory: Y\n"
+	if updated != expected {
+		t.Fatalf("expected %q got %q", expected, updated)
+	}
 }
 
 func TestReplaceTabByIndex(t *testing.T) {
-        updated, err := ReplaceTabByIndex(tabBookmarkWithoutHeader, 0, "", "Category: Z")
-        if err != nil {
-                t.Fatalf("unexpected err: %v", err)
-        }
-        expected := "Category: Z\nTab: Two\nCategory: B\n"
-        if updated != expected {
-                t.Fatalf("expected %q got %q", expected, updated)
-        }
+	updated, err := ReplaceTabByIndex(tabBookmarkWithoutHeader, 0, "", "Category: Z")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	expected := "Category: Z\nTab: Two\nCategory: B\n"
+	if updated != expected {
+		t.Fatalf("expected %q got %q", expected, updated)
+	}
 }

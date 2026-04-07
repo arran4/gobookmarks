@@ -53,12 +53,12 @@ func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 	}
 }
 
-func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
+func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) { //nolint:staticcheck
 	server := Config.GitlabServer
 	if server == "" {
 		server = "https://gitlab.com"
 	}
-	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
+	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server)) //nolint:staticcheck
 }
 
 func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
@@ -182,7 +182,7 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	return string(data), f.LastCommitID, nil
 }
 
-func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
+func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client) (string, error) { //nolint:staticcheck
 	p, _, err := client.Projects.GetProject(user+"/"+Config.GetRepoName(), nil)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {
@@ -200,11 +200,9 @@ func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client 
 		return "", err
 	}
 	if p.DefaultBranch != "" {
-		branch = p.DefaultBranch
-	} else {
-		branch = "main"
+		return p.DefaultBranch, nil
 	}
-	return branch, nil
+	return "main", nil
 }
 func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	c, err := GitLabProvider{}.client(token)
@@ -213,7 +211,7 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 	if branch == "" {
-		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c)
 		if err != nil {
 			log.Printf("gitlab UpdateBookmarks default branch: %v", err)
 			return err
@@ -259,7 +257,7 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 	if branch == "" {
-		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c)
 		if err != nil {
 			log.Printf("gitlab CreateBookmarks default branch: %v", err)
 			return err

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+
 	"log"
 	"os"
 	"path/filepath"
@@ -84,7 +84,6 @@ func (c Configuration) GetSessionName() string {
 	return "gobookmarks"
 }
 
-
 // LoadConfigFile loads configuration from the given path.
 // It returns the loaded Configuration, a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
@@ -93,7 +92,7 @@ func LoadConfigFile(path string) (Configuration, bool, error) {
 
 	log.Printf("attempting to load config from %s", path)
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("config file %s not found", path)
@@ -280,7 +279,7 @@ func LoadEnvFile(path string) error {
 		}
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -295,7 +294,7 @@ func LoadEnvFile(path string) error {
 		key := strings.TrimSpace(parts[0])
 		val := strings.TrimSpace(parts[1])
 		if os.Getenv(key) == "" {
-			os.Setenv(key, val)
+			_ = os.Setenv(key, val)
 		}
 	}
 	return scanner.Err()

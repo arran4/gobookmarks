@@ -12,13 +12,13 @@ func newFaviconServer(t *testing.T, icon []byte) (*httptest.Server, *int) {
 	hits := 0
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("<link rel='icon' href='/favicon.ico'>"))
+		_, _ = w.Write([]byte("<link rel='icon' href='/favicon.ico'>"))
 	})
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		hits++
 		w.Header().Set("Cache-Control", "max-age=1")
 		w.Header().Set("Content-Type", "image/png")
-		w.Write(icon)
+		_, _ = w.Write(icon)
 	})
 	return httptest.NewServer(mux), &hits
 }
