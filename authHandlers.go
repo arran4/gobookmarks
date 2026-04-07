@@ -106,11 +106,6 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 
 func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
-	type ErrorData struct {
-		*CoreData
-		Error string
-	}
-
 	session, err := getSession(w, r)
 	if session, err = sanitizeSession(w, r, session, err); err != nil {
 		return fmt.Errorf("session error: %w", err)

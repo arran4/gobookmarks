@@ -53,11 +53,13 @@ func (GitLabProvider) Config(clientID, clientSecret, redirectURL string) *oauth2
 	}
 }
 
+//nolint:staticcheck
 func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
 	server := Config.GitlabServer
 	if server == "" {
 		server = "https://gitlab.com"
 	}
+	//nolint:staticcheck
 	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
 }
 
@@ -182,6 +184,7 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	return string(data), f.LastCommitID, nil
 }
 
+//nolint:staticcheck
 func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
 	p, _, err := client.Projects.GetProject(user+"/"+Config.GetRepoName(), nil)
 	if err != nil {
@@ -200,11 +203,9 @@ func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client 
 		return "", err
 	}
 	if p.DefaultBranch != "" {
-		branch = p.DefaultBranch
-	} else {
-		branch = "main"
+		return p.DefaultBranch, nil
 	}
-	return branch, nil
+	return "main", nil
 }
 func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	c, err := GitLabProvider{}.client(token)

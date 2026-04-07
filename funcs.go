@@ -221,7 +221,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -230,6 +230,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			} else {
 				bookmark = bookmarks
+			}
+			if bookmark == "" {
+				bookmark = defaultBookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
 			idx := TabFromRequest(r)
@@ -250,7 +253,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -259,6 +262,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			} else {
 				bookmark = bookmarks
+			}
+			if bookmark == "" {
+				bookmark = defaultBookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
 			var tabs []TabInfo
@@ -290,7 +296,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -299,6 +305,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			} else {
 				bookmark = bookmarks
+			}
+			if bookmark == "" {
+				bookmark = defaultBookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
 			var tabs []TabWithPages
@@ -332,7 +341,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -341,6 +350,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			} else {
 				bookmark = bookmarks
+			}
+			if bookmark == "" {
+				bookmark = defaultBookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
 			idx := TabFromRequest(r)
@@ -364,7 +376,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -374,6 +386,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
+				if bookmark == "" {
+					bookmark = defaultBookmarks
+				}
 			tabsData := ParseBookmarks(bookmark)
 			var columns []*BookmarkColumn
 			for _, t := range tabsData {

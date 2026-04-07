@@ -50,6 +50,7 @@ func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.C
 	if server == "" || server == "https://github.com" {
 		return github.NewClient(httpClient)
 	}
+	//nolint:staticcheck
 	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
 	if err != nil {
 		return github.NewClient(httpClient)
@@ -160,11 +161,9 @@ func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, clien
 		return "", fmt.Errorf("Repositories.Get: %w", err)
 	}
 	if rep.DefaultBranch != nil {
-		branch = *rep.DefaultBranch
-	} else {
-		branch = "main"
+		return *rep.DefaultBranch, nil
 	}
-	return branch, nil
+	return "main", nil
 }
 
 func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
