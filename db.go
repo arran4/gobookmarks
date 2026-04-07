@@ -20,12 +20,12 @@ func OpenDB() (*sql.DB, error) {
 	}
 
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, NewSystemError("Database error", err)
 	}
 
 	if err := ensureSQLSchema(db); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, NewSystemError("Database error", fmt.Errorf("failed to ensure schema: %w", err))
 	}
 	return db, nil

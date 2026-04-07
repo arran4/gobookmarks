@@ -101,7 +101,7 @@ func ReplaceTabByIndex(bookmarks string, idx int, newName, newText string) (stri
 	end := starts[idx+1]
 
 	var replacement []string
-	includeHeader := !(idx == 0 && newName == "")
+	includeHeader := idx != 0 || newName != ""
 	if includeHeader {
 		if newName != "" {
 			replacement = append(replacement, "Tab: "+newName)

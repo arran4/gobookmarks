@@ -65,7 +65,7 @@ func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tags []*Tag
 	for rows.Next() {
@@ -88,7 +88,7 @@ func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var branches []*Branch
 	for rows.Next() {
@@ -120,7 +120,7 @@ func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2
 	if err != nil {
 		return nil, fmt.Errorf("failed to query history: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var commits []*Commit
 	for rows.Next() {

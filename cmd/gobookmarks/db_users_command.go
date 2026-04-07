@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	//nolint:revive,stylecheck
 	. "github.com/arran4/gobookmarks"
 )
 
@@ -57,7 +58,7 @@ func (c *DbUsersCommand) Execute(args []string) error {
 		printHelp(c, err)
 		return err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows, err := db.Query("SELECT user FROM passwords")
 	if err != nil {

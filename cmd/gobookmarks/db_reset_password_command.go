@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	//nolint:revive,stylecheck
 	. "github.com/arran4/gobookmarks"
 )
 

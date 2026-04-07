@@ -231,9 +231,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-			if err != nil && !errors.Is(err, ErrRepoNotFound) {
-				bookmark = defaultBookmarks
-			}
 			tabs := ParseBookmarks(bookmark)
 			idx := TabFromRequest(r)
 			if idx < 0 || idx >= len(tabs) {
@@ -262,9 +259,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			} else {
 				bookmark = bookmarks
-			}
-			if err != nil && !errors.Is(err, ErrRepoNotFound) {
-				bookmark = defaultBookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
 			var tabs []TabInfo
@@ -305,9 +299,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				}
 			} else {
 				bookmark = bookmarks
-			}
-			if err != nil && !errors.Is(err, ErrRepoNotFound) {
-				bookmark = defaultBookmarks
 			}
 			tabsData := ParseBookmarks(bookmark)
 			var tabs []TabWithPages
@@ -351,9 +342,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-				if err != nil && !errors.Is(err, ErrRepoNotFound) {
-				bookmark = defaultBookmarks
-			}
 			tabs := ParseBookmarks(bookmark)
 			idx := TabFromRequest(r)
 			if idx < 0 || idx >= len(tabs) {
@@ -386,9 +374,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			} else {
 				bookmark = bookmarks
 			}
-				if err != nil && !errors.Is(err, ErrRepoNotFound) {
-					bookmark = defaultBookmarks
-				}
 			tabsData := ParseBookmarks(bookmark)
 			var columns []*BookmarkColumn
 			for _, t := range tabsData {

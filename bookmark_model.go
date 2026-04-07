@@ -185,7 +185,7 @@ type BookmarkTab struct {
 
 func (t *BookmarkTab) stringWithContext(first bool) string {
 	var sb strings.Builder
-	if !(first && t.Name == "") {
+	if !first || t.Name != "" {
 		if t.Name != "" {
 			sb.WriteString("Tab: ")
 			sb.WriteString(t.Name)

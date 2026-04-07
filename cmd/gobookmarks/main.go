@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	//nolint:revive,stylecheck
 	. "github.com/arran4/gobookmarks"
 )
 
