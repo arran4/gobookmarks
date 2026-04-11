@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 )
 
 func init() {
@@ -15,19 +17,15 @@ func init() {
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 	t := template.New("").Funcs(funcs)
-	// When running `go test ./cmd/gobookmarks` the working dir is `./cmd/gobookmarks`
-	// so `./templates` will not resolve.
-	// But in normal `go build -tags live`, it runs from root. We need to handle both
-	// or fallback, but a typical go test -tags live uses a path relative to where it runs.
-	// the test command might be running from within cmd/gobookmarks where there is ALSO a "templates" directory
-	// so we need to make sure we're getting the main web app templates which contain ".gohtml" files,
-	// rather than the CLI templates (.gotmpl).
-	fsPath := "./templates"
-	if _, err := os.Stat(fsPath + "/mainPage.gohtml"); os.IsNotExist(err) {
-		fsPath = "../../templates"
-	}
-	if _, err := os.Stat(fsPath + "/mainPage.gohtml"); os.IsNotExist(err) {
-		fsPath = "../templates"
+	// We use runtime.Caller to reliably find the project root from the location of this source file,
+	// regardless of whether we are running from a deeper directory (e.g. `go test ./cmd/gobookmarks`).
+	_, callerFile, _, ok := runtime.Caller(0)
+	var fsPath string
+	if ok {
+		fsPath = filepath.Join(filepath.Dir(callerFile), "templates")
+	} else {
+		// Fallback just in case, though this should rarely happen.
+		fsPath = "./templates"
 	}
 	fsys := os.DirFS(fsPath)
 	parsed, err := ParseFSRecursive(t, fsys, ".", ".gohtml")
@@ -38,7 +36,8 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 }
 
 func GetMainCSSData() []byte {
-	b, err := os.ReadFile("main.css")
+	_, callerFile, _, _ := runtime.Caller(0)
+	b, err := os.ReadFile(filepath.Join(filepath.Dir(callerFile), "main.css"))
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +45,8 @@ func GetMainCSSData() []byte {
 }
 
 func GetFavicon() []byte {
-	b, err := os.ReadFile("logo.png")
+	_, callerFile, _, _ := runtime.Caller(0)
+	b, err := os.ReadFile(filepath.Join(filepath.Dir(callerFile), "logo.png"))
 	if err != nil {
 		panic(err)
 	}
