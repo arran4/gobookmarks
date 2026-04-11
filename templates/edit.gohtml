@@ -4,6 +4,12 @@
             Error: {{ $.Error }}
         </p>
     {{ end }}
+    {{ template "editBookmarksForm" $ }}
+
+    {{ template "editNotes" $ }}
+{{ template "tail" $ }}
+
+{{ define "editBookmarksForm" }}
     <form method=post action="?{{if $.EditMode}}edit=1{{end}}" class="edit-form">
         <label for="code">Code</label><br/>
         <textarea id="code" name="text" rows="30">{{bookmarksOrEditBookmarks}}</textarea><br>
@@ -15,6 +21,4 @@
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
         <input type=hidden name="tab" value="{{tab}}" />
     </form>
-
-    {{ template "editNotes" $ }}
-{{ template "tail" $ }}
+{{ end }}

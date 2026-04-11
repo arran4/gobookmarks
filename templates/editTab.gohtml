@@ -2,6 +2,11 @@
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
+    {{ template "editTabForm" $ }}
+    {{ template "editNotes" $ }}
+{{ template "tail" $ }}
+
+{{ define "editTabForm" }}
     <form method=post action="?{{if $.EditMode}}edit=1&{{end}}name={{$.OldName}}" class="edit-form tab-form">
         <label for="name">Name</label>: <input id="name" type="text" name="name" value="{{$.Name}}" /><br>
         <label for="code">Tab Contents</label><br/>
@@ -15,5 +20,4 @@
         {{if tab}}<input type=hidden name="tab" value="{{tab}}" />{{end}}
         {{if page}}<input type=hidden name="page" value="{{page}}" />{{end}}
     </form>
-    {{ template "editNotes" $ }}
-{{ template "tail" $ }}
+{{ end }}

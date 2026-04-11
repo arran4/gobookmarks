@@ -18,6 +18,49 @@
                 {{ end }}
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
+                    var editModal = document.getElementById('edit-modal');
+                    var editModalContent = document.getElementById('edit-modal-content');
+                    var closeModalBtn = document.getElementById('close-modal');
+                    if (closeModalBtn && editModal) {
+                        closeModalBtn.addEventListener('click', function() {
+                            editModal.close();
+                            editModalContent.innerHTML = '';
+                        });
+                    }
+
+                    document.body.addEventListener('click', function(e) {
+                        var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit?edit=1"], a[href*="/editPage?edit=1"], a[href*="/editTab?edit=1"]');
+                        if (!target || target.id === 'toggle-edit' || !document.body.classList.contains('edit-mode')) return;
+
+                        // Only intercept if it's an edit-related link (has edit=1 or goes to an edit page)
+                        if (target.href && (target.href.includes('edit=1') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
+                            e.preventDefault();
+                            var url = new URL(target.href);
+                            url.searchParams.set('modal', '1');
+
+                            fetch(url.toString())
+                                .then(function(response) { return response.text(); })
+                                .then(function(html) {
+                                    if (editModal && editModalContent) {
+                                        editModalContent.innerHTML = html;
+                                        // Update the form action to point to the correct endpoint
+                                        // by removing modal=1 but keeping the rest of the target url
+                                        var form = editModalContent.querySelector('form');
+                                        if (form) {
+                                            var formActionUrl = new URL(target.href);
+                                            formActionUrl.searchParams.delete('modal');
+                                            form.action = formActionUrl.toString();
+                                        }
+                                        editModal.showModal();
+                                    }
+                                })
+                                .catch(function(err) {
+                                    console.error('Failed to load edit form in modal:', err);
+                                    window.location.href = target.href; // Fallback
+                                });
+                        }
+                    });
+
                     var toggleEdit = document.getElementById('toggle-edit');
                     var tabContent = document.getElementById('tab-content');
                     var tabPanels = tabContent ? Array.from(tabContent.querySelectorAll('.tab-panel')) : [];
@@ -566,6 +609,11 @@
                     });
                 });
                 </script>
+                <dialog id="edit-modal" style="padding: 1em; border: 1px solid #800000; border-radius: 4px; background: #FFFBF0; max-width: 95vw; max-height: 95vh; overflow-y: auto;">
+                    <button id="close-modal" style="float: right; margin-bottom: 1em; cursor: pointer;">Close</button>
+                    <div style="clear: both;"></div>
+                    <div id="edit-modal-content"></div>
+                </dialog>
                  </body>
 </html>
 {{end}}

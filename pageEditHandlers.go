@@ -50,7 +50,11 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		data.Text = pageText
 	}
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editPage.gohtml", data); err != nil {
+	tmplName := "editPage.gohtml"
+	if r.URL.Query().Get("modal") == "1" {
+		tmplName = "editPageForm"
+	}
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil

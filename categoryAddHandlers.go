@@ -42,7 +42,11 @@ func AddCategoryPage(w http.ResponseWriter, r *http.Request) error {
 		Col:      col,
 	}
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editCategory.gohtml", data); err != nil {
+	tmplName := "editCategory.gohtml"
+	if r.URL.Query().Get("modal") == "1" {
+		tmplName = "editCategoryForm"
+	}
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil

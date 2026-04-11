@@ -561,7 +561,11 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		var buf bytes.Buffer
-		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
+		tmplName := tmpl
+		if r.URL.Query().Get("modal") == "1" && tmpl == "edit.gohtml" {
+			tmplName = "editBookmarksForm"
+		}
+		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmplName, data)
 		if err == nil {
 			_, _ = io.Copy(w, &buf)
 			return

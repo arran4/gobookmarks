@@ -2,6 +2,11 @@
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
+    {{ template "editPageForm" $ }}
+    {{ template "editNotes" $ }}
+{{ template "tail" $ }}
+
+{{ define "editPageForm" }}
     <form method=post action="?{{if $.EditMode}}edit=1{{end}}" class="edit-form page-form">
         <label for="name">Name</label>: <input id="name" type="text" name="name" value="{{$.Name}}" /><br>
         <label for="code">Page Contents</label><br/>
@@ -15,5 +20,4 @@
         <input type=hidden name="tab" value="{{tab}}" />
         {{if page}}<input type=hidden name="page" value="{{page}}" />{{end}}
     </form>
-    {{ template "editNotes" $ }}
-{{ template "tail" $ }}
+{{ end }}
