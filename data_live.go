@@ -14,7 +14,8 @@ func init() {
 }
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
-	return template.Must(template.New("").Funcs(funcs).ParseFS(os.DirFS("./templates"), "*.gohtml"))
+	t := template.New("").Funcs(funcs)
+	return template.Must(ParseFSRecursive(t, os.DirFS("./templates"), ".", ".gohtml"))
 }
 
 func GetMainCSSData() []byte {

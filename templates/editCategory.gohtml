@@ -2,22 +2,6 @@
     {{ if $.Error }}
         <p style="color: #FF0000">Error: {{ $.Error }}</p>
     {{ end }}
-    {{ template "editCategoryForm" $ }}
+    {{ template "_partials/editCategoryForm.gohtml" $ }}
     {{ template "editNotes" $ }}
 {{ template "tail" $ }}
-
-{{ define "editCategoryForm" }}
-    <form method=post action="?{{if $.EditMode}}edit=1&{{end}}index={{$.Index}}" class="edit-form category-form">
-        <label for="code">Category</label><br/>
-        <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
-        <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
-        <input type=submit name="task" value="{{taskSave}}" />
-        <input type=submit name="task" value="{{taskSaveAndDone}}" />
-        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" /><br>
-        <input type=hidden name="ref" value="{{ref}}" />
-        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
-        <input type=hidden name="tab" value="{{tab}}" />
-        <input type=hidden name="page" value="{{page}}" />
-        <input type=hidden name="col" value="{{.Col}}" />
-    </form>
-{{ end }}

@@ -6,6 +6,7 @@ import (
 	"golang.org/x/oauth2"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
@@ -52,8 +53,8 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	tmplName := "editCategory.gohtml"
-	if r.URL.Query().Get("modal") == "1" {
-		tmplName = "editCategoryForm"
+	if strings.HasSuffix(r.URL.Path, "/modal") {
+		tmplName = "_partials/editCategoryForm.gohtml"
 	}
 	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)

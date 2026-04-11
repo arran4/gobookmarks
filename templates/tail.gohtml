@@ -36,7 +36,7 @@
                         if (target.href && (target.href.includes('edit=1') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
                             e.preventDefault();
                             var url = new URL(target.href);
-                            url.searchParams.set('modal', '1');
+                            url.pathname = url.pathname.replace(/\/$/, '') + '/modal';
 
                             fetch(url.toString())
                                 .then(function(response) { return response.text(); })

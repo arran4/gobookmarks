@@ -254,6 +254,14 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
+
+	// Modal routes mapping to shared forms
+	r.HandleFunc("/edit/modal", runTemplate("_partials/editBookmarksForm.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editCategory/modal", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addCategory/modal", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editTab/modal", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/edit/modal", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editPage/modal", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
@@ -548,6 +556,7 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+
 func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
@@ -561,11 +570,7 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		}
 
 		var buf bytes.Buffer
-		tmplName := tmpl
-		if r.URL.Query().Get("modal") == "1" && tmpl == "edit.gohtml" {
-			tmplName = "editBookmarksForm"
-		}
-		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmplName, data)
+		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
 		if err == nil {
 			_, _ = io.Copy(w, &buf)
 			return

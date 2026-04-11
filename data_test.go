@@ -171,7 +171,8 @@ func testFuncMap() template.FuncMap {
 }
 
 func TestExecuteTemplates(t *testing.T) {
-	tpl, err := template.New("").Funcs(testFuncMap()).ParseFS(os.DirFS("./templates"), "*.gohtml")
+	tpl := template.New("").Funcs(testFuncMap())
+	tpl, err := ParseFSRecursive(tpl, os.DirFS("./templates"), ".", ".gohtml")
 	if err != nil {
 		t.Fatalf("template parse error: %v", err)
 	}
