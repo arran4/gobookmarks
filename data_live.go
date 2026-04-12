@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 func init() {
@@ -17,16 +16,15 @@ func init() {
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 	t := template.New("").Funcs(funcs)
-	// We use runtime.Caller to reliably find the project root from the location of this source file,
-	// regardless of whether we are running from a deeper directory (e.g. `go test ./cmd/gobookmarks`).
-	_, callerFile, _, ok := runtime.Caller(0)
-	var fsPath string
-	if ok {
-		fsPath = filepath.Join(filepath.Dir(callerFile), "templates")
-	} else {
-		// Fallback just in case, though this should rarely happen.
-		log.Printf("Warning: runtime.Caller(0) failed to resolve source file path, falling back to './templates'")
-		fsPath = "./templates"
+	// When running `go test ./cmd/gobookmarks` the working dir is `./cmd/gobookmarks`
+	// so `./templates` might resolve to the CLI templates directory instead of the main one.
+	// We specifically look for mainPage.gohtml to ensure we found the web application templates.
+	fsPath := "./templates"
+	if _, err := os.Stat(filepath.Join(fsPath, "mainPage.gohtml")); os.IsNotExist(err) {
+		fsPath = "../../templates"
+	}
+	if _, err := os.Stat(filepath.Join(fsPath, "mainPage.gohtml")); os.IsNotExist(err) {
+		fsPath = "../templates"
 	}
 	fsys := os.DirFS(fsPath)
 	parsed, err := ParseFSRecursive(t, fsys, ".", ".gohtml")
@@ -37,12 +35,12 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 }
 
 func GetMainCSSData() []byte {
-	_, callerFile, _, ok := runtime.Caller(0)
 	fsPath := "main.css"
-	if ok {
-		fsPath = filepath.Join(filepath.Dir(callerFile), fsPath)
-	} else {
-		log.Printf("Warning: runtime.Caller(0) failed to resolve source file path, falling back to './main.css'")
+	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
+		fsPath = "../../main.css"
+	}
+	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
+		fsPath = "../main.css"
 	}
 	b, err := os.ReadFile(fsPath)
 	if err != nil {
@@ -52,12 +50,12 @@ func GetMainCSSData() []byte {
 }
 
 func GetFavicon() []byte {
-	_, callerFile, _, ok := runtime.Caller(0)
 	fsPath := "logo.png"
-	if ok {
-		fsPath = filepath.Join(filepath.Dir(callerFile), fsPath)
-	} else {
-		log.Printf("Warning: runtime.Caller(0) failed to resolve source file path, falling back to './logo.png'")
+	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
+		fsPath = "../../logo.png"
+	}
+	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
+		fsPath = "../logo.png"
 	}
 	b, err := os.ReadFile(fsPath)
 	if err != nil {
