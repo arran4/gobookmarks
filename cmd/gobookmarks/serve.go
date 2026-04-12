@@ -381,15 +381,12 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
-
-	errChan := make(chan error, 2)
-
 	// Start the HTTP server
 	go func() {
 		defer wg.Done()
 		fmt.Println("HTTP server listening on :8080...")
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errChan <- fmt.Errorf("HTTP server error: %w", err)
+			log.Fatalf("HTTP server error: %v", err)
 		}
 	}()
 
@@ -398,21 +395,11 @@ func (c *ServeCommand) Execute(args []string) error {
 		defer wg.Done()
 		fmt.Println("HTTPS server listening on :8443...")
 		if err := httpsServer.ListenAndServeTLS("cert.pem", "key.pem"); err != nil && err != http.ErrServerClosed {
-			errChan <- fmt.Errorf("HTTPS server error: %w", err)
+			log.Fatalf("HTTPS server error: %v", err)
 		}
 	}()
 
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	for err := range errChan {
-		if err != nil {
-			return err
-		}
-	}
-
+	wg.Wait()
 	return nil
 }
 
@@ -465,7 +452,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create cert.pem file: %v", err)
 	}
-	defer func() { _ = certFile.Close() }()
+	defer certFile.Close()
 	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		log.Fatalf("Failed to write data to cert.pem: %v", err)
 	}
@@ -474,7 +461,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create key.pem file: %v", err)
 	}
-	defer func() { _ = keyFile.Close() }()
+	defer keyFile.Close()
 	privBytes, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		log.Fatalf("Failed to marshal private key: %v", err)

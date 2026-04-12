@@ -65,7 +65,7 @@ func (p *SQLProvider) GetTags(ctx context.Context, user string, token *oauth2.To
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tags []*Tag
 	for rows.Next() {
@@ -88,7 +88,7 @@ func (p *SQLProvider) GetBranches(ctx context.Context, user string, token *oauth
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var branches []*Branch
 	for rows.Next() {
@@ -120,7 +120,7 @@ func (p *SQLProvider) GetCommits(ctx context.Context, user string, token *oauth2
 	if err != nil {
 		return nil, fmt.Errorf("failed to query history: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var commits []*Commit
 	for rows.Next() {
@@ -226,11 +226,11 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	var curSha sql.NullString
 	err = tx.QueryRowContext(ctx, "SELECT sha FROM branches WHERE user=? AND name=?", user, branch).Scan(&curSha)
 	if err != nil && err != sql.ErrNoRows {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 	if expectSHA != "" && curSha.Valid && curSha.String != expectSHA {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return errors.New("sha mismatch")
 	}
 
@@ -241,14 +241,14 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		"INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)",
 		user, newSha, "update", text, time.Now(),
 	); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
 	if _, err := tx.ExecContext(ctx,
 		"UPDATE bookmarks SET list=? WHERE user=?", text, user,
 	); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
@@ -260,7 +260,7 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 			VALUES (?, ?, ?)
 			ON DUPLICATE KEY UPDATE sha = VALUES(sha)
 		`, user, branch, newSha); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	case "sqlite3":
@@ -269,11 +269,11 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 			VALUES (?, ?, ?)
 			ON CONFLICT(user, name) DO UPDATE SET sha = excluded.sha
 		`, user, branch, newSha); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	default:
-		tx.Rollback()
+		_ = tx.Rollback()
 		return errors.New("unsupported connection provider")
 	}
 
@@ -301,7 +301,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
 			user,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	case "sqlite3":
@@ -309,11 +309,11 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 			"INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')",
 			user,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	default:
-		tx.Rollback()
+		_ = tx.Rollback()
 		return errors.New("unsupported connection provider")
 	}
 
@@ -324,14 +324,14 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		"INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)",
 		user, newSha, "create", text, time.Now(),
 	); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
 	if _, err := tx.ExecContext(ctx,
 		"UPDATE bookmarks SET list=? WHERE user=?", text, user,
 	); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
@@ -343,7 +343,7 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 			VALUES (?, ?, ?)
 			ON DUPLICATE KEY UPDATE sha=VALUES(sha)
 		`, user, branch, newSha); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	case "sqlite3":
@@ -352,11 +352,11 @@ func (p *SQLProvider) CreateBookmarks(ctx context.Context, user string, token *o
 			VALUES (?, ?, ?)
 			ON CONFLICT(user, name) DO UPDATE SET sha = excluded.sha
 		`, user, branch, newSha); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	default:
-		tx.Rollback()
+		_ = tx.Rollback()
 		return errors.New("unsupported connection provider")
 	}
 
@@ -381,7 +381,7 @@ func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2
 			"INSERT INTO bookmarks(user, list) VALUES(?, '') ON DUPLICATE KEY UPDATE list=list",
 			user,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 		// default branch
@@ -389,7 +389,7 @@ func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2
 			"INSERT INTO branches(user, name, sha) VALUES(?, 'main', '') ON DUPLICATE KEY UPDATE sha=sha",
 			user,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	case "sqlite3":
@@ -397,18 +397,18 @@ func (p *SQLProvider) CreateRepo(ctx context.Context, user string, token *oauth2
 			"INSERT OR IGNORE INTO bookmarks(user, list) VALUES(?, '')",
 			user,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 		if _, err := tx.ExecContext(ctx,
 			"INSERT OR IGNORE INTO branches(user, name, sha) VALUES(?, 'main', '')",
 			user,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	default:
-		tx.Rollback()
+		_ = tx.Rollback()
 		return errors.New("unsupported connection provider")
 	}
 

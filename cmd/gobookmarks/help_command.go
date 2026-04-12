@@ -40,7 +40,7 @@ func (c *HelpCommand) Execute(args []string) error {
 			}
 		}
 	}
-		_ = c.FlagSet().Parse(args)
+	c.FlagSet().Parse(args)
 	c.FlagSet().Usage = func() {}
 	printHelp(target, nil)
 	return nil

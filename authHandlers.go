@@ -29,7 +29,7 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("session.Save Error: %w", err)
 	}
 
-	data.CoreData.UserRef = ""
+	data.UserRef = ""
 
 	return nil
 }

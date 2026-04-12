@@ -303,14 +303,14 @@ https://example.com Example Link
 		// For serving, we need to handle main.css and favicon too, otherwise the page looks broken
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			_, _ = w.Write(output)
+			w.Write(output)
 		})
 		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/css")
-			_, _ = w.Write(GetMainCSSData())
+			w.Write(GetMainCSSData())
 		})
 		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-			_, _ = w.Write(GetFavicon())
+			w.Write(GetFavicon())
 		})
 		// Also proxy/favicon if possible, but that might require internet or network
 		mux.HandleFunc("/proxy/favicon", func(w http.ResponseWriter, r *http.Request) {

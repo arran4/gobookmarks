@@ -280,7 +280,7 @@ func LoadEnvFile(path string) error {
 		}
 		return err
 	}
-	defer func() { _ = f.Close() }()
+	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -295,7 +295,7 @@ func LoadEnvFile(path string) error {
 		key := strings.TrimSpace(parts[0])
 		val := strings.TrimSpace(parts[1])
 		if os.Getenv(key) == "" {
-			_ = os.Setenv(key, val)
+			os.Setenv(key, val)
 		}
 	}
 	return scanner.Err()
