@@ -163,6 +163,7 @@ func testFuncMap() template.FuncMap {
 		"taskSaveAndDone": func() string {
 			return TaskSaveAndDone
 		},
+		"taskSaveAndStopEditing": func() string { return TaskSaveAndStopEditing },
 	}
 }
 

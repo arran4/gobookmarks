@@ -483,6 +483,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return strings.TrimPrefix(u, "search:")
 		},
 		"taskSaveAndDone":        func() string { return TaskSaveAndDone },
+		"taskSaveAndStopEditing": func() string { return TaskSaveAndStopEditing },
 	}
 }
 
