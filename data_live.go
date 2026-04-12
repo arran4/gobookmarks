@@ -25,6 +25,7 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 		fsPath = filepath.Join(filepath.Dir(callerFile), "templates")
 	} else {
 		// Fallback just in case, though this should rarely happen.
+		log.Printf("Warning: runtime.Caller(0) failed to resolve source file path, falling back to './templates'")
 		fsPath = "./templates"
 	}
 	fsys := os.DirFS(fsPath)
@@ -36,8 +37,14 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 }
 
 func GetMainCSSData() []byte {
-	_, callerFile, _, _ := runtime.Caller(0)
-	b, err := os.ReadFile(filepath.Join(filepath.Dir(callerFile), "main.css"))
+	_, callerFile, _, ok := runtime.Caller(0)
+	fsPath := "main.css"
+	if ok {
+		fsPath = filepath.Join(filepath.Dir(callerFile), fsPath)
+	} else {
+		log.Printf("Warning: runtime.Caller(0) failed to resolve source file path, falling back to './main.css'")
+	}
+	b, err := os.ReadFile(fsPath)
 	if err != nil {
 		panic(err)
 	}
@@ -45,8 +52,14 @@ func GetMainCSSData() []byte {
 }
 
 func GetFavicon() []byte {
-	_, callerFile, _, _ := runtime.Caller(0)
-	b, err := os.ReadFile(filepath.Join(filepath.Dir(callerFile), "logo.png"))
+	_, callerFile, _, ok := runtime.Caller(0)
+	fsPath := "logo.png"
+	if ok {
+		fsPath = filepath.Join(filepath.Dir(callerFile), fsPath)
+	} else {
+		log.Printf("Warning: runtime.Caller(0) failed to resolve source file path, falling back to './logo.png'")
+	}
+	b, err := os.ReadFile(fsPath)
 	if err != nil {
 		panic(err)
 	}
