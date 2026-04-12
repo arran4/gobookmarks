@@ -381,12 +381,15 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
+
+	errChan := make(chan error, 2)
+
 	// Start the HTTP server
 	go func() {
 		defer wg.Done()
 		fmt.Println("HTTP server listening on :8080...")
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("HTTP server error: %v", err)
+			errChan <- fmt.Errorf("HTTP server error: %w", err)
 		}
 	}()
 
@@ -395,11 +398,21 @@ func (c *ServeCommand) Execute(args []string) error {
 		defer wg.Done()
 		fmt.Println("HTTPS server listening on :8443...")
 		if err := httpsServer.ListenAndServeTLS("cert.pem", "key.pem"); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("HTTPS server error: %v", err)
+			errChan <- fmt.Errorf("HTTPS server error: %w", err)
 		}
 	}()
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	for err := range errChan {
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
