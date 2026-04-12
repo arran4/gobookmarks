@@ -222,8 +222,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 			var bookmark string
-			var bookmark string
-			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
