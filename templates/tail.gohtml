@@ -49,6 +49,7 @@
                                         if (form) {
                                             var formActionUrl = new URL(target.href);
                                             formActionUrl.searchParams.delete('modal');
+                                            formActionUrl.searchParams.set('from_modal', '1');
                                             form.action = formActionUrl.toString();
                                         }
                                         editModal.showModal();
