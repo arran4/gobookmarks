@@ -37,28 +37,28 @@ type ServeCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 
-	GithubClientID   stringFlag
-	GithubSecret     stringFlag
-	GitlabClientID   stringFlag
-	GitlabSecret     stringFlag
-	ExternalURL      stringFlag
-	Namespace        stringFlag
-	Title            stringFlag
+	GithubClientID       stringFlag
+	GithubSecret         stringFlag
+	GitlabClientID       stringFlag
+	GitlabSecret         stringFlag
+	ExternalURL          stringFlag
+	Namespace            stringFlag
+	Title                stringFlag
 	FaviconCacheDir      stringFlag
 	FaviconCacheSize     stringFlag
 	FaviconMaxCacheCount stringFlag
 	CommitsPerPage       stringFlag
 	GithubServer         stringFlag
-	GitlabServer     stringFlag
-	LocalGitPath     stringFlag
-	DbProvider       stringFlag
-	DbConn           stringFlag
-	SessionKey       stringFlag
-	ProviderOrder    stringFlag
-	CssColumns       boolFlag
-	NoFooter         boolFlag
-	DevMode          boolFlag
-	DumpConfig       boolFlag
+	GitlabServer         stringFlag
+	LocalGitPath         stringFlag
+	DbProvider           stringFlag
+	DbConn               stringFlag
+	SessionKey           stringFlag
+	ProviderOrder        stringFlag
+	CssColumns           boolFlag
+	NoFooter             boolFlag
+	DevMode              boolFlag
+	DumpConfig           boolFlag
 }
 
 func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {

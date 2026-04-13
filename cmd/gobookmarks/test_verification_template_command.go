@@ -198,16 +198,16 @@ https://example.com Example Link
 			}
 			if indexName != "" {
 				href := TabHref(i, "") // No ref in static mode
-				lastSha := "" // No SHA in static mode
+				lastSha := ""          // No SHA in static mode
 				if len(t.Pages) > 0 {
 					lastSha = t.Pages[len(t.Pages)-1].Sha()
 				}
 				tabs = append(tabs, TabInfo{
-					Index: i,
-					Name: t.Name,
-					IndexName: indexName,
-					Href: href,
-					EditHref: AppendQueryParams(href, "edit", "1"),
+					Index:       i,
+					Name:        t.Name,
+					IndexName:   indexName,
+					Href:        href,
+					EditHref:    AppendQueryParams(href, "edit", "1"),
 					LastPageSha: lastSha,
 				})
 			}
@@ -230,14 +230,14 @@ https://example.com Example Link
 				}
 				tabs = append(tabs, TabWithPages{
 					TabInfo: TabInfo{
-						Index: i,
-						Name: t.Name,
-						IndexName: indexName,
-						Href: href,
-						EditHref: AppendQueryParams(href, "edit", "1"),
+						Index:       i,
+						Name:        t.Name,
+						IndexName:   indexName,
+						Href:        href,
+						EditHref:    AppendQueryParams(href, "edit", "1"),
 						LastPageSha: lastSha,
 					},
-					Pages:   t.Pages,
+					Pages: t.Pages,
 				})
 			}
 		}
@@ -261,7 +261,6 @@ https://example.com Example Link
 	// Override other funcs that might call DB/Git
 	funcs["loggedIn"] = func() (bool, error) { return true, nil }
 	funcs["showPages"] = func() bool { return true }
-
 
 	// Override additional functions for edit pages
 	funcs["bookmarksOrEditBookmarks"] = func() (string, error) {
@@ -303,14 +302,14 @@ https://example.com Example Link
 		// For serving, we need to handle main.css and favicon too, otherwise the page looks broken
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write(output)
+			_, _ = w.Write(output)
 		})
 		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/css")
-			w.Write(GetMainCSSData())
+			_, _ = w.Write(GetMainCSSData())
 		})
 		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-			w.Write(GetFavicon())
+			_, _ = w.Write(GetFavicon())
 		})
 		// Also proxy/favicon if possible, but that might require internet or network
 		mux.HandleFunc("/proxy/favicon", func(w http.ResponseWriter, r *http.Request) {

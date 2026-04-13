@@ -84,7 +84,6 @@ func (c Configuration) GetSessionName() string {
 	return "gobookmarks"
 }
 
-
 // LoadConfigFile loads configuration from the given path.
 // It returns the loaded Configuration, a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
@@ -295,7 +294,7 @@ func LoadEnvFile(path string) error {
 		key := strings.TrimSpace(parts[0])
 		val := strings.TrimSpace(parts[1])
 		if os.Getenv(key) == "" {
-			os.Setenv(key, val)
+			_ = os.Setenv(key, val)
 		}
 	}
 	return scanner.Err()

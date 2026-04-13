@@ -153,7 +153,7 @@ func TestSwitchTab(t *testing.T) {
 
 func TestMoveTab(t *testing.T) {
 	tabs := ParseBookmarks(switchTabInput)
-	var list BookmarkList = tabs
+	var list = tabs
 	list.MoveTab(0, 1)
 	got := list.String()
 	if got != switchTabExpected {
