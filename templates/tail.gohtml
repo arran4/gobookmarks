@@ -32,6 +32,11 @@
                         var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit?edit=1"], a[href*="/editPage?edit=1"], a[href*="/editTab?edit=1"]');
                         if (!target || target.id === 'toggle-edit' || !document.body.classList.contains('edit-mode')) return;
 
+                        // Do not intercept if Ctrl, Shift, Meta, or Alt is pressed (allow default browser behavior)
+                        if (e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) {
+                            return;
+                        }
+
                         // Only intercept if it's an edit-related link (has edit=1 or goes to an edit page)
                         if (target.href && (target.href.includes('edit=1') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
                             e.preventDefault();
@@ -51,6 +56,17 @@
                                             formActionUrl.searchParams.delete('modal');
                                             formActionUrl.searchParams.set('from_modal', '1');
                                             form.action = formActionUrl.toString();
+
+                                            // Restore "stay in edit mode" preference
+                                            var keepEditCb = form.querySelector('#keep_edit_mode');
+                                            if (keepEditCb) {
+                                                if (localStorage.getItem('keepEditMode') === '1') {
+                                                    keepEditCb.checked = true;
+                                                }
+                                                keepEditCb.addEventListener('change', function() {
+                                                    localStorage.setItem('keepEditMode', this.checked ? '1' : '0');
+                                                });
+                                            }
                                         }
                                         editModal.showModal();
                                     }

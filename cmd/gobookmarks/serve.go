@@ -626,9 +626,11 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 		tab := TabFromRequest(r)
 		if r.URL.Query().Get("from_modal") == "1" {
 			// When saving from a modal, we want to return the user to the main page or tab view
-			// instead of returning back to an edit page view.
-			// The modal logic adds "from_modal=1" to the form action before submission.
-			// The standard redirect below will redirect to TabPath(tab), which is correct.
+			// instead of returning back to an edit page view, unless keep_edit_mode is checked.
+			if r.PostFormValue("keep_edit_mode") == "1" {
+				// User explicitly requested to keep edit mode enabled
+				qs.Set("edit", "1")
+			}
 		} else if r.URL.Query().Get("edit") == "1" {
 			qs.Set("edit", "1")
 		}

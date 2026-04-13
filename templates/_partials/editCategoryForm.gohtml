@@ -3,7 +3,8 @@
         <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
         <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
 
-        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" /><br>
+        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
 
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
