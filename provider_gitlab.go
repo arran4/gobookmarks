@@ -216,7 +216,7 @@ func (GitLabProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 	if branch == "" {
-		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+			branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c)
 		if err != nil {
 			log.Printf("gitlab UpdateBookmarks default branch: %v", err)
 			return err
@@ -262,7 +262,7 @@ func (GitLabProvider) CreateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 	if branch == "" {
-		branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c, branch)
+			branch, err = GitLabProvider{}.getDefaultBranch(ctx, user, c)
 		if err != nil {
 			log.Printf("gitlab CreateBookmarks default branch: %v", err)
 			return err

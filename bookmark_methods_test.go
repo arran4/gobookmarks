@@ -119,7 +119,7 @@ func TestAddTab(t *testing.T) {
 	p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 	p.Blocks[0].Columns[0].AddCategory(&BookmarkCategory{Name: "C"})
 	nl.AddPage(p)
-	var list = tabs
+	list := BookmarkList(tabs)
 	list.AddTab(nl)
 	got := list.String()
 	if got != addTabExpected {
@@ -133,7 +133,7 @@ func TestInsertTab(t *testing.T) {
 	p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 	p.Blocks[0].Columns[0].AddCategory(&BookmarkCategory{Name: "X"})
 	nl.AddPage(p)
-	var list = tabs
+	list := BookmarkList(tabs)
 	list.InsertTab(1, nl)
 	got := list.String()
 	if got != insertTabExpected {
@@ -143,7 +143,7 @@ func TestInsertTab(t *testing.T) {
 
 func TestSwitchTab(t *testing.T) {
 	tabs := ParseBookmarks(switchTabInput)
-	var list = tabs
+	list := BookmarkList(tabs)
 	list.SwitchTabs(0, 1)
 	got := list.String()
 	if got != switchTabExpected {
@@ -153,7 +153,7 @@ func TestSwitchTab(t *testing.T) {
 
 func TestMoveTab(t *testing.T) {
 	tabs := ParseBookmarks(switchTabInput)
-	var list = tabs
+	list := BookmarkList(tabs)
 	list.MoveTab(0, 1)
 	got := list.String()
 	if got != switchTabExpected {
