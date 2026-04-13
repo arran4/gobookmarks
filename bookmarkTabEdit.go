@@ -121,24 +121,12 @@ func ReplaceTabByIndex(bookmarks string, idx int, newName, newText string) (stri
 	return strings.Join(result, "\n"), nil
 }
 
-// AppendTab appends a new tab with name and text to bookmarks.
-func AppendTab(bookmarks, name, text string) string {
-	if !strings.HasSuffix(bookmarks, "\n") {
-		bookmarks += "\n"
-	}
-	bookmarks += "Tab: " + name
+// PrependTab prepends a new tab with name and text to bookmarks.
+func PrependTab(bookmarks, name, text string) string {
+	newTab := "Tab: " + name
 	if text != "" {
-		if !strings.HasSuffix(text, "\n") {
-			text += "\n"
-		}
-		bookmarks += "\n" + strings.TrimSuffix(text, "\n")
+		newTab += "\n" + strings.TrimSpace(text)
 	}
-	if !strings.HasSuffix(bookmarks, "\n") {
-		bookmarks += "\n"
-	} else {
-		if !strings.HasSuffix(bookmarks, "\n\n") {
-			bookmarks += ""
-		}
-	}
-	return bookmarks
+	newTab += "\n\n"
+	return newTab + strings.TrimSpace(bookmarks) + "\n"
 }

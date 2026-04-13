@@ -113,7 +113,8 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 			return fmt.Errorf("ReplaceTabByIndex: %w", err)
 		}
 	} else if oldName == "" {
-		updated = AppendTab(currentBookmarks, name, text)
+		updated = PrependTab(currentBookmarks, name, text)
+		newIndex = 0 // since we prepended, the new item is at index 0
 	} else {
 		updated, err = ReplaceTab(currentBookmarks, oldName, name, text)
 		if err != nil {

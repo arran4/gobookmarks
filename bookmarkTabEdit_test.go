@@ -54,9 +54,9 @@ func TestReplaceTab(t *testing.T) {
 	}
 }
 
-func TestAppendTab(t *testing.T) {
-        updated := AppendTab("Category: X", "New", "Category: Y")
-        expected := "Category: X\nTab: New\nCategory: Y\n"
+func TestPrependTab(t *testing.T) {
+        updated := PrependTab("Category: X", "New", "Category: Y")
+        expected := "Tab: New\nCategory: Y\n\nCategory: X\n"
         if updated != expected {
                 t.Fatalf("expected %q got %q", expected, updated)
         }

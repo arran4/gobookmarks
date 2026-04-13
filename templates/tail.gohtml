@@ -67,6 +67,17 @@
                                                     localStorage.setItem('keepEditMode', this.checked ? '1' : '0');
                                                 });
                                             }
+
+                                            // Catch Ctrl+Enter inside the modal to submit the form
+                                            form.addEventListener('keydown', function(evt) {
+                                                if ((evt.ctrlKey || evt.metaKey) && evt.key === 'Enter') {
+                                                    evt.preventDefault();
+                                                    var submitBtn = form.querySelector('input[type="submit"][name="task"]');
+                                                    if (submitBtn) {
+                                                        submitBtn.click();
+                                                    }
+                                                }
+                                            });
                                         }
                                         editModal.showModal();
                                     }
