@@ -50,7 +50,7 @@ func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.C
 	if server == "" || server == "https://github.com" {
 		return github.NewClient(httpClient)
 	}
-	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
+		c, err := github.NewClient(httpClient).WithEnterpriseURLs(server+"/api/v3/", server+"/upload/v3/")
 	if err != nil {
 		return github.NewClient(httpClient)
 	}
@@ -150,7 +150,7 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 
 var commitAuthor = &github.CommitAuthor{Name: SP("Gobookmarks"), Email: SP("Gobookmarks@arran.net.au")}
 
-func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
+	func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client) (string, error) {
 	rep, resp, err := client.Repositories.Get(ctx, user, Config.GetRepoName())
 	if resp != nil && resp.StatusCode == 404 {
 		return "", ErrRepoNotFound
@@ -159,6 +159,8 @@ func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, clien
 		log.Printf("github getDefaultBranch: %v", err)
 		return "", fmt.Errorf("Repositories.Get: %w", err)
 	}
+
+		var branch string
 	if rep.DefaultBranch != nil {
 		branch = *rep.DefaultBranch
 	} else {
@@ -228,7 +230,7 @@ func (p GitHubProvider) createRef(ctx context.Context, user string, client *gith
 
 func (p GitHubProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 	client := p.client(ctx, token)
-	defaultBranch, err := p.getDefaultBranch(ctx, user, client, branch)
+	defaultBranch, err := p.getDefaultBranch(ctx, user, client)
 	if err != nil {
 		return err
 	}
@@ -283,7 +285,7 @@ func (p GitHubProvider) CreateBookmarks(ctx context.Context, user string, token 
 	client := p.client(ctx, token)
 	if branch == "" {
 		var err error
-		branch, err = p.getDefaultBranch(ctx, user, client, branch)
+		branch, err = p.getDefaultBranch(ctx, user, client)
 		if err != nil {
 			log.Printf("github CreateBookmarks default branch: %v", err)
 			return err

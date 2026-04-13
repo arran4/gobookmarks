@@ -489,10 +489,10 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, each := range chain {
 			switch each := each.(type) {
-			case http.Handler:
-				each.ServeHTTP(w, r)
 			case http.HandlerFunc:
 				each(w, r)
+			case http.Handler:
+				each.ServeHTTP(w, r)
 			case func(http.ResponseWriter, *http.Request):
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request) error:

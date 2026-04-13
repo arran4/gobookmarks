@@ -149,9 +149,6 @@ https://example.com Example Link
 		if input.Bookmarks != "" {
 			bookmarksStr = input.Bookmarks
 		}
-	} else {
-		// Just to debug if set is true or not
-		// fmt.Println("DEBUG: DataFromJsonFile is NOT set")
 	}
 
 	// Create a dummy request to build the context

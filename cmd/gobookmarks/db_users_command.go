@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	. "github.com/arran4/gobookmarks"
+	. "github.com/arran4/gobookmarks" //nolint:staticcheck
 )
 
 type DbUsersCommand struct {
