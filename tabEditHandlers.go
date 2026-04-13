@@ -33,26 +33,24 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	}
 	text := ""
 	tabFromQuery := tabName != ""
-	isAddMode := !r.URL.Query().Has("tab") && tabName == ""
-	if !isAddMode {
-		if tabName == "" && tabIdx < len(tabs) {
-			tabName = tabs[tabIdx].Name
+	if tabName == "" && tabIdx < len(tabs) {
+		tabName = tabs[tabIdx].Name
+	}
+	if tabFromQuery || tabIdx < len(tabs) {
+		tabText, err := ExtractTabByIndex(bookmarks, tabIdx)
+		if err != nil {
+			return fmt.Errorf("ExtractTabByIndex: %w", err)
 		}
-		if tabFromQuery || tabIdx < len(tabs) {
-			tabText, err := ExtractTabByIndex(bookmarks, tabIdx)
-			if err != nil {
-				return fmt.Errorf("ExtractTabByIndex: %w", err)
-			}
-			lines := strings.SplitN(tabText, "\n", 2)
-			hasHeader := len(lines) > 0 && strings.HasPrefix(strings.ToLower(strings.TrimSpace(lines[0])), "tab")
-			switch {
-			case hasHeader && len(lines) == 2:
-				text = lines[1]
-			case !hasHeader:
-				text = tabText
-			}
+		lines := strings.SplitN(tabText, "\n", 2)
+		hasHeader := len(lines) > 0 && strings.HasPrefix(strings.ToLower(strings.TrimSpace(lines[0])), "tab")
+		switch {
+		case hasHeader && len(lines) == 2:
+			text = lines[1]
+		case !hasHeader:
+			text = tabText
 		}
 	}
+
 	data := struct {
 		*CoreData
 		Error   string
@@ -69,11 +67,7 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 		Sha:      sha,
 	}
 
-	tmplName := "editTab.gohtml"
-	if strings.HasSuffix(r.URL.Path, "/modal") {
-		tmplName = "_partials/editTabForm.gohtml"
-	}
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editTab.gohtml", data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil

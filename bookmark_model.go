@@ -196,7 +196,7 @@ func (t *BookmarkTab) stringWithContext(first bool) string {
 	}
 	for i, p := range t.Pages {
 		if i == 0 {
-			if p.Name != "" {
+			if p.Name != "" || (len(t.Pages) > 1 && p.Name != "") {
 				sb.WriteString("Page: ")
 				sb.WriteString(p.Name)
 				sb.WriteString("\n")
