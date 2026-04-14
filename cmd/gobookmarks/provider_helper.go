@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 
-	. "github.com/arran4/gobookmarks"
+	. "github.com/arran4/gobookmarks" //nolint:staticcheck
 )
 
 func getConfiguredProvider(cfg *Configuration) (Provider, error) {

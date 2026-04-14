@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	. "github.com/arran4/gobookmarks"
+	. "github.com/arran4/gobookmarks" //nolint:staticcheck
 )
 
 type TemplateCommand struct {

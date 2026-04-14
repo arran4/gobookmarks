@@ -13,7 +13,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	. "github.com/arran4/gobookmarks"
+	. "github.com/arran4/gobookmarks" //nolint:staticcheck
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
