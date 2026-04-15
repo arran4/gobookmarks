@@ -33,21 +33,24 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	}
 	text := ""
 	tabFromQuery := tabName != ""
-	if tabName == "" && tabIdx < len(tabs) {
-		tabName = tabs[tabIdx].Name
-	}
-	if tabFromQuery || tabIdx < len(tabs) {
-		tabText, err := ExtractTabByIndex(bookmarks, tabIdx)
-		if err != nil {
-			return fmt.Errorf("ExtractTabByIndex: %w", err)
+	isAddMode := !r.URL.Query().Has("tab") && tabName == ""
+	if !isAddMode {
+		if tabName == "" && tabIdx < len(tabs) {
+			tabName = tabs[tabIdx].Name
 		}
-		lines := strings.SplitN(tabText, "\n", 2)
-		hasHeader := len(lines) > 0 && strings.HasPrefix(strings.ToLower(strings.TrimSpace(lines[0])), "tab")
-		switch {
-		case hasHeader && len(lines) == 2:
-			text = lines[1]
-		case !hasHeader:
-			text = tabText
+		if tabFromQuery || tabIdx < len(tabs) {
+			tabText, err := ExtractTabByIndex(bookmarks, tabIdx)
+			if err != nil {
+				return fmt.Errorf("ExtractTabByIndex: %w", err)
+			}
+			lines := strings.SplitN(tabText, "\n", 2)
+			hasHeader := len(lines) > 0 && strings.HasPrefix(strings.ToLower(strings.TrimSpace(lines[0])), "tab")
+			switch {
+			case hasHeader && len(lines) == 2:
+				text = lines[1]
+			case !hasHeader:
+				text = tabText
+			}
 		}
 	}
 
