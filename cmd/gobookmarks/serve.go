@@ -452,7 +452,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create cert.pem file: %v", err)
 	}
-	defer certFile.Close()
+	defer func() { _ = certFile.Close() }()
 	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		log.Fatalf("Failed to write data to cert.pem: %v", err)
 	}
@@ -461,7 +461,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create key.pem file: %v", err)
 	}
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 	privBytes, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		log.Fatalf("Failed to marshal private key: %v", err)
