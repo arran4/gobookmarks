@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type DbUsersCommand struct {
@@ -50,9 +50,9 @@ func (c *DbUsersCommand) Execute(args []string) error {
 		return err
 	}
 
-	Config = cfg
+	gobookmarks.Config = cfg
 
-	db, err := OpenDB()
+	db, err := gobookmarks.OpenDB()
 	if err != nil {
 		printHelp(c, err)
 		return err

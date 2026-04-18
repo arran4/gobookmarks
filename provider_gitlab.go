@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	gitlab "github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"golang.org/x/oauth2"
 )
 
@@ -123,7 +123,7 @@ func (GitLabProvider) GetCommits(ctx context.Context, user string, token *oauth2
 		log.Printf("gitlab GetCommits client: %v", err)
 		return nil, err
 	}
-	cs, _, err := c.Commits.ListCommits(user+"/"+Config.GetRepoName(), &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: page, PerPage: perPage}})
+	cs, _, err := c.Commits.ListCommits(user+"/"+Config.GetRepoName(), &gitlab.ListCommitsOptions{RefName: &ref, ListOptions: gitlab.ListOptions{Page: int64(page), PerPage: int64(perPage)}})
 	if err != nil {
 		if gitlabUnauthorized(err) {
 			return nil, ErrSignedOut

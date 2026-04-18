@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type DbResetPasswordCommand struct {
@@ -67,9 +67,9 @@ func (c *DbResetPasswordCommand) Execute(args []string) error {
 		return err
 	}
 
-	Config = cfg
+	gobookmarks.Config = cfg
 
-	p := SQLProvider{}
+	p := gobookmarks.SQLProvider{}
 	if err := p.SetPassword(context.Background(), c.User, c.Password); err != nil {
 		printHelp(c, err)
 		return err
