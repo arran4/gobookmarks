@@ -22,7 +22,7 @@ func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 	ctx := context.WithValue(req.Context(), gb.ContextValues("coreData"), &gb.CoreData{})
 	req = req.WithContext(ctx)
 
-	h := runHandlerChain(func(w http.ResponseWriter, r *http.Request) error {
+	h := runHandlerChain(func(_ http.ResponseWriter, _ *http.Request) error {
 		return gb.NewUserError("bad input", errors.New("invalid"))
 	})
 

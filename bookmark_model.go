@@ -185,7 +185,7 @@ type BookmarkTab struct {
 
 func (t *BookmarkTab) stringWithContext(first bool) string {
 	var sb strings.Builder
-	if !(first && t.Name == "") {
+	if !first || t.Name != "" {
 		if t.Name != "" {
 			sb.WriteString("Tab: ")
 			sb.WriteString(t.Name)
@@ -196,7 +196,7 @@ func (t *BookmarkTab) stringWithContext(first bool) string {
 	}
 	for i, p := range t.Pages {
 		if i == 0 {
-			if p.Name != "" {
+			if p.Name != "" || (len(t.Pages) > 1 && p.Name != "") {
 				sb.WriteString("Page: ")
 				sb.WriteString(p.Name)
 				sb.WriteString("\n")
@@ -404,7 +404,7 @@ func ValidateBookmarks(bookmarks string) (BookmarkList, error) {
 // MoveCategory moves the category at fromIndex so it appears before toIndex.
 // If toIndex equals the total number of categories, the item is moved to the end.
 // When newColumn is true a new column directive is inserted before the moved category.
-func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destPage *BookmarkPage, destCol int) error {
+func (b BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destPage *BookmarkPage, destCol int) error {
 	type loc struct {
 		block  *BookmarkBlock
 		column *BookmarkColumn
@@ -414,7 +414,7 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 	}
 	var cats []loc
 	idx := 0
-	for _, t := range tabs {
+	for _, t := range b {
 		for _, p := range t.Pages {
 			for _, b := range p.Blocks {
 				for ci, col := range b.Columns {
@@ -491,7 +491,7 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 
 	// reindex
 	idx = 0
-	for _, t := range tabs {
+	for _, t := range b {
 		for _, p := range t.Pages {
 			for _, b := range p.Blocks {
 				for _, col := range b.Columns {
@@ -507,28 +507,28 @@ func (tabs BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, de
 }
 
 // MoveCategoryBefore moves the category at fromIndex so it appears before beforeIndex.
-func (tabs BookmarkList) MoveCategoryBefore(fromIndex, beforeIndex int) error {
-	return tabs.MoveCategory(fromIndex, beforeIndex, false, nil, 0)
+func (b BookmarkList) MoveCategoryBefore(fromIndex, beforeIndex int) error {
+	return b.MoveCategory(fromIndex, beforeIndex, false, nil, 0)
 }
 
 // MoveCategoryToEnd moves the category to the end of the specified column.
-func (tabs BookmarkList) MoveCategoryToEnd(fromIndex int, page *BookmarkPage, colIdx int) error {
-	return tabs.MoveCategory(fromIndex, -1, false, page, colIdx)
+func (b BookmarkList) MoveCategoryToEnd(fromIndex int, page *BookmarkPage, colIdx int) error {
+	return b.MoveCategory(fromIndex, -1, false, page, colIdx)
 }
 
 // MoveCategoryNewColumn moves the category into a new column inserted after
 // the specified column index on the given page. When page is nil the category
 // is moved to a new column on the last page. If destCol is negative the column
 // is appended to the end of the page.
-func (tabs BookmarkList) MoveCategoryNewColumn(fromIndex int, page *BookmarkPage, destCol int) error {
+func (b BookmarkList) MoveCategoryNewColumn(fromIndex int, page *BookmarkPage, destCol int) error {
 	if page == nil {
-		return tabs.MoveCategory(fromIndex, -1, true, nil, destCol)
+		return b.MoveCategory(fromIndex, -1, true, nil, destCol)
 	}
 	if destCol < 0 {
 		last := page.Blocks[len(page.Blocks)-1]
 		destCol = len(last.Columns) - 1
 	}
-	return tabs.MoveCategory(fromIndex, -1, true, page, destCol)
+	return b.MoveCategory(fromIndex, -1, true, page, destCol)
 }
 
 // PageForCategory returns the page containing the category with the given index.
@@ -561,22 +561,4 @@ func FindPageBySha(tabs BookmarkList, sha string) *BookmarkPage {
 		}
 	}
 	return nil
-}
-
-// indexAfterColumn returns the global index after the last category in the specified column.
-func indexAfterColumn(tabs BookmarkList, page *BookmarkPage, colIdx int) int {
-	idx := 0
-	for _, t := range tabs {
-		for _, p := range t.Pages {
-			for _, b := range p.Blocks {
-				for ci, col := range b.Columns {
-					idx += len(col.Categories)
-					if p == page && ci == colIdx {
-						return idx
-					}
-				}
-			}
-		}
-	}
-	return idx
 }

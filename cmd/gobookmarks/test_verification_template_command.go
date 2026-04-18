@@ -17,7 +17,7 @@ type TemplateCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 
-	DataFromJsonFile stringFlag
+	DataFromJSONFile stringFlag
 	Serve            stringFlag
 	Out              stringFlag
 	HelpCmd          *HelpCommand
@@ -28,7 +28,7 @@ func (c *VerificationCommand) NewTemplateCommand() (*TemplateCommand, error) {
 		parent: c,
 		Flags:  flag.NewFlagSet("template", flag.ContinueOnError),
 	}
-	tc.Flags.Var(&tc.DataFromJsonFile, "data-from-json-file", "Path to JSON file containing template data")
+	tc.Flags.Var(&tc.DataFromJSONFile, "data-from-json-file", "Path to JSON file containing template data")
 	tc.Flags.Var(&tc.Serve, "serve", "Address to serve the template on (e.g. :8080)")
 	tc.Flags.Var(&tc.Out, "out", "File to write output to")
 	tc.HelpCmd = NewHelpCommand(tc)
@@ -122,20 +122,20 @@ https://example.com Example Link
 		bookmarksStr = "Tab: Empty\n"
 	}
 
-	if c.DataFromJsonFile.set {
+	if c.DataFromJSONFile.set {
 		// Load data from JSON file
-		data, err := os.ReadFile(c.DataFromJsonFile.value)
+		data, err := os.ReadFile(c.DataFromJSONFile.value)
 		if err != nil {
 			return fmt.Errorf("failed to read data file: %w", err)
 		}
 
-		type JsonInput struct {
+		type JSONInput struct {
 			Title     string `json:"title"`
 			UserRef   string `json:"user_ref"`
 			EditMode  bool   `json:"edit_mode"`
 			Bookmarks string `json:"bookmarks"`
 		}
-		var input JsonInput
+		var input JSONInput
 		if err := json.Unmarshal(data, &input); err != nil {
 			return fmt.Errorf("failed to parse json data: %w", err)
 		}
@@ -149,9 +149,6 @@ https://example.com Example Link
 		if input.Bookmarks != "" {
 			bookmarksStr = input.Bookmarks
 		}
-	} else {
-		// Just to debug if set is true or not
-		// fmt.Println("DEBUG: DataFromJsonFile is NOT set")
 	}
 
 	// Create a dummy request to build the context
@@ -162,7 +159,7 @@ https://example.com Example Link
 	// The templates receive `data` which has `CoreData`.
 
 	// However, some funcs might need session or other context values.
-	// For "useCssColumns" etc.
+	// For "useCSSColumns" etc.
 
 	ctx := context.WithValue(req.Context(), ContextValues("coreData"), coreData)
 	req = req.WithContext(ctx)
@@ -198,16 +195,16 @@ https://example.com Example Link
 			}
 			if indexName != "" {
 				href := TabHref(i, "") // No ref in static mode
-				lastSha := "" // No SHA in static mode
+				lastSha := ""          // No SHA in static mode
 				if len(t.Pages) > 0 {
 					lastSha = t.Pages[len(t.Pages)-1].Sha()
 				}
 				tabs = append(tabs, TabInfo{
-					Index: i,
-					Name: t.Name,
-					IndexName: indexName,
-					Href: href,
-					EditHref: AppendQueryParams(href, "edit", "1"),
+					Index:       i,
+					Name:        t.Name,
+					IndexName:   indexName,
+					Href:        href,
+					EditHref:    AppendQueryParams(href, "edit", "1"),
 					LastPageSha: lastSha,
 				})
 			}
@@ -230,14 +227,14 @@ https://example.com Example Link
 				}
 				tabs = append(tabs, TabWithPages{
 					TabInfo: TabInfo{
-						Index: i,
-						Name: t.Name,
-						IndexName: indexName,
-						Href: href,
-						EditHref: AppendQueryParams(href, "edit", "1"),
+						Index:       i,
+						Name:        t.Name,
+						IndexName:   indexName,
+						Href:        href,
+						EditHref:    AppendQueryParams(href, "edit", "1"),
 						LastPageSha: lastSha,
 					},
-					Pages:   t.Pages,
+					Pages: t.Pages,
 				})
 			}
 		}
@@ -261,7 +258,6 @@ https://example.com Example Link
 	// Override other funcs that might call DB/Git
 	funcs["loggedIn"] = func() (bool, error) { return true, nil }
 	funcs["showPages"] = func() bool { return true }
-
 
 	// Override additional functions for edit pages
 	funcs["bookmarksOrEditBookmarks"] = func() (string, error) {
@@ -303,14 +299,16 @@ https://example.com Example Link
 		// For serving, we need to handle main.css and favicon too, otherwise the page looks broken
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write(output)
+			_, _ = w.Write(output)
 		})
 		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/css")
-			w.Write(GetMainCSSData())
+			_, _ = w.Write(
+				GetMainCSSData())
 		})
 		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-			w.Write(GetFavicon())
+			_, _ = w.Write(
+				GetFavicon())
 		})
 		// Also proxy/favicon if possible, but that might require internet or network
 		mux.HandleFunc("/proxy/favicon", func(w http.ResponseWriter, r *http.Request) {

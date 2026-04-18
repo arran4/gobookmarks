@@ -69,7 +69,7 @@ func testFuncMap() template.FuncMap {
 		"tabName":        func() string { return "Main" },
 		"page":           func() string { return "" },
 		"historyRef":     func() string { return "refs/heads/main" },
-		"useCssColumns":  func() bool { return false },
+		"useCSSColumns":  func() bool { return false },
 		"devMode":        func() bool { return false },
 		"showFooter":     func() bool { return true },
 		"showPages":      func() bool { return true },
@@ -160,18 +160,16 @@ func testFuncMap() template.FuncMap {
 		"nextCommit":  func() string { return "next" },
 		"isSearchURL": func(string) bool { return false },
 		"searchURL":   func(u string) string { return strings.TrimPrefix(u, "search:") },
-		"taskSave":    func() string { return TaskSave },
 		"taskSaveAndDone": func() string {
 			return TaskSaveAndDone
 		},
-		"taskSaveAndStopEditing": func() string {
-			return TaskSaveAndStopEditing
-		},
+		"taskSaveAndStopEditing": func() string { return TaskSaveAndStopEditing },
 	}
 }
 
 func TestExecuteTemplates(t *testing.T) {
-	tpl, err := template.New("").Funcs(testFuncMap()).ParseFS(os.DirFS("./templates"), "*.gohtml")
+	tpl := template.New("").Funcs(testFuncMap())
+	tpl, err := ParseFSRecursive(tpl, os.DirFS("./templates"), ".", ".gohtml")
 	if err != nil {
 		t.Fatalf("template parse error: %v", err)
 	}

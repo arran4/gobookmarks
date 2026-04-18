@@ -1,0 +1,14 @@
+    <form method=post action="?{{if $.EditMode}}edit=1&{{end}}index={{$.Index}}" class="edit-form category-form">
+        <label for="code">Category</label><br/>
+        <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>
+        <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
+
+        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=hidden name="tab" value="{{tab}}" />
+        <input type=hidden name="page" value="{{page}}" />
+        <input type=hidden name="col" value="{{.Col}}" />
+    </form>

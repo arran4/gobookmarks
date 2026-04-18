@@ -52,13 +52,6 @@ func getCachedBookmarks(user, ref string) (string, string, bool) {
 	return entry.bookmarks, entry.sha, true
 }
 
-func setCachedBookmarks(user, ref, bookmarks, sha string) {
-	key := cacheKey(user, ref)
-	bookmarksCache.Lock()
-	bookmarksCache.data[key] = &bookmarkCacheEntry{bookmarks: bookmarks, sha: sha, expiry: time.Now().Add(time.Minute)}
-	bookmarksCache.Unlock()
-}
-
 func invalidateBookmarkCache(user string) {
 	bookmarksCache.Lock()
 	for k := range bookmarksCache.data {

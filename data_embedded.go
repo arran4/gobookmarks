@@ -1,5 +1,4 @@
 //go:build !live
-// +build !live
 
 package gobookmarks
 
@@ -10,7 +9,7 @@ import (
 )
 
 var (
-	//go:embed "templates/*.gohtml"
+	//go:embed templates
 	templateFS embed.FS
 	//go:embed "main.css"
 	mainCSSData []byte
@@ -29,7 +28,8 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 		// Parse templates once. We use NewFuncs(nil) to provide the set of function names
 		// required by the templates. The actual function implementations are irrelevant here
 		// as they will be replaced by the request-specific funcs in the clone.
-		compiledTemplates = template.Must(template.New("").Funcs(NewFuncs(nil)).ParseFS(templateFS, "templates/*.gohtml"))
+		t := template.New("").Funcs(NewFuncs(nil))
+		compiledTemplates = template.Must(ParseFSRecursive(t, templateFS, "templates", ".gohtml"))
 	})
 	tmpl, err := compiledTemplates.Clone()
 	if err != nil {

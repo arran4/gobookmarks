@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -31,7 +30,7 @@ type Configuration struct {
 	GitlabClientID       string   `json:"gitlab_client_id"`
 	GitlabSecret         string   `json:"gitlab_secret"`
 	ExternalURL          string   `json:"external_url"`
-	CssColumns           bool     `json:"css_columns"`
+	CSSColumns           bool     `json:"css_columns"`
 	DevMode              *bool    `json:"dev_mode"`
 	Namespace            string   `json:"namespace"`
 	Title                string   `json:"title"`
@@ -73,8 +72,8 @@ func (c Configuration) GetRepoName() string {
 }
 
 func (c Configuration) GetOauthRedirectURL() string {
-	externalUrl := strings.TrimRight(c.ExternalURL, "/")
-	return JoinURL(externalUrl, "oauth2Callback")
+	externalURL := strings.TrimRight(c.ExternalURL, "/")
+	return JoinURL(externalURL, "oauth2Callback")
 }
 
 func (c Configuration) GetSessionName() string {
@@ -84,7 +83,6 @@ func (c Configuration) GetSessionName() string {
 	return "gobookmarks"
 }
 
-
 // LoadConfigFile loads configuration from the given path.
 // It returns the loaded Configuration, a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
@@ -93,7 +91,7 @@ func LoadConfigFile(path string) (Configuration, bool, error) {
 
 	log.Printf("attempting to load config from %s", path)
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("config file %s not found", path)
@@ -144,8 +142,8 @@ func MergeConfig(dst *Configuration, src Configuration) {
 	if src.ExternalURL != "" {
 		dst.ExternalURL = src.ExternalURL
 	}
-	if src.CssColumns {
-		dst.CssColumns = true
+	if src.CSSColumns {
+		dst.CSSColumns = true
 	}
 	if src.DevMode != nil {
 		dst.DevMode = src.DevMode
@@ -280,7 +278,7 @@ func LoadEnvFile(path string) error {
 		}
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -295,7 +293,7 @@ func LoadEnvFile(path string) error {
 		key := strings.TrimSpace(parts[0])
 		val := strings.TrimSpace(parts[1])
 		if os.Getenv(key) == "" {
-			os.Setenv(key, val)
+			_ = os.Setenv(key, val)
 		}
 	}
 	return scanner.Err()

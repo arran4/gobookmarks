@@ -37,28 +37,28 @@ type ServeCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 
-	GithubClientID   stringFlag
-	GithubSecret     stringFlag
-	GitlabClientID   stringFlag
-	GitlabSecret     stringFlag
-	ExternalURL      stringFlag
-	Namespace        stringFlag
-	Title            stringFlag
+	GithubClientID       stringFlag
+	GithubSecret         stringFlag
+	GitlabClientID       stringFlag
+	GitlabSecret         stringFlag
+	ExternalURL          stringFlag
+	Namespace            stringFlag
+	Title                stringFlag
 	FaviconCacheDir      stringFlag
 	FaviconCacheSize     stringFlag
 	FaviconMaxCacheCount stringFlag
 	CommitsPerPage       stringFlag
 	GithubServer         stringFlag
-	GitlabServer     stringFlag
-	LocalGitPath     stringFlag
-	DbProvider       stringFlag
-	DbConn           stringFlag
-	SessionKey       stringFlag
-	ProviderOrder    stringFlag
-	CssColumns       boolFlag
-	NoFooter         boolFlag
-	DevMode          boolFlag
-	DumpConfig       boolFlag
+	GitlabServer         stringFlag
+	LocalGitPath         stringFlag
+	DbProvider           stringFlag
+	DbConn               stringFlag
+	SessionKey           stringFlag
+	ProviderOrder        stringFlag
+	CSSColumns           boolFlag
+	NoFooter             boolFlag
+	DevMode              boolFlag
+	DumpConfig           boolFlag
 }
 
 func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
@@ -85,7 +85,7 @@ func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
 	c.Flags.Var(&c.DbConn, "db-conn", "SQL connection string")
 	c.Flags.Var(&c.SessionKey, "session-key", "session cookie key")
 	c.Flags.Var(&c.ProviderOrder, "provider-order", "comma-separated provider order")
-	c.Flags.Var(&c.CssColumns, "css-columns", "use CSS columns")
+	c.Flags.Var(&c.CSSColumns, "css-columns", "use CSS columns")
 	c.Flags.Var(&c.NoFooter, "no-footer", "disable footer on pages")
 	c.Flags.Var(&c.DevMode, "dev-mode", "enable dev mode helpers")
 	c.Flags.Var(&c.DumpConfig, "dump-config", "print merged config and exit")
@@ -141,8 +141,8 @@ func (c *ServeCommand) Execute(args []string) error {
 	if c.Title.set {
 		cfg.Title = c.Title.value
 	}
-	if c.CssColumns.set {
-		cfg.CssColumns = c.CssColumns.value
+	if c.CSSColumns.set {
+		cfg.CSSColumns = c.CSSColumns.value
 	}
 	if c.NoFooter.set {
 		cfg.NoFooter = c.NoFooter.value
@@ -212,7 +212,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	SetProviderOrder(Config.ProviderOrder)
 	// No need to copy to global vars anymore as we use Config
 
-	redirectUrl := Config.GetOauthRedirectURL()
+	redirectURL := Config.GetOauthRedirectURL()
 
 	// Update SessionName if needed (though it's in Config now, SessionStore logic uses Config.SessionName)
 	// But SessionStore is global.
@@ -231,17 +231,17 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.Use(UserAdderMiddleware)
 	r.Use(CoreAdderMiddleware)
 
-	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
+	r.HandleFunc("/main.css", func(writer http.ResponseWriter, _ *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
 	}).Methods("GET")
-	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, request *http.Request) {
+	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, _ *http.Request) {
 		_, _ = writer.Write(GetFavicon())
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
 	if Config.GetDevMode() {
-		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
-		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
+		r.HandleFunc("/_css", runHandlerChain(EnableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
+		r.HandleFunc("/_table", runHandlerChain(DisableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
 
 	// News
@@ -254,8 +254,16 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(HasError())
+
+	// Modal routes mapping to shared forms
+	r.HandleFunc("/edit/modal", runTemplate("_partials/editBookmarksForm.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editCategory/modal", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addCategory/modal", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editTab/modal", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/edit/modal", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editPage/modal", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
 	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
@@ -266,13 +274,13 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editCategory", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 	r.HandleFunc("/addCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/addCategory", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/addCategory", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 	r.HandleFunc("/moveCategory", runHandlerChain(CategoryMoveBeforeAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
@@ -282,20 +290,20 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.HandleFunc("/editTab", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editTab", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editTab", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 	r.HandleFunc("/tab/{tab}/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/editPage", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editPage", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, TaskDoneAutoRefreshPage)).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
+	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
 	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
 	r.HandleFunc("/editPage", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
 
@@ -333,7 +341,7 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	SetVersion(version, commit, date)
-	log.Printf("Redirect URL configured to: %s", redirectUrl)
+	log.Printf("Redirect URL configured to: %s", redirectURL)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
@@ -452,7 +460,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create cert.pem file: %v", err)
 	}
-	defer certFile.Close()
+	defer func() { _ = certFile.Close() }()
 	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		log.Fatalf("Failed to write data to cert.pem: %v", err)
 	}
@@ -461,7 +469,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create key.pem file: %v", err)
 	}
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 	privBytes, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		log.Fatalf("Failed to marshal private key: %v", err)
@@ -477,8 +485,6 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 			switch each := each.(type) {
 			case http.Handler:
 				each.ServeHTTP(w, r)
-			case http.HandlerFunc:
-				each(w, r)
 			case func(http.ResponseWriter, *http.Request):
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request) error:
@@ -603,18 +609,28 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	})
 }
 
-func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
+func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, toUrl, http.StatusSeeOther)
+		http.Redirect(w, r, toURL, http.StatusSeeOther)
 	})
 }
 
-func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.Request) {
+func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, _ := url.Parse(toUrl)
+		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
 		tab := TabFromRequest(r)
+		if r.URL.Query().Get("from_modal") == "1" {
+			// When saving from a modal, we want to return the user to the main page or tab view
+			// instead of returning back to an edit page view, unless keep_edit_mode is checked.
+			if r.PostFormValue("keep_edit_mode") == "1" {
+				// User explicitly requested to keep edit mode enabled
+				qs.Set("edit", "1")
+			}
+		} else if r.URL.Query().Get("edit") == "1" {
+			qs.Set("edit", "1")
+		}
 		if v, ok := r.Context().Value(ContextValues("redirectTab")).(string); ok {
 			if parsed, err := strconv.Atoi(v); err == nil {
 				tab = parsed
@@ -636,9 +652,9 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 	})
 }
 
-func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Request) {
+func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, _ := url.Parse(toUrl)
+		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		u.Path = TabPath(TabFromRequest(r))
 		if fragment := PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
@@ -653,7 +669,7 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 }
 
 func RequiresAnAccount() mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		var session *sessions.Session
 		sessioni := request.Context().Value(ContextValues("session"))
 		if sessioni == nil {
@@ -678,25 +694,25 @@ func RequiresAnAccount() mux.MatcherFunc {
 }
 
 func TaskMatcher(taskName string) mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.PostFormValue("task") == taskName
 	}
 }
 
 func ModeMatcher(modeName string) mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.URL.Query().Get("mode") == modeName
 	}
 }
 
 func HasError() mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.URL.Query().Has("error")
 	}
 }
 
 func NoTask() mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.PostFormValue("task") == ""
 	}
 }

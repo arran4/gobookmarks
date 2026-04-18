@@ -12,7 +12,7 @@
             <div class="tab-panel" data-tab-index="{{$tabIdx}}" data-tab-name="{{$tabName}}">
                 {{- range $i, $p := $t.Pages }}
                 {{- $baseId := printf "page%d" (add1 $i) -}}
-                <div class="bookmarkPage{{ if useCssColumns }} cssColumns{{ end }}" data-base-id="{{$baseId}}" id="{{printf "tab%d-%s" $tabIdx $baseId}}" data-sha="{{$p.Sha}}" data-page-label="{{if $p.IndexName}}{{$p.IndexName}}{{else if $p.Name}}{{$p.Name}}{{else}}Page {{add1 $i}}{{end}}" data-page-index="{{$i}}">
+                <div class="bookmarkPage{{ if useCSSColumns }} cssColumns{{ end }}" data-base-id="{{$baseId}}" id="{{printf "tab%d-%s" $tabIdx $baseId}}" data-sha="{{$p.Sha}}" data-page-label="{{if $p.IndexName}}{{$p.IndexName}}{{else if $p.Name}}{{$p.Name}}{{else}}Page {{add1 $i}}{{end}}" data-page-index="{{$i}}">
                     {{- if and (eq $i 0) $tabName }}
                     {{- $editTab := appendQuery (tabEditHref $tabIdx (ref) $t.Name) "edit" "1" -}}
                     <h1>{{ $tabName }} <a class="edit-link" href="{{$editTab}}" title="Edit">&#9998;</a></h1>
@@ -21,7 +21,7 @@
                     {{- range .Blocks }}
                     {{- if .HR }}
                     <hr class="bookmarkHr" />
-                    {{- else if useCssColumns }}
+                    {{- else if useCSSColumns }}
                     <div class="bookmarkColumns">
                         {{- range $ci, $c := .Columns }}
                             <div class="bookmarkColumn">

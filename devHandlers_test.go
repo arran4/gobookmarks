@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-func TestCssColumnToggle(t *testing.T) {
+func TestCSSColumnToggle(t *testing.T) {
 	Config.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 
@@ -22,18 +22,18 @@ func TestCssColumnToggle(t *testing.T) {
 	req = req.WithContext(ctx)
 
 	w = httptest.NewRecorder()
-	if err := EnableCssColumnsAction(w, req); err != nil {
-		t.Fatalf("EnableCssColumnsAction: %v", err)
+	if err := EnableCSSColumnsAction(w, req); err != nil {
+		t.Fatalf("EnableCSSColumnsAction: %v", err)
 	}
-	if v, ok := session.Values["useCssColumns"].(bool); !ok || !v {
+	if v, ok := session.Values["useCSSColumns"].(bool); !ok || !v {
 		t.Fatalf("cssColumns not enabled in session")
 	}
 
 	w = httptest.NewRecorder()
-	if err := DisableCssColumnsAction(w, req); err != nil {
-		t.Fatalf("DisableCssColumnsAction: %v", err)
+	if err := DisableCSSColumnsAction(w, req); err != nil {
+		t.Fatalf("DisableCSSColumnsAction: %v", err)
 	}
-	if v, ok := session.Values["useCssColumns"].(bool); !ok || v {
+	if v, ok := session.Values["useCSSColumns"].(bool); !ok || v {
 		t.Fatalf("cssColumns not disabled in session")
 	}
 }

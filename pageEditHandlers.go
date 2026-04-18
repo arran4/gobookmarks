@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func EditPagePage(w http.ResponseWriter, r *http.Request) error {
@@ -15,7 +16,7 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
 	tabIdx := TabFromRequest(r)
-	pageIdx, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	pageIdx, pageErr := strconv.Atoi(r.URL.Query().Get("page"))
 
 	login := ""
 	if githubUser != nil {
@@ -41,7 +42,7 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		Sha:      sha,
 	}
 
-	if pageIdx >= 0 {
+	if pageErr == nil && pageIdx >= 0 {
 		pageText, pageName, err := ExtractPage(bookmarks, tabIdx, pageIdx)
 		if err != nil {
 			return fmt.Errorf("ExtractPage: %w", err)
@@ -50,7 +51,11 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		data.Text = pageText
 	}
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editPage.gohtml", data); err != nil {
+	tmplName := "editPage.gohtml"
+	if strings.HasSuffix(r.URL.Path, "/modal") {
+		tmplName = "_partials/editPageForm.gohtml"
+	}
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil
