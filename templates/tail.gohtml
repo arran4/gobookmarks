@@ -40,6 +40,45 @@
                         // Only intercept if it's an edit-related link (has edit=1 or goes to an edit page)
                         if (target.href && (target.href.includes('edit=1') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
                             e.preventDefault();
+
+                            var textContent = target.textContent.trim();
+                            if (textContent === '+ Add Tab' || textContent === '+ Add Page' || textContent === '+ Add Category') {
+                                if (editModal && editModalContent) {
+                                    var templateId = textContent === '+ Add Tab' ? 'add-tab-template' : (textContent === '+ Add Page' ? 'add-page-template' : 'add-category-template');
+                                    var templateEl = document.getElementById(templateId);
+                                    if (templateEl) {
+                                        editModalContent.innerHTML = templateEl.innerHTML;
+                                        var form = editModalContent.querySelector('form');
+                                        if (form) {
+                                            var formActionUrl = new URL(target.href);
+                                            formActionUrl.searchParams.delete('modal');
+                                            formActionUrl.searchParams.set('from_modal', '1');
+                                            form.action = formActionUrl.toString();
+
+                                            ['tab', 'page', 'col'].forEach(function(param) {
+                                                var val = formActionUrl.searchParams.get(param);
+                                                if (val !== null) {
+                                                    var input = editModalContent.querySelector('input[name="' + param + '"]');
+                                                    if (input) input.value = val;
+                                                }
+                                            });
+
+                                            var keepEditCb = form.querySelector('input[name="keep_edit_mode"]');
+                                            if (keepEditCb && sessionStorage.getItem('keep_edit_mode') === '1') {
+                                                keepEditCb.checked = true;
+                                            }
+                                            if (keepEditCb) {
+                                                keepEditCb.addEventListener('change', function() {
+                                                    sessionStorage.setItem('keep_edit_mode', this.checked ? '1' : '0');
+                                                });
+                                            }
+                                        }
+                                        editModal.showModal();
+                                    }
+                                }
+                                return;
+                            }
+
                             var url = new URL(target.href);
                             url.pathname = url.pathname.replace(/\/$/, '') + '/modal';
 
@@ -637,6 +676,48 @@
                     });
                 });
                 </script>
+                <template id="add-tab-template">
+                    <form method=post action="/editTab?edit=1" class="edit-form tab-form">
+                        <label for="name">Name</label>: <input id="name" type="text" name="name" value="" /><br>
+                        <label for="code">Tab Contents</label><br/>
+                        <textarea id="code" name="text" rows="10"></textarea><br>
+                        <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
+                        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
+                        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+                        <input type=hidden name="ref" value="{{ref}}" />
+                        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+                        <input type=hidden name="tab" value="" />
+                    </form>
+                </template>
+
+                <template id="add-page-template">
+                    <form method=post action="/editPage?edit=1" class="edit-form page-form">
+                        <label for="name">Name</label>: <input id="name" type="text" name="name" value="" /><br>
+                        <label for="code">Page Contents</label><br/>
+                        <textarea id="code" name="text" rows="10"></textarea><br>
+                        <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
+                        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
+                        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+                        <input type=hidden name="ref" value="{{ref}}" />
+                        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+                        <input type=hidden name="tab" value="" />
+                    </form>
+                </template>
+
+                <template id="add-category-template">
+                    <form method=post action="/addCategory?edit=1" class="edit-form category-form">
+                        <label for="code">Category</label><br/>
+                        <textarea id="code" name="text" rows="10">Category: </textarea><br>
+                        <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
+                        <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
+                        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+                        <input type=hidden name="ref" value="{{ref}}" />
+                        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+                        <input type=hidden name="tab" value="" />
+                        <input type=hidden name="page" value="" />
+                        <input type=hidden name="col" value="" />
+                    </form>
+                </template>
                 <dialog id="edit-modal" style="padding: 1em; border: 1px solid #800000; border-radius: 4px; background: #FFFBF0; max-width: 95vw; max-height: 95vh; overflow-y: auto;">
                     <button id="close-modal" style="float: right; margin-bottom: 1em; cursor: pointer;">Close</button>
                     <div style="clear: both;"></div>
