@@ -12,7 +12,7 @@ import (
 
 func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	tabName := r.URL.Query().Get("name")
-	tabIdx := TabFromRequest(r)
+	tabIdx, hasTab := TabFromRequest(r)
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
@@ -33,7 +33,7 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	}
 	text := ""
 	tabFromQuery := tabName != ""
-	isAddMode := !r.URL.Query().Has("tab") && tabName == ""
+	isAddMode := !hasTab && tabName == ""
 	if !isAddMode {
 		if tabName == "" && tabIdx < len(tabs) {
 			tabName = tabs[tabIdx].Name
@@ -82,7 +82,7 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	text := r.PostFormValue("text")
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
-	tabIdx := TabFromRequest(r)
+	tabIdx, hasTab := TabFromRequest(r)
 	sha := r.PostFormValue("sha")
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
@@ -104,7 +104,7 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	var updated string
 	newIndex := len(ParseBookmarks(currentBookmarks))
-	if tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
+	if hasTab && tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
 		updated, err = ReplaceTabByIndex(currentBookmarks, tabIdx, name, text)
 		if err != nil {
 			return fmt.Errorf("ReplaceTabByIndex: %w", err)

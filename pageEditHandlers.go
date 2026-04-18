@@ -15,7 +15,7 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 	githubUser, _ := session.Values["GithubUser"].(*User)
 	token, _ := session.Values["Token"].(*oauth2.Token)
 	ref := r.URL.Query().Get("ref")
-	tabIdx := TabFromRequest(r)
+	tabIdx, _ := TabFromRequest(r)
 	pageIdx, pageErr := strconv.Atoi(r.URL.Query().Get("page"))
 
 	login := ""
@@ -67,7 +67,7 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	branch := r.PostFormValue("branch")
 	ref := r.PostFormValue("ref")
 	sha := r.PostFormValue("sha")
-	tabIdx := TabFromRequest(r)
+	tabIdx, _ := TabFromRequest(r)
 	pageIdx, pageErr := strconv.Atoi(r.PostFormValue("page"))
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)

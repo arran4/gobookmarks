@@ -620,7 +620,7 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
-		tab := gobookmarks.TabFromRequest(r)
+		tab, _ := gobookmarks.TabFromRequest(r)
 		if r.URL.Query().Get("from_modal") == "1" {
 			// When saving from a modal, we want to return the user to the main page or tab view
 			// instead of returning back to an edit page view, unless keep_edit_mode is checked.
@@ -656,7 +656,8 @@ func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Requ
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, _ := url.Parse(toURL)
 		qs := u.Query()
-		u.Path = gobookmarks.TabPath(gobookmarks.TabFromRequest(r))
+		tabIdx, _ := gobookmarks.TabFromRequest(r)
+		u.Path = gobookmarks.TabPath(tabIdx)
 		if fragment := gobookmarks.PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
 			u.Fragment = fragment
 		}

@@ -10,28 +10,38 @@ import (
 )
 
 // TabFromRequest extracts the tab index from either the path parameters or the query string.
-func TabFromRequest(r *http.Request) int {
+func TabFromRequest(r *http.Request) (int, bool) {
 	if r == nil {
-		return 0
+		return 0, false
 	}
 	if vars := mux.Vars(r); vars != nil {
 		if tabStr, ok := vars["tab"]; ok {
 			if tabIdx, err := strconv.Atoi(tabStr); err == nil {
-				return tabIdx
+				return tabIdx, true
 			}
 		}
 	}
-	if tabS := r.URL.Query().Get("tab"); tabS != "" {
+	if r.URL.Query().Has("tab") {
+		tabS := r.URL.Query().Get("tab")
 		if tabI, err := strconv.Atoi(tabS); err == nil {
-			return tabI
+			return tabI, true
 		}
 	}
-	if tabS := r.PostFormValue("tab"); tabS != "" {
+	if r.PostForm != nil && r.PostForm.Has("tab") {
+		tabS := r.PostForm.Get("tab")
 		if tabI, err := strconv.Atoi(tabS); err == nil {
-			return tabI
+			return tabI, true
+		}
+	} else if r.FormValue("tab") != "" {
+		// r.FormValue calls ParseMultipartForm and ParseForm if necessary
+		if r.PostForm.Has("tab") {
+			tabS := r.PostForm.Get("tab")
+			if tabI, err := strconv.Atoi(tabS); err == nil {
+				return tabI, true
+			}
 		}
 	}
-	return 0
+	return 0, false
 }
 
 // TabPath returns the semantic path for a tab index (0 is the root tab).
