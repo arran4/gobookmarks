@@ -11,27 +11,33 @@ import (
 
 // TabFromRequest extracts the tab index from either the path parameters or the query string.
 func TabFromRequest(r *http.Request) int {
+	idx, _ := TabFromRequestWithStatus(r)
+	return idx
+}
+
+// TabFromRequestWithStatus extracts the tab index and returns whether it was provided.
+func TabFromRequestWithStatus(r *http.Request) (int, bool) {
 	if r == nil {
-		return 0
+		return 0, false
 	}
 	if vars := mux.Vars(r); vars != nil {
 		if tabStr, ok := vars["tab"]; ok {
 			if tabIdx, err := strconv.Atoi(tabStr); err == nil {
-				return tabIdx
+				return tabIdx, true
 			}
 		}
 	}
 	if tabS := r.URL.Query().Get("tab"); tabS != "" {
 		if tabI, err := strconv.Atoi(tabS); err == nil {
-			return tabI
+			return tabI, true
 		}
 	}
 	if tabS := r.PostFormValue("tab"); tabS != "" {
 		if tabI, err := strconv.Atoi(tabS); err == nil {
-			return tabI
+			return tabI, true
 		}
 	}
-	return 0
+	return 0, false
 }
 
 // TabPath returns the semantic path for a tab index (0 is the root tab).
@@ -99,23 +105,21 @@ func PageFragmentFromIndex(pageStr string) string {
 
 // HasTabParam checks if the tab parameter was provided in the request
 func HasTabParam(r *http.Request) bool {
-	if r == nil {
-		return false
-	}
-	if vars := mux.Vars(r); vars != nil {
-		if _, ok := vars["tab"]; ok {
-			return true
-		}
-	}
-	if r.URL.Query().Has("tab") {
-		return true
-	}
-	if r.Method == "POST" && r.PostForm != nil && r.PostForm.Has("tab") {
-		return true
-	}
+	_, ok := TabFromRequestWithStatus(r)
+    if ok {
+        return true
+    }
 	// Fallback to checking the raw query or form, just in case
-	if r.FormValue("tab") != "" {
-	    return true
-	}
+    if r != nil {
+	    if r.URL.Query().Has("tab") {
+		    return true
+	    }
+	    if r.Method == "POST" && r.PostForm != nil && r.PostForm.Has("tab") {
+		    return true
+	    }
+	    if r.FormValue("tab") != "" {
+	        return true
+	    }
+    }
 	return false
 }
