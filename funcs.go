@@ -92,8 +92,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return r.URL.Query().Get("ref")
 		},
 		"tab": func() string {
-			idx, _ := TabFromRequest(r)
-			return strconv.Itoa(idx)
+			return strconv.Itoa(TabFromRequest(r))
 		},
 		"tabPath": func(tab int) string {
 			return TabPath(tab)
@@ -102,8 +101,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return TabEditPath(tab)
 		},
 		"currentTabPath": func() string {
-			idx, _ := TabFromRequest(r)
-			return TabPath(idx)
+			return TabPath(TabFromRequest(r))
 		},
 		"tabEditHref": func(tab int, ref, name string) string {
 			return TabEditHref(tab, ref, name)
@@ -234,7 +232,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
-			idx, _ := TabFromRequest(r)
+			idx := TabFromRequest(r)
 			if idx < 0 || idx >= len(tabs) {
 				idx = 0
 			}
@@ -345,7 +343,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
-			idx, _ := TabFromRequest(r)
+			idx := TabFromRequest(r)
 			if idx < 0 || idx >= len(tabs) {
 				idx = 0
 			}

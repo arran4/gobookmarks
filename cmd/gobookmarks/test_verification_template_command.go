@@ -176,7 +176,7 @@ https://example.com Example Link
 	}
 	funcs["bookmarkPages"] = func() ([]*gobookmarks.BookmarkPage, error) {
 		tabs := gobookmarks.ParseBookmarks(bookmarksStr)
-		idx, _ := gobookmarks.TabFromRequest(req)
+		idx := gobookmarks.TabFromRequest(req)
 		if idx < 0 || idx >= len(tabs) {
 			idx = 0
 		}
@@ -242,7 +242,7 @@ https://example.com Example Link
 	}
 	funcs["tabName"] = func() string {
 		tabs := gobookmarks.ParseBookmarks(bookmarksStr)
-		idx, _ := gobookmarks.TabFromRequest(req)
+		idx := gobookmarks.TabFromRequest(req)
 		if idx < 0 || idx >= len(tabs) {
 			idx = 0
 		}

@@ -36,7 +36,7 @@
                                                        <li data-page-sha="{{ $t.LastPageSha }}" data-tab-index="{{$t.Index}}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{$t.EditHref}}{{else}}{{$t.Href}}{{end}}" data-tab-index="{{$t.Index}}">{{ $t.IndexName }}</a><a class="edit-link" href="{{$editTab}}" title="Edit Tab">&#9998;</a></li>
                                                        {{- end }}
                                                        {{- if $.EditMode }}
-                                                               <li><a href="{{appendQuery (tabEditHref 0 (ref) "") "edit" "1"}}">+ Add Tab</a></li>
+                                                               <li><a href="{{appendQuery (tabEditHref (len bookmarkTabs) (ref) "") "edit" "1"}}">+ Add Tab</a></li>
                                                         {{- end }}
                                                 </ul>
                                                 <hr/>
