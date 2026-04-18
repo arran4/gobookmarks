@@ -229,7 +229,7 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 		fileType = "image/x-icon"
 	}
 	// Proxy the favicon request
-	faviconContent, hdr, err := downloadUrl(faviconURL)
+	faviconContent, hdr, err := downloadURL(faviconURL)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error proxying favicon: %s", err), http.StatusInternalServerError)
 		return
@@ -299,7 +299,7 @@ func findFaviconURL(pageContent []byte, baseURL *url.URL) (string, string, error
 	var fileType string
 
 	// Find the favicon URL from the meta tags
-	doc.Find("link[rel='icon'], link[rel='shortcut icon'], link[rel='alternate icon'], link[id='favicon']").Each(func(i int, s *goquery.Selection) {
+	doc.Find("link[rel='icon'], link[rel='shortcut icon'], link[rel='alternate icon'], link[id='favicon']").Each(func(_ int, s *goquery.Selection) {
 		if href, exists := s.Attr("href"); exists {
 			faviconPath = href
 			fileType, _ = s.Attr("type")
@@ -319,7 +319,7 @@ func findFaviconURL(pageContent []byte, baseURL *url.URL) (string, string, error
 	return p.String(), fileType, nil
 }
 
-func downloadUrl(url string) ([]byte, http.Header, error) {
+func downloadURL(url string) ([]byte, http.Header, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, nil, err

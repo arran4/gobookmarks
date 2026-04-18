@@ -37,28 +37,28 @@ type ServeCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 
-	GithubClientID   stringFlag
-	GithubSecret     stringFlag
-	GitlabClientID   stringFlag
-	GitlabSecret     stringFlag
-	ExternalURL      stringFlag
-	Namespace        stringFlag
-	Title            stringFlag
+	GithubClientID       stringFlag
+	GithubSecret         stringFlag
+	GitlabClientID       stringFlag
+	GitlabSecret         stringFlag
+	ExternalURL          stringFlag
+	Namespace            stringFlag
+	Title                stringFlag
 	FaviconCacheDir      stringFlag
 	FaviconCacheSize     stringFlag
 	FaviconMaxCacheCount stringFlag
 	CommitsPerPage       stringFlag
 	GithubServer         stringFlag
-	GitlabServer     stringFlag
-	LocalGitPath     stringFlag
-	DbProvider       stringFlag
-	DbConn           stringFlag
-	SessionKey       stringFlag
-	ProviderOrder    stringFlag
-	CssColumns       boolFlag
-	NoFooter         boolFlag
-	DevMode          boolFlag
-	DumpConfig       boolFlag
+	GitlabServer         stringFlag
+	LocalGitPath         stringFlag
+	DbProvider           stringFlag
+	DbConn               stringFlag
+	SessionKey           stringFlag
+	ProviderOrder        stringFlag
+	CSSColumns           boolFlag
+	NoFooter             boolFlag
+	DevMode              boolFlag
+	DumpConfig           boolFlag
 }
 
 func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
@@ -85,7 +85,7 @@ func (rc *RootCommand) NewServeCommand() (*ServeCommand, error) {
 	c.Flags.Var(&c.DbConn, "db-conn", "SQL connection string")
 	c.Flags.Var(&c.SessionKey, "session-key", "session cookie key")
 	c.Flags.Var(&c.ProviderOrder, "provider-order", "comma-separated provider order")
-	c.Flags.Var(&c.CssColumns, "css-columns", "use CSS columns")
+	c.Flags.Var(&c.CSSColumns, "css-columns", "use CSS columns")
 	c.Flags.Var(&c.NoFooter, "no-footer", "disable footer on pages")
 	c.Flags.Var(&c.DevMode, "dev-mode", "enable dev mode helpers")
 	c.Flags.Var(&c.DumpConfig, "dump-config", "print merged config and exit")
@@ -141,8 +141,8 @@ func (c *ServeCommand) Execute(args []string) error {
 	if c.Title.set {
 		cfg.Title = c.Title.value
 	}
-	if c.CssColumns.set {
-		cfg.CssColumns = c.CssColumns.value
+	if c.CSSColumns.set {
+		cfg.CSSColumns = c.CSSColumns.value
 	}
 	if c.NoFooter.set {
 		cfg.NoFooter = c.NoFooter.value
@@ -212,7 +212,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	SetProviderOrder(Config.ProviderOrder)
 	// No need to copy to global vars anymore as we use Config
 
-	redirectUrl := Config.GetOauthRedirectURL()
+	redirectURL := Config.GetOauthRedirectURL()
 
 	// Update SessionName if needed (though it's in Config now, SessionStore logic uses Config.SessionName)
 	// But SessionStore is global.
@@ -231,17 +231,17 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.Use(UserAdderMiddleware)
 	r.Use(CoreAdderMiddleware)
 
-	r.HandleFunc("/main.css", func(writer http.ResponseWriter, request *http.Request) {
+	r.HandleFunc("/main.css", func(writer http.ResponseWriter, _ *http.Request) {
 		_, _ = writer.Write(GetMainCSSData())
 	}).Methods("GET")
-	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, request *http.Request) {
+	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, _ *http.Request) {
 		_, _ = writer.Write(GetFavicon())
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
 	if Config.GetDevMode() {
-		r.HandleFunc("/_css", runHandlerChain(EnableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
-		r.HandleFunc("/_table", runHandlerChain(DisableCssColumnsAction, redirectToHandler("/"))).Methods("GET")
+		r.HandleFunc("/_css", runHandlerChain(EnableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
+		r.HandleFunc("/_table", runHandlerChain(DisableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
 
 	// News
@@ -341,7 +341,7 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
 	SetVersion(version, commit, date)
-	log.Printf("Redirect URL configured to: %s", redirectUrl)
+	log.Printf("Redirect URL configured to: %s", redirectURL)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
 
@@ -460,7 +460,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create cert.pem file: %v", err)
 	}
-	defer certFile.Close()
+	defer func() { _ = certFile.Close() }()
 	if err := pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		log.Fatalf("Failed to write data to cert.pem: %v", err)
 	}
@@ -469,7 +469,7 @@ func CreatePEMFiles() {
 	if err != nil {
 		log.Fatalf("Failed to create key.pem file: %v", err)
 	}
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 	privBytes, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
 		log.Fatalf("Failed to marshal private key: %v", err)
@@ -485,8 +485,6 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 			switch each := each.(type) {
 			case http.Handler:
 				each.ServeHTTP(w, r)
-			case http.HandlerFunc:
-				each(w, r)
 			case func(http.ResponseWriter, *http.Request):
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request) error:
@@ -556,7 +554,6 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-
 func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
@@ -612,15 +609,15 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	})
 }
 
-func redirectToHandler(toUrl string) func(http.ResponseWriter, *http.Request) {
+func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, toUrl, http.StatusSeeOther)
+		http.Redirect(w, r, toURL, http.StatusSeeOther)
 	})
 }
 
-func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.Request) {
+func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, _ := url.Parse(toUrl)
+		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
 		tab := TabFromRequest(r)
@@ -655,9 +652,9 @@ func redirectToHandlerBranchToRef(toUrl string) func(http.ResponseWriter, *http.
 	})
 }
 
-func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Request) {
+func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, _ := url.Parse(toUrl)
+		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		u.Path = TabPath(TabFromRequest(r))
 		if fragment := PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
@@ -672,7 +669,7 @@ func redirectToHandlerTabPage(toUrl string) func(http.ResponseWriter, *http.Requ
 }
 
 func RequiresAnAccount() mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		var session *sessions.Session
 		sessioni := request.Context().Value(ContextValues("session"))
 		if sessioni == nil {
@@ -697,25 +694,25 @@ func RequiresAnAccount() mux.MatcherFunc {
 }
 
 func TaskMatcher(taskName string) mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.PostFormValue("task") == taskName
 	}
 }
 
 func ModeMatcher(modeName string) mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.URL.Query().Get("mode") == modeName
 	}
 }
 
 func HasError() mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.URL.Query().Has("error")
 	}
 }
 
 func NoTask() mux.MatcherFunc {
-	return func(request *http.Request, match *mux.RouteMatch) bool {
+	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		return request.PostFormValue("task") == ""
 	}
 }

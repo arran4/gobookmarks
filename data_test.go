@@ -69,7 +69,7 @@ func testFuncMap() template.FuncMap {
 		"tabName":        func() string { return "Main" },
 		"page":           func() string { return "" },
 		"historyRef":     func() string { return "refs/heads/main" },
-		"useCssColumns":  func() bool { return false },
+		"useCSSColumns":  func() bool { return false },
 		"devMode":        func() bool { return false },
 		"showFooter":     func() bool { return true },
 		"showPages":      func() bool { return true },

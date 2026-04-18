@@ -58,7 +58,7 @@ func (GitLabProvider) client(token *oauth2.Token) (*gitlab.Client, error) {
 	if server == "" {
 		server = "https://gitlab.com"
 	}
-	return gitlab.NewOAuthClient(token.AccessToken, gitlab.WithBaseURL(server))
+	return gitlab.NewClient(token.AccessToken, gitlab.WithBaseURL(server))
 }
 
 func (GitLabProvider) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
@@ -182,7 +182,8 @@ func (GitLabProvider) GetBookmarks(ctx context.Context, user, ref string, token 
 	return string(data), f.LastCommitID, nil
 }
 
-func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, branch string) (string, error) {
+func (GitLabProvider) getDefaultBranch(ctx context.Context, user string, client *gitlab.Client, _ string) (string, error) {
+	var branch string
 	p, _, err := client.Projects.GetProject(user+"/"+Config.GetRepoName(), nil)
 	if err != nil {
 		if respErr, ok := err.(*gitlab.ErrorResponse); ok {

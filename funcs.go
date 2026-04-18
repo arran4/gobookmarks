@@ -128,14 +128,14 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			i, _ := strconv.Atoi(s)
 			return i
 		},
-		"useCssColumns": func() bool {
+		"useCSSColumns": func() bool {
 			sessioni := r.Context().Value(ContextValues("session"))
 			if session, ok := sessioni.(*sessions.Session); ok && session != nil {
-				if v, ok := session.Values["useCssColumns"].(bool); ok {
+				if v, ok := session.Values["useCSSColumns"].(bool); ok {
 					return v
 				}
 			}
-			return Config.CssColumns
+			return Config.CSSColumns
 		},
 		"devMode": func() bool {
 			return Config.GetDevMode()
@@ -221,7 +221,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -250,7 +250,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -290,7 +290,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 
 			ref := r.URL.Query().Get("ref")
 			bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -332,7 +332,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""
@@ -364,7 +364,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
-			var bookmark = defaultBookmarks
+			var bookmark string
 			if err != nil {
 				if errors.Is(err, ErrRepoNotFound) {
 					bookmark = ""

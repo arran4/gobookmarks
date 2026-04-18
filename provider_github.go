@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v69/github"
 	"golang.org/x/oauth2"
 )
 
@@ -50,7 +50,7 @@ func (GitHubProvider) client(ctx context.Context, token *oauth2.Token) *github.C
 	if server == "" || server == "https://github.com" {
 		return github.NewClient(httpClient)
 	}
-	c, err := github.NewEnterpriseClient(server+"/api/v3/", server+"/upload/v3/", httpClient)
+	c, err := github.NewClient(httpClient).WithEnterpriseURLs(server+"/api/v3/", server+"/upload/v3/")
 	if err != nil {
 		return github.NewClient(httpClient)
 	}
@@ -150,7 +150,8 @@ func (p GitHubProvider) GetBookmarks(ctx context.Context, user, ref string, toke
 
 var commitAuthor = &github.CommitAuthor{Name: SP("Gobookmarks"), Email: SP("Gobookmarks@arran.net.au")}
 
-func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, branch string) (string, error) {
+func (p GitHubProvider) getDefaultBranch(ctx context.Context, user string, client *github.Client, _ string) (string, error) {
+	var branch string
 	rep, resp, err := client.Repositories.Get(ctx, user, Config.GetRepoName())
 	if resp != nil && resp.StatusCode == 404 {
 		return "", ErrRepoNotFound
@@ -172,9 +173,7 @@ func (p GitHubProvider) CreateRepo(ctx context.Context, user string, token *oaut
 	rep := &github.Repository{Name: &name, Description: SP("Personal bookmarks"), Private: BP(true)}
 	rep, _, err := client.Repositories.Create(ctx, "", rep)
 	if err != nil {
-		if e, ok := err.(*github.ErrorResponse); ok && e.Response != nil && e.Response.StatusCode == http.StatusUnprocessableEntity {
-			// repository already exists
-		} else {
+		if e, ok := err.(*github.ErrorResponse); !ok || e.Response == nil || e.Response.StatusCode != http.StatusUnprocessableEntity {
 			log.Printf("github createRepo: %v", err)
 			return fmt.Errorf("Repositories.Create: %w", err)
 		}

@@ -29,7 +29,7 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("session.Save Error: %w", err)
 	}
 
-	data.CoreData.UserRef = ""
+	data.UserRef = ""
 
 	return nil
 }
@@ -105,11 +105,6 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 }
 
 func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
-
-	type ErrorData struct {
-		*CoreData
-		Error string
-	}
 
 	session, err := getSession(w, r)
 	if session, err = sanitizeSession(w, r, session, err); err != nil {

@@ -22,24 +22,21 @@ http://www.exmaple.com/ exmaple34
 	tabName := ""
 	tabIdx := 0 // default since it's an Add Tab without tab param
 	tabFromQuery := tabName != ""
-    hasTabParam := false // r.URL.Query().Has("tab")
+	hasTabParam := false // r.URL.Query().Has("tab")
 
 	isAddMode := !hasTabParam && tabName == ""
-    text := ""
+	text := ""
 	if !isAddMode {
-		if tabName == "" && tabIdx < len(tabs) {
-			tabName = tabs[tabIdx].Name
-		}
 		if tabFromQuery || tabIdx < len(tabs) {
 			tabText, err := ExtractTabByIndex(bookmarksStr, tabIdx)
 			if err != nil {
 				t.Fatalf("ExtractTabByIndex: %v", err)
 			}
-            text = tabText
+			text = tabText
 		}
 	}
 
-    if text != "" {
-        t.Fatalf("Expected text to be empty in add mode, but got:\n%s", text)
-    }
+	if text != "" {
+		t.Fatalf("Expected text to be empty in add mode, but got:\n%s", text)
+	}
 }
