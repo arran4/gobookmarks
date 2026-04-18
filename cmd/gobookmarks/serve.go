@@ -13,7 +13,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 	"github.com/arran4/gorillamuxlogic"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
@@ -148,7 +148,7 @@ func (c *ServeCommand) Execute(args []string) error {
 		cfg.NoFooter = c.NoFooter.value
 	}
 	if c.DevMode.set {
-		cfg.DevMode = BP(c.DevMode.value)
+		cfg.DevMode = gobookmarks.BP(c.DevMode.value)
 	}
 	if c.GithubServer.set {
 		cfg.GithubServer = c.GithubServer.value
@@ -197,59 +197,59 @@ func (c *ServeCommand) Execute(args []string) error {
 	}
 
 	// Update global Config
-	Config = cfg
-	if Config.FaviconCacheSize == 0 {
-		Config.FaviconCacheSize = DefaultFaviconCacheSize
+	gobookmarks.Config = cfg
+	if gobookmarks.Config.FaviconCacheSize == 0 {
+		gobookmarks.Config.FaviconCacheSize = gobookmarks.DefaultFaviconCacheSize
 	}
-	if Config.FaviconMaxCacheCount == 0 {
-		Config.FaviconMaxCacheCount = DefaultFaviconMaxCacheCount
+	if gobookmarks.Config.FaviconMaxCacheCount == 0 {
+		gobookmarks.Config.FaviconMaxCacheCount = gobookmarks.DefaultFaviconMaxCacheCount
 	}
-	if Config.CommitsPerPage == 0 {
-		Config.CommitsPerPage = DefaultCommitsPerPage
+	if gobookmarks.Config.CommitsPerPage == 0 {
+		gobookmarks.Config.CommitsPerPage = gobookmarks.DefaultCommitsPerPage
 	}
 
 	// Initialize global settings that were previously done via copying variables
-	SetProviderOrder(Config.ProviderOrder)
+	gobookmarks.SetProviderOrder(gobookmarks.Config.ProviderOrder)
 	// No need to copy to global vars anymore as we use Config
 
-	redirectURL := Config.GetOauthRedirectURL()
+	redirectURL := gobookmarks.Config.GetOauthRedirectURL()
 
 	// Update SessionName if needed (though it's in Config now, SessionStore logic uses Config.SessionName)
 	// But SessionStore is global.
 	// We need to initialize SessionStore
-	SessionStore = sessions.NewCookieStore(loadSessionKey(Config))
+	gobookmarks.SessionStore = sessions.NewCookieStore(loadSessionKey(gobookmarks.Config))
 
-	if len(ProviderNames()) == 0 {
+	if len(gobookmarks.ProviderNames()) == 0 {
 		return errors.New("no providers compiled")
 	}
-	if len(ConfiguredProviderNames()) == 0 {
+	if len(gobookmarks.ConfiguredProviderNames()) == 0 {
 		return errors.New("no providers available")
 	}
 
 	r := mux.NewRouter()
 
-	r.Use(UserAdderMiddleware)
-	r.Use(CoreAdderMiddleware)
+	r.Use(gobookmarks.UserAdderMiddleware)
+	r.Use(gobookmarks.CoreAdderMiddleware)
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, _ *http.Request) {
-		_, _ = writer.Write(GetMainCSSData())
+		_, _ = writer.Write(gobookmarks.GetMainCSSData())
 	}).Methods("GET")
 	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, _ *http.Request) {
-		_, _ = writer.Write(GetFavicon())
+		_, _ = writer.Write(gobookmarks.GetFavicon())
 	}).Methods("GET")
 
 	// Development helpers to toggle layout mode
-	if Config.GetDevMode() {
-		r.HandleFunc("/_css", runHandlerChain(EnableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
-		r.HandleFunc("/_table", runHandlerChain(DisableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
+	if gobookmarks.Config.GetDevMode() {
+		r.HandleFunc("/_css", runHandlerChain(gobookmarks.EnableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
+		r.HandleFunc("/_table", runHandlerChain(gobookmarks.DisableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
 	}
 
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
 	r.Handle("/tab", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
 	r.Handle("/tab/{tab}", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
-	r.HandleFunc("/tab/{tab}", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
-	r.HandleFunc("/", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/tab/{tab}", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/edit", runTemplate("edit.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -257,61 +257,61 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	// Modal routes mapping to shared forms
 	r.HandleFunc("/edit/modal", runTemplate("_partials/editBookmarksForm.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editCategory/modal", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/addCategory/modal", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editTab/modal", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/edit/modal", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editPage/modal", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/edit", runHandlerChain(BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
-	r.HandleFunc("/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/editCategory/modal", runHandlerChain(gobookmarks.EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addCategory/modal", runHandlerChain(gobookmarks.AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editTab/modal", runHandlerChain(gobookmarks.EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/edit/modal", runHandlerChain(gobookmarks.EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editPage/modal", runHandlerChain(gobookmarks.EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditSaveAction, gobookmarks.StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditCreateAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher("Create"))
+	r.HandleFunc("/edit", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/startEditMode", runHandlerChain(StartEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/stopEditMode", runHandlerChain(StopEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/startEditMode", runHandlerChain(gobookmarks.StartEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/stopEditMode", runHandlerChain(gobookmarks.StopEditMode, redirectToHandlerTabPage("/"))).Methods("POST", "GET").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/editCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/editCategory", runHandlerChain(EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/editCategory", runHandlerChain(CategoryEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/editCategory", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/editCategory", runHandlerChain(gobookmarks.EditCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editCategory", runHandlerChain(gobookmarks.CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/editCategory", runHandlerChain(gobookmarks.CategoryEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/editCategory", runHandlerChain(gobookmarks.CategoryEditSaveAction, gobookmarks.StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/editCategory", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 	r.HandleFunc("/addCategory", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/addCategory", runHandlerChain(AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/addCategory", runHandlerChain(CategoryAddSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/addCategory", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
-	r.HandleFunc("/moveCategory", runHandlerChain(CategoryMoveBeforeAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/moveCategoryEnd", runHandlerChain(CategoryMoveEndAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/moveCategoryNewColumn", runHandlerChain(CategoryMoveNewColumnAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addCategory", runHandlerChain(gobookmarks.AddCategoryPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/addCategory", runHandlerChain(gobookmarks.CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/addCategory", runHandlerChain(gobookmarks.CategoryAddSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/addCategory", runHandlerChain(gobookmarks.CategoryAddSaveAction, gobookmarks.StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/addCategory", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/moveCategory", runHandlerChain(gobookmarks.CategoryMoveBeforeAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveCategoryEnd", runHandlerChain(gobookmarks.CategoryMoveEndAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveCategoryNewColumn", runHandlerChain(gobookmarks.CategoryMoveNewColumnAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/editTab", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/editTab", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/editTab", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/editTab", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/editTab", runHandlerChain(gobookmarks.EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editTab", runHandlerChain(gobookmarks.TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/editTab", runHandlerChain(gobookmarks.TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/editTab", runHandlerChain(gobookmarks.TabEditSaveAction, gobookmarks.StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/editTab", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 	r.HandleFunc("/tab/{tab}/edit", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TabEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TabEditSaveAction, gobookmarks.StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/editPage", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
-	r.HandleFunc("/editPage", runHandlerChain(EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSave))
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndDone))
-	r.HandleFunc("/editPage", runHandlerChain(PageEditSaveAction, StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(TaskSaveAndStopEditing))
-	r.HandleFunc("/editPage", runHandlerChain(TaskDoneAutoRefreshPage)).Methods("POST")
+	r.HandleFunc("/editPage", runHandlerChain(gobookmarks.EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editPage", runHandlerChain(gobookmarks.PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/editPage", runHandlerChain(gobookmarks.PageEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/editPage", runHandlerChain(gobookmarks.PageEditSaveAction, gobookmarks.StopEditMode, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/editPage", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 
-	r.HandleFunc("/moveTab", runHandlerChain(MoveTabAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/movePage", runHandlerChain(MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
-	r.HandleFunc("/tab/{tab}/moveEntry", runHandlerChain(MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveTab", runHandlerChain(gobookmarks.MoveTabAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/movePage", runHandlerChain(gobookmarks.MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/movePage", runHandlerChain(gobookmarks.MovePageAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/moveEntry", runHandlerChain(gobookmarks.MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/tab/{tab}/moveEntry", runHandlerChain(gobookmarks.MoveEntryAction)).Methods("POST").MatcherFunc(RequiresAnAccount())
 
 	r.HandleFunc("/history", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/history", runTemplate("history.gohtml")).Methods("GET").MatcherFunc(RequiresAnAccount())
@@ -322,16 +322,16 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	r.HandleFunc("/login", runTemplate("loginPage.gohtml")).Methods("GET")
 	r.HandleFunc("/login/git", runTemplate("gitLoginPage.gohtml")).Methods("GET")
-	r.HandleFunc("/login/git", runHandlerChain(GitLoginAction, redirectToHandler("/"))).Methods("POST")
-	r.HandleFunc("/signup/git", runHandlerChain(GitSignupAction, redirectToHandler("/login/git"))).Methods("POST")
+	r.HandleFunc("/login/git", runHandlerChain(gobookmarks.GitLoginAction, redirectToHandler("/"))).Methods("POST")
+	r.HandleFunc("/signup/git", runHandlerChain(gobookmarks.GitSignupAction, redirectToHandler("/login/git"))).Methods("POST")
 	r.HandleFunc("/login/sql", runTemplate("sqlLoginPage.gohtml")).Methods("GET")
-	r.HandleFunc("/login/sql", runHandlerChain(SqlLoginAction, redirectToHandler("/"))).Methods("POST")
-	r.HandleFunc("/signup/sql", runHandlerChain(SqlSignupAction, redirectToHandler("/login/sql"))).Methods("POST")
-	r.HandleFunc("/login/{provider}", runHandlerChain(LoginWithProvider)).Methods("GET")
-	r.HandleFunc("/logout", runHandlerChain(UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
-	r.HandleFunc("/oauth2Callback", runHandlerChain(Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
+	r.HandleFunc("/login/sql", runHandlerChain(gobookmarks.SqlLoginAction, redirectToHandler("/"))).Methods("POST")
+	r.HandleFunc("/signup/sql", runHandlerChain(gobookmarks.SqlSignupAction, redirectToHandler("/login/sql"))).Methods("POST")
+	r.HandleFunc("/login/{provider}", runHandlerChain(gobookmarks.LoginWithProvider)).Methods("GET")
+	r.HandleFunc("/logout", runHandlerChain(gobookmarks.UserLogoutAction, runTemplate("logoutPage.gohtml"))).Methods("GET")
+	r.HandleFunc("/oauth2Callback", runHandlerChain(gobookmarks.Oauth2CallbackPage, redirectToHandler("/"))).Methods("GET")
 
-	r.HandleFunc("/proxy/favicon", FaviconProxyHandler).Methods("GET")
+	r.HandleFunc("/proxy/favicon", gobookmarks.FaviconProxyHandler).Methods("GET")
 
 	http.Handle("/", r)
 
@@ -340,7 +340,7 @@ func (c *ServeCommand) Execute(args []string) error {
 	}
 
 	log.Printf("gobookmarks: %s, commit %s, built at %s", version, commit, date)
-	SetVersion(version, commit, date)
+	gobookmarks.SetVersion(version, commit, date)
 	log.Printf("Redirect URL configured to: %s", redirectURL)
 	log.Println("Server started on http://localhost:8080")
 	log.Println("Server started on https://localhost:8443")
@@ -489,22 +489,22 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 				each(w, r)
 			case func(http.ResponseWriter, *http.Request) error:
 				if err := each(w, r); err != nil {
-					if errors.Is(err, ErrHandled) {
+					if errors.Is(err, gobookmarks.ErrHandled) {
 						return
 					}
-					if errors.Is(err, ErrSignedOut) {
-						if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
+					if errors.Is(err, gobookmarks.ErrSignedOut) {
+						if logoutErr := gobookmarks.UserLogoutAction(w, r); logoutErr != nil {
 							log.Printf("logout error: %v", logoutErr)
 						}
-						type Data struct{ *CoreData }
-						if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", Data{r.Context().Value(ContextValues("coreData")).(*CoreData)}); err != nil {
+						type Data struct{ *gobookmarks.CoreData }
+						if err := gobookmarks.GetCompiledTemplates(gobookmarks.NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", Data{r.Context().Value(gobookmarks.ContextValues("coreData")).(*gobookmarks.CoreData)}); err != nil {
 							log.Printf("Logout Template Error: %s", err)
 							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 						}
 						return
 					}
 
-					var uerr UserError
+					var uerr gobookmarks.UserError
 					if errors.As(err, &uerr) {
 						dest := r.Referer()
 						if dest == "" {
@@ -525,7 +525,7 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 						}
 					}
 
-					var serr SystemError
+					var serr gobookmarks.SystemError
 					display := "Internal error"
 					if errors.As(err, &serr) {
 						display = serr.Msg
@@ -535,11 +535,11 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 					log.Printf("handler error: %v", err)
 
 					type ErrorData struct {
-						*CoreData
+						*gobookmarks.CoreData
 						Error string
 					}
-					if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
-						CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+					if err := gobookmarks.GetCompiledTemplates(gobookmarks.NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+						CoreData: r.Context().Value(gobookmarks.ContextValues("coreData")).(*gobookmarks.CoreData),
 						Error:    display,
 					}); err != nil {
 						log.Printf("Error Template Error: %s", err)
@@ -557,35 +557,35 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
-			*CoreData
+			*gobookmarks.CoreData
 			Error string
 		}
 
 		data := Data{
-			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			CoreData: r.Context().Value(gobookmarks.ContextValues("coreData")).(*gobookmarks.CoreData),
 			Error:    r.URL.Query().Get("error"),
 		}
 
 		var buf bytes.Buffer
-		err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
+		err := gobookmarks.GetCompiledTemplates(gobookmarks.NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
 		if err == nil {
 			_, _ = io.Copy(w, &buf)
 			return
 		}
 
-		if errors.Is(err, ErrSignedOut) {
-			if logoutErr := UserLogoutAction(w, r); logoutErr != nil {
+		if errors.Is(err, gobookmarks.ErrSignedOut) {
+			if logoutErr := gobookmarks.UserLogoutAction(w, r); logoutErr != nil {
 				log.Printf("logout error: %v", logoutErr)
 			}
-			type LogoutData struct{ *CoreData }
-			if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", LogoutData{data.CoreData}); tplErr != nil {
+			type LogoutData struct{ *gobookmarks.CoreData }
+			if tplErr := gobookmarks.GetCompiledTemplates(gobookmarks.NewFuncs(r)).ExecuteTemplate(w, "logoutPage.gohtml", LogoutData{data.CoreData}); tplErr != nil {
 				log.Printf("Logout Template Error: %v", tplErr)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 			return
 		}
 
-		var serr SystemError
+		var serr gobookmarks.SystemError
 		display := "Internal error"
 		if errors.As(err, &serr) {
 			display = serr.Msg
@@ -595,11 +595,11 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		log.Printf("Template %s error: %v", tmpl, err)
 
 		type ErrorData struct {
-			*CoreData
+			*gobookmarks.CoreData
 			Error string
 		}
 
-		if tplErr := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
+		if tplErr := gobookmarks.GetCompiledTemplates(gobookmarks.NewFuncs(r)).ExecuteTemplate(w, "error.gohtml", ErrorData{
 			CoreData: data.CoreData,
 			Error:    display,
 		}); tplErr != nil {
@@ -620,7 +620,7 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
-		tab := TabFromRequest(r)
+		tab := gobookmarks.TabFromRequest(r)
 		if r.URL.Query().Get("from_modal") == "1" {
 			// When saving from a modal, we want to return the user to the main page or tab view
 			// instead of returning back to an edit page view, unless keep_edit_mode is checked.
@@ -631,17 +631,17 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 		} else if r.URL.Query().Get("edit") == "1" {
 			qs.Set("edit", "1")
 		}
-		if v, ok := r.Context().Value(ContextValues("redirectTab")).(string); ok {
+		if v, ok := r.Context().Value(gobookmarks.ContextValues("redirectTab")).(string); ok {
 			if parsed, err := strconv.Atoi(v); err == nil {
 				tab = parsed
 			}
 		}
-		u.Path = TabPath(tab)
+		u.Path = gobookmarks.TabPath(tab)
 		page := r.PostFormValue("page")
-		if v, ok := r.Context().Value(ContextValues("redirectPage")).(string); ok {
+		if v, ok := r.Context().Value(gobookmarks.ContextValues("redirectPage")).(string); ok {
 			page = v
 		}
-		if fragment := PageFragmentFromIndex(page); fragment != "" {
+		if fragment := gobookmarks.PageFragmentFromIndex(page); fragment != "" {
 			u.Fragment = fragment
 		}
 		if edit := r.URL.Query().Get("edit"); edit != "" {
@@ -656,8 +656,8 @@ func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Requ
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, _ := url.Parse(toURL)
 		qs := u.Query()
-		u.Path = TabPath(TabFromRequest(r))
-		if fragment := PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
+		u.Path = gobookmarks.TabPath(gobookmarks.TabFromRequest(r))
+		if fragment := gobookmarks.PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
 			u.Fragment = fragment
 		}
 		if edit := r.URL.Query().Get("edit"); edit != "" {
@@ -671,10 +671,10 @@ func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Requ
 func RequiresAnAccount() mux.MatcherFunc {
 	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		var session *sessions.Session
-		sessioni := request.Context().Value(ContextValues("session"))
+		sessioni := request.Context().Value(gobookmarks.ContextValues("session"))
 		if sessioni == nil {
 			var err error
-			session, err = SessionStore.Get(request, Config.GetSessionName())
+			session, err = gobookmarks.SessionStore.Get(request, gobookmarks.Config.GetSessionName())
 			if err != nil {
 				return false
 			}
@@ -688,7 +688,7 @@ func RequiresAnAccount() mux.MatcherFunc {
 		if v, ok := session.Values["version"].(string); !ok || v != version {
 			return false
 		}
-		githubUser, ok := session.Values["GithubUser"].(*User)
+		githubUser, ok := session.Values["GithubUser"].(*gobookmarks.User)
 		return ok && githubUser != nil
 	}
 }
@@ -722,12 +722,12 @@ func fileExists(filename string) bool {
 	return !os.IsNotExist(err)
 }
 
-func loadSessionKey(cfg Configuration) []byte {
+func loadSessionKey(cfg gobookmarks.Configuration) []byte {
 	if cfg.SessionKey != "" {
 		return []byte(cfg.SessionKey)
 	}
 
-	path := DefaultSessionKeyPath(false)
+	path := gobookmarks.DefaultSessionKeyPath(false)
 	if b, err := os.ReadFile(path); err == nil {
 		return bytes.TrimSpace(b)
 	}
@@ -737,7 +737,7 @@ func loadSessionKey(cfg Configuration) []byte {
 		log.Fatal("unable to generate session key")
 	}
 
-	path = DefaultSessionKeyPath(true)
+	path = gobookmarks.DefaultSessionKeyPath(true)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err == nil {
 		if err := os.WriteFile(path, key, 0o600); err != nil {
 			log.Printf("unable to write session key file %s: %v; sessions will not persist", path, err)

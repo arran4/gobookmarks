@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type VerifyFileCommand struct {
@@ -60,7 +60,7 @@ func (c *VerifyFileCommand) Execute(args []string) error {
 		return err
 	}
 
-	if _, err := ValidateBookmarks(string(data)); err != nil {
+	if _, err := gobookmarks.ValidateBookmarks(string(data)); err != nil {
 		printHelp(c, err)
 		return err
 	}

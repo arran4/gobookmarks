@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type VerifyCredsCommand struct {
@@ -57,7 +57,7 @@ func (c *VerifyCredsCommand) Execute(args []string) error {
 	}
 
 	cfg := c.parent.(*RootCommand).cfg
-	Config = cfg
+	gobookmarks.Config = cfg
 
 	provider, err := getConfiguredProvider(&cfg)
 	if err != nil {
@@ -65,7 +65,7 @@ func (c *VerifyCredsCommand) Execute(args []string) error {
 		return err
 	}
 
-	ph, ok := provider.(PasswordHandler)
+	ph, ok := provider.(gobookmarks.PasswordHandler)
 	if !ok {
 		err := fmt.Errorf("provider %s does not support credential verification", provider.Name())
 		printHelp(c, err)

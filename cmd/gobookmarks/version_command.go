@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type VersionCommand struct {
@@ -49,6 +49,6 @@ func (c *VersionCommand) Execute(args []string) error {
 		return err
 	}
 	fmt.Printf("gobookmarks %s commit %s built %s\n", c.Info.Version, c.Info.Commit, c.Info.Date)
-	fmt.Printf("providers: %s\n", strings.Join(ProviderNames(), ", "))
+	fmt.Printf("providers: %s\n", strings.Join(gobookmarks.ProviderNames(), ", "))
 	return nil
 }

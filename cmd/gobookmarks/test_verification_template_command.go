@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	. "github.com/arran4/gobookmarks"
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type TemplateCommand struct {
@@ -69,7 +69,7 @@ func (c *TemplateCommand) Execute(args []string) error {
 		return c.HelpCmd.Execute(remaining[1:])
 	}
 
-	coreData := &CoreData{
+	coreData := &gobookmarks.CoreData{
 		Title:    "Test Verification",
 		UserRef:  "testuser",
 		EditMode: false,
@@ -161,11 +161,11 @@ https://example.com Example Link
 	// However, some funcs might need session or other context values.
 	// For "useCSSColumns" etc.
 
-	ctx := context.WithValue(req.Context(), ContextValues("coreData"), coreData)
+	ctx := context.WithValue(req.Context(), gobookmarks.ContextValues("coreData"), coreData)
 	req = req.WithContext(ctx)
 
 	// Create funcs that override the default behavior to return our static data
-	funcs := NewFuncs(req)
+	funcs := gobookmarks.NewFuncs(req)
 
 	// Override specific functions to use our local bookmarks string
 	funcs["bookmarks"] = func() (string, error) {
@@ -174,9 +174,9 @@ https://example.com Example Link
 	funcs["bookmarksExist"] = func() (bool, error) {
 		return bookmarksStr != "", nil
 	}
-	funcs["bookmarkPages"] = func() ([]*BookmarkPage, error) {
-		tabs := ParseBookmarks(bookmarksStr)
-		idx := TabFromRequest(req)
+	funcs["bookmarkPages"] = func() ([]*gobookmarks.BookmarkPage, error) {
+		tabs := gobookmarks.ParseBookmarks(bookmarksStr)
+		idx := gobookmarks.TabFromRequest(req)
 		if idx < 0 || idx >= len(tabs) {
 			idx = 0
 		}
@@ -185,53 +185,53 @@ https://example.com Example Link
 		}
 		return tabs[idx].Pages, nil
 	}
-	funcs["bookmarkTabs"] = func() ([]TabInfo, error) {
-		tabsData := ParseBookmarks(bookmarksStr)
-		var tabs []TabInfo
+	funcs["bookmarkTabs"] = func() ([]gobookmarks.TabInfo, error) {
+		tabsData := gobookmarks.ParseBookmarks(bookmarksStr)
+		var tabs []gobookmarks.TabInfo
 		for i, t := range tabsData {
 			indexName := t.DisplayName()
 			if indexName == "" && i == 0 {
 				indexName = "Main"
 			}
 			if indexName != "" {
-				href := TabHref(i, "") // No ref in static mode
-				lastSha := ""          // No SHA in static mode
+				href := gobookmarks.TabPath(i) // Use TabPath instead of TabHref as it's defined in tab_utils.go
+				lastSha := ""                  // No SHA in static mode
 				if len(t.Pages) > 0 {
 					lastSha = t.Pages[len(t.Pages)-1].Sha()
 				}
-				tabs = append(tabs, TabInfo{
+				tabs = append(tabs, gobookmarks.TabInfo{
 					Index:       i,
 					Name:        t.Name,
 					IndexName:   indexName,
 					Href:        href,
-					EditHref:    AppendQueryParams(href, "edit", "1"),
+					EditHref:    gobookmarks.AppendQueryParams(href, "edit", "1"),
 					LastPageSha: lastSha,
 				})
 			}
 		}
 		return tabs, nil
 	}
-	funcs["bookmarkTabsWithPages"] = func() ([]TabWithPages, error) {
-		tabsData := ParseBookmarks(bookmarksStr)
-		var tabs []TabWithPages
+	funcs["bookmarkTabsWithPages"] = func() ([]gobookmarks.TabWithPages, error) {
+		tabsData := gobookmarks.ParseBookmarks(bookmarksStr)
+		var tabs []gobookmarks.TabWithPages
 		for i, t := range tabsData {
 			indexName := t.DisplayName()
 			if indexName == "" && i == 0 {
 				indexName = "Main"
 			}
 			if indexName != "" {
-				href := TabHref(i, "")
+				href := gobookmarks.TabPath(i)
 				lastSha := ""
 				if len(t.Pages) > 0 {
 					lastSha = t.Pages[len(t.Pages)-1].Sha()
 				}
-				tabs = append(tabs, TabWithPages{
-					TabInfo: TabInfo{
+				tabs = append(tabs, gobookmarks.TabWithPages{
+					TabInfo: gobookmarks.TabInfo{
 						Index:       i,
 						Name:        t.Name,
 						IndexName:   indexName,
 						Href:        href,
-						EditHref:    AppendQueryParams(href, "edit", "1"),
+						EditHref:    gobookmarks.AppendQueryParams(href, "edit", "1"),
 						LastPageSha: lastSha,
 					},
 					Pages: t.Pages,
@@ -241,8 +241,8 @@ https://example.com Example Link
 		return tabs, nil
 	}
 	funcs["tabName"] = func() string {
-		tabs := ParseBookmarks(bookmarksStr)
-		idx := TabFromRequest(req)
+		tabs := gobookmarks.ParseBookmarks(bookmarksStr)
+		idx := gobookmarks.TabFromRequest(req)
 		if idx < 0 || idx >= len(tabs) {
 			idx = 0
 		}
@@ -268,10 +268,10 @@ https://example.com Example Link
 	funcs["bookmarksSHA"] = func() string { return "sha123" }
 
 	// Compile templates with our modified funcs
-	tmpl := GetCompiledTemplates(funcs)
+	tmpl := gobookmarks.GetCompiledTemplates(funcs)
 
 	type Data struct {
-		*CoreData
+		*gobookmarks.CoreData
 		Error string
 	}
 	data := Data{
@@ -304,11 +304,11 @@ https://example.com Example Link
 		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/css")
 			_, _ = w.Write(
-				GetMainCSSData())
+				gobookmarks.GetMainCSSData())
 		})
 		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(
-				GetFavicon())
+				gobookmarks.GetFavicon())
 		})
 		// Also proxy/favicon if possible, but that might require internet or network
 		mux.HandleFunc("/proxy/favicon", func(w http.ResponseWriter, r *http.Request) {
