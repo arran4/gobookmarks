@@ -1,0 +1,20 @@
+-- test.txt --
+ExtractPage
+-- params.json --
+{
+  "tabIdx": 0,
+  "pageIdx": 1
+}
+-- input.txt --
+Tab: One
+Page: First
+Category: A
+--
+Page: Second
+Category: B
+Tab: Two
+Page: Third
+Category: C
+-- expected.txt --
+Category: B
+NAME=Second

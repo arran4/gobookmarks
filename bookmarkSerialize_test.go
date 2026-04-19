@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+const multiBookmarkText = `Category: A
+http://a.com a
+Page
+Category: B
+http://b.com b
+Column
+Category: C
+http://c.com c
+`
+
 func TestSerializeBookmarksRoundTrip(t *testing.T) {
 	samples := []string{
 		defaultBookmarks,
