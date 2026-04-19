@@ -1,0 +1,12 @@
+test: consecutive unnamed Page directives at the beginning of a tab
+
+-- input.txt --
+Tab: anonymous page
+Page
+Page
+Page
+-- expected.txt --
+Tab: anonymous page
+Page
+Page
+Page
