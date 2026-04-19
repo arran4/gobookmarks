@@ -1,0 +1,13 @@
+-- test.txt --
+ExtractCategoryByIndex
+-- params.json --
+{
+  "index": 0
+}
+-- input.txt --
+Category: a
+https://example.com/ b
+Tab: c
+-- expected.txt --
+Category: a
+https://example.com/ b

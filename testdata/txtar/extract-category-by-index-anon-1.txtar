@@ -1,0 +1,16 @@
+-- test.txt --
+ExtractCategoryByIndex
+-- params.json --
+{
+  "index": 1
+}
+-- input.txt --
+Category:
+http://one.com one
+Category:
+http://two.com two
+Category: Named
+http://three.com three
+-- expected.txt --
+Category:
+http://two.com two

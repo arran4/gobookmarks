@@ -1,0 +1,19 @@
+-- test.txt --
+ReplaceCategoryByIndex
+-- params.json --
+{
+  "index": 1,
+  "newText": "Category: B\nhttp://new.com n"
+}
+-- input.txt --
+Category: A
+http://a.com a
+Column
+Category: B
+http://b.com b
+-- expected.txt --
+Category: A
+http://a.com a
+Column
+Category: B
+http://new.com n

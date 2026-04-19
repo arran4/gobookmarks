@@ -1,0 +1,13 @@
+-- test.txt --
+AppendTab
+-- params.json --
+{
+  "newName": "New",
+  "newText": "Category: Y"
+}
+-- input.txt --
+Category: X
+-- expected.txt --
+Category: X
+Tab: New
+Category: Y

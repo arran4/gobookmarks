@@ -1,0 +1,20 @@
+-- test.txt --
+ReplaceTab
+-- params.json --
+{
+  "oldName": "Two",
+  "newName": "Z",
+  "newText": "Category: C"
+}
+-- input.txt --
+Tab: One
+Category: A
+--
+Tab: Two
+Category: B
+-- expected.txt --
+Tab: One
+Category: A
+--
+Tab: Z
+Category: C
