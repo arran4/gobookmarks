@@ -33,7 +33,8 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	}
 	text := ""
 	tabFromQuery := tabName != ""
-	isAddMode := !r.URL.Query().Has("tab") && tabName == ""
+	hasTabParam := HasTabParam(r)
+	isAddMode := !hasTabParam && tabName == ""
 	if !isAddMode {
 		if tabName == "" && tabIdx < len(tabs) {
 			tabName = tabs[tabIdx].Name
@@ -70,7 +71,11 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 		Sha:      sha,
 	}
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editTab.gohtml", data); err != nil {
+	tmplName := "editTab.gohtml"
+	if strings.HasSuffix(r.URL.Path, "/modal") {
+		tmplName = "_partials/editTabForm.gohtml"
+	}
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil
@@ -104,7 +109,9 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	var updated string
 	newIndex := len(ParseBookmarks(currentBookmarks))
-	if tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
+	hasTabParam := HasTabParam(r)
+
+	if hasTabParam && tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
 		updated, err = ReplaceTabByIndex(currentBookmarks, tabIdx, name, text)
 		if err != nil {
 			return fmt.Errorf("ReplaceTabByIndex: %w", err)
