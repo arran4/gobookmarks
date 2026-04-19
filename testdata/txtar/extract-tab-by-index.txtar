@@ -1,0 +1,14 @@
+-- test.txt --
+ExtractTabByIndex
+-- params.json --
+{
+  "index": 0
+}
+-- input.txt --
+Category: A
+--
+Tab: Two
+Category: B
+-- expected.txt --
+Category: A
+--

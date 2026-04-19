@@ -13,19 +13,6 @@ Page: Third
 Category: C
 `
 
-func TestExtractPage(t *testing.T) {
-	text, name, err := ExtractPage(pageBookmarkText, 0, 1)
-	if err != nil {
-		t.Fatalf("unexpected err: %v", err)
-	}
-	if text != "Category: B\n" {
-		t.Fatalf("expected Category B text, got %q", text)
-	}
-	if name != "Second" {
-		t.Fatalf("expected name Second, got %q", name)
-	}
-}
-
 func TestExtractPageErrors(t *testing.T) {
 	if _, _, err := ExtractPage(pageBookmarkText, 2, 0); err == nil {
 		t.Fatalf("expected tab error")

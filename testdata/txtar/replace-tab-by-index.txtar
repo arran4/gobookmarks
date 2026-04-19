@@ -1,0 +1,17 @@
+-- test.txt --
+ReplaceTabByIndex
+-- params.json --
+{
+  "index": 0,
+  "newName": "",
+  "newText": "Category: Z"
+}
+-- input.txt --
+Category: A
+--
+Tab: Two
+Category: B
+-- expected.txt --
+Category: Z
+Tab: Two
+Category: B
