@@ -33,7 +33,8 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 	}
 	text := ""
 	tabFromQuery := tabName != ""
-	isAddMode := !r.URL.Query().Has("tab") && tabName == ""
+	hasTabParam := HasTabParam(r)
+	isAddMode := !hasTabParam && tabName == ""
 	if !isAddMode {
 		if tabName == "" && tabIdx < len(tabs) {
 			tabName = tabs[tabIdx].Name
@@ -108,7 +109,9 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 
 	var updated string
 	newIndex := len(ParseBookmarks(currentBookmarks))
-	if tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
+	hasTabParam := HasTabParam(r)
+
+	if hasTabParam && tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
 		updated, err = ReplaceTabByIndex(currentBookmarks, tabIdx, name, text)
 		if err != nil {
 			return fmt.Errorf("ReplaceTabByIndex: %w", err)
