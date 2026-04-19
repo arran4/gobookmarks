@@ -43,12 +43,15 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if pageErr == nil && pageIdx >= 0 {
-		pageText, pageName, err := ExtractPage(bookmarks, tabIdx, pageIdx)
-		if err != nil {
-			return fmt.Errorf("ExtractPage: %w", err)
+		tabs := ParseBookmarks(bookmarks)
+		if tabIdx >= 0 && tabIdx < len(tabs) && pageIdx < len(tabs[tabIdx].Pages) {
+			pageText, pageName, err := ExtractPage(bookmarks, tabIdx, pageIdx)
+			if err != nil {
+				return fmt.Errorf("ExtractPage: %w", err)
+			}
+			data.Name = pageName
+			data.Text = pageText
 		}
-		data.Name = pageName
-		data.Text = pageText
 	}
 
 	tmplName := "editPage.gohtml"
@@ -93,10 +96,7 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	}
 	parsed := ParseBookmarks("Tab\nPage: " + name + "\n" + text)
 	p := parsed[0].Pages[0]
-	if pageErr == nil {
-		if pageIdx < 0 || pageIdx >= len(list[tabIdx].Pages) {
-			return fmt.Errorf("page index out of range")
-		}
+	if pageErr == nil && pageIdx >= 0 && pageIdx < len(list[tabIdx].Pages) {
 		list[tabIdx].Pages[pageIdx] = p
 	} else {
 		newIndex := len(list[tabIdx].Pages)
