@@ -106,20 +106,20 @@ func PageFragmentFromIndex(pageStr string) string {
 // HasTabParam checks if the tab parameter was provided in the request
 func HasTabParam(r *http.Request) bool {
 	_, ok := TabFromRequestWithStatus(r)
-    if ok {
-        return true
-    }
+	if ok {
+		return true
+	}
 	// Fallback to checking the raw query or form, just in case
-    if r != nil {
-	    if r.URL.Query().Has("tab") {
-		    return true
-	    }
-	    if r.Method == "POST" && r.PostForm != nil && r.PostForm.Has("tab") {
-		    return true
-	    }
-	    if r.FormValue("tab") != "" {
-	        return true
-	    }
-    }
+	if r != nil {
+		if r.URL.Query().Has("tab") {
+			return true
+		}
+		if r.Method == "POST" && r.PostForm != nil && r.PostForm.Has("tab") {
+			return true
+		}
+		if r.FormValue("tab") != "" {
+			return true
+		}
+	}
 	return false
 }

@@ -48,11 +48,11 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 }
 
 type CoreData struct {
-	Title       string
-	AutoRefresh bool
-	UserRef     string
-	EditMode    bool
-	Tab         int
+	Title        string
+	AutoRefresh  bool
+	UserRef      string
+	EditMode     bool
+	Tab          int
 	requestCache *requestCache
 }
 

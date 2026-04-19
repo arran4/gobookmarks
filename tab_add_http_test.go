@@ -2,13 +2,13 @@ package gobookmarks
 
 import (
 	"context"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-	"golang.org/x/oauth2"
-	"github.com/gorilla/sessions"
 )
 
 type MockProviderForAddTab struct {
@@ -17,11 +17,21 @@ type MockProviderForAddTab struct {
 }
 
 func (m *MockProviderForAddTab) Name() string { return "Mock" }
-func (m *MockProviderForAddTab) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }
-func (m *MockProviderForAddTab) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) { return nil, nil }
-func (m *MockProviderForAddTab) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) { return nil, nil }
-func (m *MockProviderForAddTab) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) { return nil, nil }
-func (m *MockProviderForAddTab) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) { return nil, nil }
+func (m *MockProviderForAddTab) Config(clientID, clientSecret, redirectURL string) *oauth2.Config {
+	return nil
+}
+func (m *MockProviderForAddTab) CurrentUser(ctx context.Context, token *oauth2.Token) (*User, error) {
+	return nil, nil
+}
+func (m *MockProviderForAddTab) GetTags(ctx context.Context, user string, token *oauth2.Token) ([]*Tag, error) {
+	return nil, nil
+}
+func (m *MockProviderForAddTab) GetBranches(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error) {
+	return nil, nil
+}
+func (m *MockProviderForAddTab) GetCommits(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error) {
+	return nil, nil
+}
 func (m *MockProviderForAddTab) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
 	return m.FileContents, m.Sha, nil
 }
@@ -30,9 +40,15 @@ func (m *MockProviderForAddTab) UpdateBookmarks(ctx context.Context, user string
 	m.Sha = "new-sha"
 	return nil
 }
-func (m *MockProviderForAddTab) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error { return nil }
-func (m *MockProviderForAddTab) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error { return nil }
-func (m *MockProviderForAddTab) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) { return true, nil }
+func (m *MockProviderForAddTab) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
+	return nil
+}
+func (m *MockProviderForAddTab) CreateRepo(ctx context.Context, user string, token *oauth2.Token, name string) error {
+	return nil
+}
+func (m *MockProviderForAddTab) RepoExists(ctx context.Context, user string, token *oauth2.Token, name string) (bool, error) {
+	return true, nil
+}
 func (m *MockProviderForAddTab) DefaultServer() string { return "" }
 
 func TestTabAddIntegration(t *testing.T) {

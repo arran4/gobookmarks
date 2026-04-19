@@ -1,0 +1,10 @@
+test: rename implicit page
+
+-- input.txt --
+Tab: first
+Page: New Name
+Category: Default
+-- expected.txt --
+Tab: first
+Page: New Name
+Category: Default
