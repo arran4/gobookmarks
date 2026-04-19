@@ -70,7 +70,11 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 		Sha:      sha,
 	}
 
-	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, "editTab.gohtml", data); err != nil {
+	tmplName := "editTab.gohtml"
+	if strings.HasSuffix(r.URL.Path, "/modal") {
+		tmplName = "_partials/editTabForm.gohtml"
+	}
+	if err := GetCompiledTemplates(NewFuncs(r)).ExecuteTemplate(w, tmplName, data); err != nil {
 		return fmt.Errorf("template: %w", err)
 	}
 	return nil

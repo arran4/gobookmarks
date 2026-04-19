@@ -281,6 +281,7 @@
                                 addUrl.searchParams.set('ref', currentRef);
                             }
                             addUrl.searchParams.set('tab', tabIdx);
+                            addUrl.searchParams.set('page', pages.length);
                             addLink.href = addUrl.pathname + '?' + addUrl.searchParams.toString();
                             addLink.textContent = '+ Add Page';
                             addLi.appendChild(addLink);
