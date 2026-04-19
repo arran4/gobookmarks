@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	//go:embed templates
+	//go:embed all:templates
 	templateFS embed.FS
 	//go:embed "main.css"
 	mainCSSData []byte
