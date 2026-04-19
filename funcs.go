@@ -3,13 +3,14 @@ package gobookmarks
 import (
 	"errors"
 	"fmt"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 // TabInfo is used by templates to display tab navigation with indexes.
@@ -188,7 +189,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			_, sha, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
 			if err != nil {
-				if errors.Is(err, ErrRepoNotFound) {
+				if errors.Is(err, ErrRepoNotFound) || errors.Is(err, ErrNoProvider) {
 					return "", nil
 				}
 				return "", err
@@ -500,7 +501,7 @@ func Bookmarks(r *http.Request) (string, error) {
 
 	bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
-		if errors.Is(err, ErrRepoNotFound) {
+		if errors.Is(err, ErrRepoNotFound) || errors.Is(err, ErrNoProvider) {
 			return "", nil
 		}
 		return "", fmt.Errorf("bookmarks: %w", err)
@@ -521,7 +522,7 @@ func BookmarksExist(r *http.Request) (bool, error) {
 
 	bookmarks, _, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
-		if errors.Is(err, ErrRepoNotFound) {
+		if errors.Is(err, ErrRepoNotFound) || errors.Is(err, ErrNoProvider) {
 			return false, nil
 		}
 		return false, fmt.Errorf("bookmarks exist: %w", err)

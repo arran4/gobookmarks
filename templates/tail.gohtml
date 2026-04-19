@@ -677,6 +677,7 @@
                     });
                 });
                 </script>
+                {{ if loggedIn }}
                 <template id="add-tab-template">
                     <form method=post action="/editTab?edit=1" class="edit-form tab-form">
                         <label for="name">Name</label>: <input id="name" type="text" name="name" value="" /><br>
@@ -724,6 +725,7 @@
                     <div style="clear: both;"></div>
                     <div id="edit-modal-content"></div>
                 </dialog>
+                {{ end }}
                  </body>
 </html>
 {{end}}
