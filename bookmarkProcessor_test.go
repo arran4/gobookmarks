@@ -23,7 +23,8 @@ func colsBlock(cs ...*Col) *Blk             { return &Blk{Columns: cs} }
 func hrBlock() *Blk                         { return &Blk{HR: true} }
 func page(bs ...*Blk) *Pg                   { return &Pg{Blocks: bs} }
 func pageNamed(name string, bs ...*Blk) *Pg { return &Pg{Name: name, Blocks: bs} }
-func tab(name string, ps ...*Pg) *T         { return &T{Name: name, Pages: ps} }
+func tab(name string, ps ...*Pg) *T         { return &T{Name: name, Pages: ps, ExplicitTab: true} }
+func implTab(ps ...*Pg) *T                  { return &T{Pages: ps, ExplicitTab: false} }
 
 const complexBookmarkText = `Category: Example 1
 http://www.google.com.au Google
@@ -67,7 +68,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "basic",
 			input: "Category: Search\nhttp://g.com G\nCategory: Wikies\nhttp://w.com W\n",
 			want: Tabs{
-				tab("", page(colsBlock(
+				implTab(page(colsBlock(
 					col(cat("Search", e("http://g.com", "G")),
 						cat("Wikies", e("http://w.com", "W"))),
 				))),
@@ -77,7 +78,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "columns",
 			input: "Category: Search\nhttp://g.com G\nColumn\nCategory: Wikies\nhttp://w.com W\n",
 			want: Tabs{
-				tab("", page(colsBlock(
+				implTab(page(colsBlock(
 					col(cat("Search", e("http://g.com", "G"))),
 					col(cat("Wikies", e("http://w.com", "W"))),
 				))),
@@ -87,7 +88,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "pages",
 			input: "Category: A\nhttp://a.com a\nPage\nCategory: B\nhttp://b.com b\n",
 			want: Tabs{
-				tab("",
+				implTab(
 					page(colsBlock(col(cat("A", e("http://a.com", "a"))))),
 					page(colsBlock(col(cat("B", e("http://b.com", "b"))))),
 				),
@@ -97,7 +98,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "pages and columns",
 			input: "Category: A\nhttp://a.com\nColumn\nCategory: B\nhttp://b.com\nPage\nCategory: C\nhttp://c.com\nColumn\nCategory: D\nhttp://d.com\n",
 			want: Tabs{
-				tab("",
+				implTab(
 					page(colsBlock(
 						col(cat("A", e("http://a.com", "http://a.com"))),
 						col(cat("B", e("http://b.com", "http://b.com"))),
@@ -113,7 +114,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "horizontal rule",
 			input: "Category: One\nhttp://one.com\n--\nCategory: Two\nhttp://two.com\n",
 			want: Tabs{
-				tab("", page(
+				implTab(page(
 					colsBlock(col(cat("One", e("http://one.com", "http://one.com")))),
 					hrBlock(),
 					colsBlock(col(cat("Two", e("http://two.com", "http://two.com")))),
@@ -161,14 +162,14 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "page name no colon",
 			input: "Page Start\nCategory: A\nPage End\nCategory: B\n",
 			want: Tabs{
-				tab("", pageNamed("Start", colsBlock(col(cat("A")))), pageNamed("End", colsBlock(col(cat("B"))))),
+				implTab(pageNamed("Start", colsBlock(col(cat("A")))), pageNamed("End", colsBlock(col(cat("B"))))),
 			},
 		},
 		{
 			name:  "anonymous categories",
 			input: "Category:\nhttp://a.com\nCategory:\nhttp://b.com\n",
 			want: Tabs{
-				tab("", page(colsBlock(col(
+				implTab(page(colsBlock(col(
 					cat("Category", e("http://a.com", "http://a.com")),
 					cat("Category", e("http://b.com", "http://b.com")),
 				)))),
@@ -178,7 +179,7 @@ func Test_parseBookmarks(t *testing.T) {
 			name:  "complex example",
 			input: complexBookmarkText,
 			want: Tabs{
-				tab("",
+				implTab(
 					page(colsBlock(
 						col(cat("Example 1", e("http://www.google.com.au", "Google"))),
 						col(

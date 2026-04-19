@@ -1,0 +1,10 @@
+test: empty category handled correctly
+
+-- input.txt --
+Tab: first
+Category:
+http://example.com/ link
+-- expected.txt --
+Tab: first
+Category: Category
+http://example.com/ link

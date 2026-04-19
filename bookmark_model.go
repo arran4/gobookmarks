@@ -179,13 +179,15 @@ func (t *BookmarkTab) MovePage(i, j int) {
 
 // BookmarkTab represents a tab of pages.
 type BookmarkTab struct {
+	ExplicitTab bool
+
 	Name  string
 	Pages []*BookmarkPage
 }
 
 func (t *BookmarkTab) stringWithContext(first bool) string {
 	var sb strings.Builder
-	if !first || t.Name != "" {
+	if !first || t.Name != "" || t.ExplicitTab {
 		if t.Name != "" {
 			sb.WriteString("Tab: ")
 			sb.WriteString(t.Name)
@@ -281,7 +283,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 
 	ensureTab := func() *BookmarkTab {
 		if currentTab == nil {
-			t := &BookmarkTab{}
+			t := &BookmarkTab{ExplicitTab: false}
 			result.AddTab(t)
 			currentTab = t
 		}
@@ -319,7 +321,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				rest = strings.TrimSpace(rest[1:])
 			}
 			flushCategory()
-			currentTab = &BookmarkTab{Name: rest}
+			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true}
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
@@ -332,7 +334,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			}
 			flushCategory()
 			ensureTab()
-			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 {
+			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 && currentPage.Name == "" && rest != "" {
 				currentPage.Name = rest
 			} else {
 				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
@@ -382,7 +384,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 	flushCategory()
 
 	if len(result) == 0 {
-		t := &BookmarkTab{}
+		t := &BookmarkTab{ExplicitTab: false}
 		p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 		t.AddPage(p)
 		result.AddTab(t)

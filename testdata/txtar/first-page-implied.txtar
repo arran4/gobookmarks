@@ -1,0 +1,8 @@
+test: implied first page remains correctly formatted
+
+-- input.txt --
+Tab: hi
+Category: first
+-- expected.txt --
+Tab: hi
+Category: first
