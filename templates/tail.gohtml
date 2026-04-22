@@ -138,7 +138,8 @@
                     function updatePageList(tabIdx) {
                         var list = document.getElementById('page-list');
                         if (!list || !tabContent) return;
-                        var pages = tabContent.querySelectorAll('.bookmarkPage[data-tab-index="' + tabIdx + '"]');
+                        var selector = searchMode ? '.bookmarkPage' : '.bookmarkPage[data-tab-index="' + tabIdx + '"]';
+                        var pages = tabContent.querySelectorAll(selector);
                         var frag = document.createDocumentFragment();
                         pages.forEach(function (page, idx) {
                             var li = document.createElement('li');
@@ -150,19 +151,27 @@
                             var link = document.createElement('a');
                             var targetId = page.id || page.dataset.baseId || ('page' + (idx + 1));
                             link.href = '#' + targetId;
-                            link.textContent = page.dataset.pageLabel || ('Page ' + (idx + 1));
+                            var pTabIdx = parseInt(page.dataset.tabIndex || '-1', 10);
+                            var label = page.dataset.pageLabel || ('Page ' + (idx + 1));
+                            if (searchMode && pTabIdx !== tabIdx) {
+                                var tabLink = document.querySelector('#tab-list li[data-tab-index="' + pTabIdx + '"] a:not(.edit-link)');
+                                if (tabLink) {
+                                    label = tabLink.textContent + ' - ' + label;
+                                }
+                            }
+                            link.textContent = label;
                             li.appendChild(link);
-                            if (document.body.classList.contains('edit-mode')) {
+                            if (document.body.classList.contains('edit-mode') && !searchMode) {
                                 var edit = document.createElement('a');
                                 edit.className = 'edit-link';
                                 edit.title = 'Edit Page';
-                                edit.href = buildEditPageHref(tabIdx, idx);
+                                edit.href = buildEditPageHref(pTabIdx, page.dataset.pageIndex || idx);
                                 edit.innerHTML = '&#9998;';
                                 li.appendChild(edit);
                             }
                             frag.appendChild(li);
                         });
-                        if (document.body.classList.contains('edit-mode')) {
+                        if (document.body.classList.contains('edit-mode') && !searchMode) {
                             var addLi = document.createElement('li');
                             var addLink = document.createElement('a');
                             var addUrl = new URL('/editPage', window.location.origin);
@@ -306,6 +315,19 @@
                                 li.classList.add('search-hidden');
                             }
                         });
+
+                        var navItems = document.querySelectorAll('#tab-list li, #page-list li');
+                        navItems.forEach(function(li) {
+                            var a = li.querySelector('a:not(.edit-link)');
+                            if (!a) return;
+                            var text = a.textContent.toLowerCase();
+                            if (text.indexOf(q) !== -1) {
+                                li.classList.remove('search-hidden');
+                                searchResults.push(li);
+                            } else {
+                                li.classList.add('search-hidden');
+                            }
+                        });
                         if (searchResults.length > 0) {
                             searchResults[0].classList.add('search-selected');
                             var firstPage = searchResults[0].closest('.bookmarkPage');
@@ -397,6 +419,32 @@
                                     if (input) {
                                         input.focus();
                                         input.select();
+                                    } else if (li.closest('#tab-list')) {
+                                        var link = li.querySelector('a:not(.edit-link)');
+                                        if (link) {
+                                            link.click();
+                                            searchBox.value = '';
+                                            clearSearch();
+                                        }
+                                    } else if (li.closest('#page-list')) {
+                                        var link = li.querySelector('a:not(.edit-link)');
+                                        if (link) {
+                                            var targetHref = link.getAttribute('href');
+                                            if (targetHref && targetHref.startsWith('#')) {
+                                                var targetId = targetHref.substring(1);
+                                                var targetPage = document.getElementById(targetId);
+                                                if (targetPage) {
+                                                    var pTabIdx = parseInt(targetPage.dataset.tabIndex || '0', 10);
+                                                    if (pTabIdx !== currentTabIndex) {
+                                                        setActiveTab(pTabIdx);
+                                                    }
+                                                    location.hash = '#' + targetId;
+                                                    targetPage.scrollIntoView({block: 'center'});
+                                                }
+                                            }
+                                            searchBox.value = '';
+                                            clearSearch();
+                                        }
                                     } else {
                                         var link = li.querySelector('a');
                                         if (link) {
@@ -547,6 +595,32 @@
                                     if (input) {
                                         input.focus();
                                         input.select();
+                                    } else if (li.closest('#tab-list')) {
+                                        var link = li.querySelector('a:not(.edit-link)');
+                                        if (link) {
+                                            link.click();
+                                            if (searchBox) { searchBox.value = ''; }
+                                            clearSearch();
+                                        }
+                                    } else if (li.closest('#page-list')) {
+                                        var link = li.querySelector('a:not(.edit-link)');
+                                        if (link) {
+                                            var targetHref = link.getAttribute('href');
+                                            if (targetHref && targetHref.startsWith('#')) {
+                                                var targetId = targetHref.substring(1);
+                                                var targetPage = document.getElementById(targetId);
+                                                if (targetPage) {
+                                                    var pTabIdx = parseInt(targetPage.dataset.tabIndex || '0', 10);
+                                                    if (pTabIdx !== currentTabIndex) {
+                                                        setActiveTab(pTabIdx);
+                                                    }
+                                                    location.hash = '#' + targetId;
+                                                    targetPage.scrollIntoView({block: 'center'});
+                                                }
+                                            }
+                                            if (searchBox) { searchBox.value = ''; }
+                                            clearSearch();
+                                        }
                                     } else {
                                         var link = li.querySelector('a');
                                         if (link) {
