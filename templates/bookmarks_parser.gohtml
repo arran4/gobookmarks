@@ -16,9 +16,9 @@ function extractCategoryByIndex(bookmarks, tabIndex, pageIndex, categoryIndex) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        if (line.trim() === "--") {
-            continue;
-        }
+        // if (line.trim() === "--") {
+        //     continue;
+        // }
 
         const isTab = line.toLowerCase().startsWith("tab:");
         const isPage = line.toLowerCase().startsWith("page:");
@@ -52,7 +52,7 @@ function extractCategoryByIndex(bookmarks, tabIndex, pageIndex, categoryIndex) {
                 break; // We've finished collecting the target category
             }
             categoryCount++;
-        } else if (collecting && (isTab || isPage || line.toLowerCase().startsWith("column:") || line.toLowerCase().startsWith("tab"))) {
+        } else if (collecting && (isTab || line.toLowerCase() === "tab" || isPage || line.toLowerCase() === "column" || line.toLowerCase().startsWith("column:") || line.trim() === "--")) {
             collecting = false;
             break;
         }
@@ -75,9 +75,9 @@ function extractTabByIndex(bookmarks, tabIndex) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        if (line.trim() === "--") {
-            continue;
-        }
+        // if (line.trim() === "--") {
+        //     continue;
+        // }
 
         if (line.toLowerCase().startsWith("tab:")) {
             if (tabCount === tabIndex) {
@@ -116,9 +116,9 @@ function extractPage(bookmarks, tabIndex, pageIndex) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        if (line.trim() === "--") {
-            continue;
-        }
+        // if (line.trim() === "--") {
+        //     continue;
+        // }
 
         if (line.toLowerCase().startsWith("tab:")) {
             inTargetTab = (tabCount === tabIndex);
@@ -138,7 +138,7 @@ function extractPage(bookmarks, tabIndex, pageIndex) {
                 break;
             }
             pageCount++;
-        } else if (collecting && (line.toLowerCase().startsWith("tab:") || line.toLowerCase() === "tab")) {
+        } else if (collecting && (line.toLowerCase().startsWith("tab:") || line.toLowerCase() === "tab" || line.trim() === "--")) {
             collecting = false;
             break;
         }

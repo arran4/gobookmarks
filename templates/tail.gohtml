@@ -23,10 +23,11 @@
 </textarea>
 {{ template "bookmarks_parser" . }}
 
-<template id="edit-tab-template">
-    <form action="/editTab?edit=1" method="POST" id="edit-form" class="edit-form tab-form">
-        <input type="hidden" name="tab" value="" id="tab-input">
-        <textarea name="text" id="text-input" rows="20" cols="80"></textarea><br>
+<template id="edit-tab-template" class="edit-tab-template">
+    <form action="/editTab?edit=1" method="POST" class="edit-form tab-form">
+        <input type="hidden" name="tab" value="" class="tab-input">
+        <label>Name</label>: <input type="text" name="name" class="name-input" value=""><br>
+        <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
         <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
@@ -35,11 +36,12 @@
     </form>
 </template>
 
-<template id="edit-page-template">
-    <form action="/editPage?edit=1" method="POST" id="edit-form" class="edit-form page-form">
-        <input type="hidden" name="tab" value="" id="tab-input">
-        <input type="hidden" name="page" value="" id="page-input">
-        <textarea name="text" id="text-input" rows="20" cols="80"></textarea><br>
+<template id="edit-page-template" class="edit-page-template">
+    <form action="/editPage?edit=1" method="POST" class="edit-form page-form">
+        <input type="hidden" name="tab" value="" class="tab-input">
+        <input type="hidden" name="page" value="" class="page-input">
+        <label>Name</label>: <input type="text" name="name" class="name-input" value=""><br>
+        <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
         <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
@@ -48,12 +50,12 @@
     </form>
 </template>
 
-<template id="edit-category-template">
-    <form action="/editCategory?edit=1" method="POST" id="edit-form" class="edit-form category-form">
-        <input type="hidden" name="tab" value="" id="tab-input">
-        <input type="hidden" name="page" value="" id="page-input">
-        <input type="hidden" name="category" value="" id="category-input">
-        <textarea name="text" id="text-input" rows="20" cols="80"></textarea><br>
+<template id="edit-category-template" class="edit-category-template">
+    <form action="/editCategory?edit=1" method="POST" class="edit-form category-form">
+        <input type="hidden" name="tab" value="" class="tab-input">
+        <input type="hidden" name="page" value="" class="page-input">
+        <input type="hidden" name="category" value="" class="category-input">
+        <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
         <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
         <input type=hidden name="ref" value="{{ref}}" />
         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
@@ -166,6 +168,19 @@
                                         var form = editModalContent.querySelector('form');
                                         if (form) {
                                             form.action = formAction;
+
+                                            if (isEditTab || isEditPage) {
+                                                let firstLineEnd = text.indexOf('\n');
+                                                let firstLine = text;
+                                                if (firstLineEnd !== -1) {
+                                                    firstLine = text.substring(0, firstLineEnd);
+                                                    text = text.substring(firstLineEnd + 1);
+                                                }
+                                                let nameParts = firstLine.split(':');
+                                                let nameVal = nameParts.length > 1 ? nameParts.slice(1).join(':').trim() : firstLine.trim();
+                                                var nameInput = form.querySelector('input[name="name"]');
+                                                if (nameInput) nameInput.value = nameVal;
+                                            }
 
                                             var textArea = form.querySelector('textarea[name="text"]');
                                             if (textArea) textArea.value = text;
