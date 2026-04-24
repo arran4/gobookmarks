@@ -80,7 +80,7 @@ console.log("All JS parser tests passed!");
 	if err != nil {
 		t.Fatalf("Failed to write temporary test script: %v", err)
 	}
-	defer os.Remove("test_js_parser.js")
+	defer func() { _ = os.Remove("test_js_parser.js") }()
 
 	cmd := exec.Command("node", "test_js_parser.js")
 	var out bytes.Buffer
