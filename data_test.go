@@ -74,6 +74,7 @@ func testFuncMap() template.FuncMap {
 		"showFooter":     func() bool { return true },
 		"showPages":      func() bool { return true },
 		"loggedIn":       func() (bool, error) { return true, nil },
+		"bookmarks":          func() (string, error) { return "", nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
 			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""}}, nil
 		},
