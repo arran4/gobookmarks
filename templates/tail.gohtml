@@ -16,6 +16,53 @@
                        </div>
 </footer>
                 {{ end }}
+
+{{ if .EditMode }}
+<textarea id="raw-bookmarks" style="display:none;">
+{{ bookmarks }}
+</textarea>
+{{ template "bookmarks_parser" . }}
+
+<template id="edit-tab-template">
+    <form action="/editTab?edit=1" method="POST" id="edit-form" class="edit-form tab-form">
+        <input type="hidden" name="tab" value="" id="tab-input">
+        <textarea name="text" id="text-input" rows="20" cols="80"></textarea><br>
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=submit name="task" value="Save and Close" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+    </form>
+</template>
+
+<template id="edit-page-template">
+    <form action="/editPage?edit=1" method="POST" id="edit-form" class="edit-form page-form">
+        <input type="hidden" name="tab" value="" id="tab-input">
+        <input type="hidden" name="page" value="" id="page-input">
+        <textarea name="text" id="text-input" rows="20" cols="80"></textarea><br>
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=submit name="task" value="Save and Close" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+    </form>
+</template>
+
+<template id="edit-category-template">
+    <form action="/editCategory?edit=1" method="POST" id="edit-form" class="edit-form category-form">
+        <input type="hidden" name="tab" value="" id="tab-input">
+        <input type="hidden" name="page" value="" id="page-input">
+        <input type="hidden" name="category" value="" id="category-input">
+        <textarea name="text" id="text-input" rows="20" cols="80"></textarea><br>
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=submit name="task" value="Save and Close" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+    </form>
+</template>
+{{ end }}
+
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     var editModal = document.getElementById('edit-modal');
@@ -79,7 +126,67 @@
                                 return;
                             }
 
-                            var url = new URL(target.href);
+                                                        var url = new URL(target.href);
+
+                            // JS PARSER INTERCEPTION START
+                            let rawScript = document.getElementById("raw-bookmarks");
+                            if (rawScript && typeof extractCategoryByIndex === 'function') {
+                                let bookmarksText = rawScript.value;
+                                let isEditCategory = target.href.includes('editCategory');
+                                let isEditPage = target.href.includes('editPage');
+                                let isEditTab = target.href.includes('editTab');
+
+                                if (isEditCategory || isEditPage || isEditTab) {
+                                    let tabIdx = parseInt(url.searchParams.get("tab") || "0");
+                                    let pageIdx = parseInt(url.searchParams.get("page") || "0");
+                                    let catIdx = parseInt(url.searchParams.get("category") || "0");
+
+                                    let text = "";
+                                    let templateId = "";
+                                    let formAction = "";
+
+                                    if (isEditCategory) {
+                                        text = extractCategoryByIndex(bookmarksText, tabIdx, pageIdx, catIdx);
+                                        templateId = "edit-category-template";
+                                        formAction = "/editCategory?edit=1";
+                                    } else if (isEditPage) {
+                                        text = extractPage(bookmarksText, tabIdx, pageIdx);
+                                        templateId = "edit-page-template";
+                                        formAction = "/editPage?edit=1";
+                                    } else if (isEditTab) {
+                                        text = extractTabByIndex(bookmarksText, tabIdx);
+                                        templateId = "edit-tab-template";
+                                        formAction = "/editTab?edit=1";
+                                    }
+
+                                    var templateEl = document.getElementById(templateId);
+                                    if (templateEl && editModalContent && editModal) {
+                                        editModalContent.innerHTML = templateEl.innerHTML;
+
+                                        var form = editModalContent.querySelector('form');
+                                        if (form) {
+                                            form.action = formAction;
+
+                                            var textArea = form.querySelector('textarea[name="text"]');
+                                            if (textArea) textArea.value = text;
+
+                                            var tabInput = form.querySelector('input[name="tab"]');
+                                            if (tabInput) tabInput.value = tabIdx;
+
+                                            var pageInput = form.querySelector('input[name="page"]');
+                                            if (pageInput) pageInput.value = pageIdx;
+
+                                            var catInput = form.querySelector('input[name="category"]');
+                                            if (catInput) catInput.value = catIdx;
+                                        }
+
+                                        editModal.showModal();
+                                        return;
+                                    }
+                                }
+                            }
+                            // JS PARSER INTERCEPTION END
+
                             url.pathname = url.pathname.replace(/\/$/, '') + '/modal';
 
                             fetch(url.toString())
