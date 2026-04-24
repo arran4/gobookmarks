@@ -16,6 +16,10 @@ function extractCategoryByIndex(bookmarks, tabIndex, pageIndex, categoryIndex) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
+        // if (line.trim() === "--") {
+        //     continue;
+        // }
+
         const isTab = line.toLowerCase().startsWith("tab:");
         const isPage = line.toLowerCase().startsWith("page:");
         const isCategory = line.toLowerCase().startsWith("category:");
@@ -71,6 +75,10 @@ function extractTabByIndex(bookmarks, tabIndex) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
+        // if (line.trim() === "--") {
+        //     continue;
+        // }
+
         if (line.toLowerCase().startsWith("tab:")) {
             if (tabCount === tabIndex) {
                 collecting = true;
@@ -107,6 +115,10 @@ function extractPage(bookmarks, tabIndex, pageIndex) {
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+
+        // if (line.trim() === "--") {
+        //     continue;
+        // }
 
         if (line.toLowerCase().startsWith("tab:")) {
             inTargetTab = (tabCount === tabIndex);
