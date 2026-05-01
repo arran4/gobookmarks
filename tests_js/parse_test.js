@@ -1,14 +1,4 @@
-const fs = require('fs');
-
-// Read the js file
-const jsCode = fs.readFileSync('templates/bookmarks_parser.gohtml', 'utf8')
-    .replace('{{define "bookmarks_parser"}}', '')
-    .replace('{{end}}', '')
-    .replace('<script>', '')
-    .replace('</script>', '');
-
-// Evaluate it so we can use the functions
-eval(jsCode);
+const { extractCategoryByIndex, extractTabByIndex, extractPage } = require('../templates/bookmarks_parser.js');
 
 const sampleBookmarks = `Title: My Bookmarks
 

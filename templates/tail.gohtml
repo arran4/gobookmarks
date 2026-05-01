@@ -21,7 +21,9 @@
 <textarea id="raw-bookmarks" style="display:none;">
 {{ bookmarks }}
 </textarea>
-{{ template "bookmarks_parser" . }}
+<script>
+{{ template "bookmarks_parser.js" }}
+</script>
 
 <template id="edit-tab-template" class="edit-tab-template">
     <form action="/editTab?edit=1" method="POST" class="edit-form tab-form">
