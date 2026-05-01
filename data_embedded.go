@@ -15,8 +15,6 @@ var (
 	mainCSSData []byte
 	//go:embed "logo.png"
 	faviconData []byte
-	//go:embed templates/bookmarks_parser.js
-	bookmarksParserJSData []byte
 
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
