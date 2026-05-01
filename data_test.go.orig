@@ -175,6 +175,10 @@ func TestExecuteTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("template parse error: %v", err)
 	}
+	tpl, err = ParseFSRecursive(tpl, os.DirFS("./templates"), ".", ".js")
+	if err != nil {
+		t.Fatalf("js template parse error: %v", err)
+	}
 	baseData := struct {
 		*CoreData
 		Error string

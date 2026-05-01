@@ -27,6 +27,7 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 	}
 	fsys := os.DirFS(fsPath)
 	parsed, err := ParseFSRecursive(t, fsys, ".", ".gohtml")
+	parsed, err = ParseFSRecursive(parsed, fsys, ".", ".js")
 	if err != nil {
 		log.Printf("ParseFSRecursive error: %v", err)
 	}

@@ -30,8 +30,6 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 		// as they will be replaced by the request-specific funcs in the clone.
 		t := template.New("").Funcs(NewFuncs(nil))
 		compiledTemplates = template.Must(ParseFSRecursive(t, templateFS, "templates", ".gohtml"))
-		// Also parse any .js templates since we now define bookmarks_parser.js as a template
-		template.Must(ParseFSRecursive(compiledTemplates, templateFS, "templates", ".js"))
 	})
 	tmpl, err := compiledTemplates.Clone()
 	if err != nil {
