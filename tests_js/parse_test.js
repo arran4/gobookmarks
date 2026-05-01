@@ -1,4 +1,12 @@
-const { extractCategoryByIndex, extractTabByIndex, extractPage } = require('../templates/bookmarks_parser.js');
+const fs = require('fs');
+
+// Read the js file
+const jsCode = fs.readFileSync('templates/bookmarks_parser.js', 'utf8')
+    .replace('{{define "bookmarks_parser.js"}}', '')
+    .replace('{{end}}', '');
+
+// Evaluate it so we can use the functions
+eval(jsCode);
 
 const sampleBookmarks = `Title: My Bookmarks
 

@@ -1,3 +1,4 @@
+{{define "bookmarks_parser.js"}}
 function extractCategoryByIndex(bookmarks, tabIndex, pageIndex, categoryIndex) {
     let tabCount = 0;
     let pageCount = 0;
@@ -140,3 +141,4 @@ function extractPage(bookmarks, tabIndex, pageIndex) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { extractCategoryByIndex, extractTabByIndex, extractPage };
 }
+{{end}}
