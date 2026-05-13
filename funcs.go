@@ -180,7 +180,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return BookmarksExist(r)
 		},
 		"bookmarksParserJS": func() (template.JS, error) {
-			b, err := staticFS.ReadFile("static/js/bookmarks_parser.js")
+			b, err := getBookmarksParserJSData()
 			if err != nil {
 				return "", err
 			}

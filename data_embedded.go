@@ -47,3 +47,7 @@ func GetMainCSSData() []byte {
 func GetFavicon() []byte {
 	return faviconData
 }
+
+func getBookmarksParserJSData() ([]byte, error) {
+       return staticFS.ReadFile("static/js/bookmarks_parser.js")
+}
