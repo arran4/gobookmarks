@@ -1,9 +1,7 @@
 const fs = require('fs');
 
 // Read the js file
-const jsCode = fs.readFileSync('templates/bookmarks_parser.js', 'utf8')
-    .replace('{{define "bookmarks_parser.js"}}', '')
-    .replace('{{end}}', '');
+const jsCode = fs.readFileSync('static/js/bookmarks_parser.js', 'utf8');
 
 // Evaluate it so we can use the functions
 eval(jsCode);

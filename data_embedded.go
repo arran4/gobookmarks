@@ -15,6 +15,8 @@ var (
 	mainCSSData []byte
 	//go:embed "logo.png"
 	faviconData []byte
+	//go:embed static
+	staticFS embed.FS
 
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
