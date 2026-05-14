@@ -98,7 +98,8 @@
                                     var templateId = textContent === '+ Add Tab' ? 'add-tab-template' : (textContent === '+ Add Page' ? 'add-page-template' : 'add-category-template');
                                     var templateEl = document.getElementById(templateId);
                                     if (templateEl) {
-                                        editModalContent.innerHTML = templateEl.innerHTML;
+                                        editModalContent.innerHTML = '';
+                                        editModalContent.appendChild(templateEl.content.cloneNode(true));
                                         var form = editModalContent.querySelector('form');
                                         if (form) {
                                             var formActionUrl = new URL(target.href);
@@ -165,7 +166,8 @@
 
                                     var templateEl = document.getElementById(templateId);
                                     if (templateEl && editModalContent && editModal) {
-                                        editModalContent.innerHTML = templateEl.innerHTML;
+                                        editModalContent.innerHTML = '';
+                                        editModalContent.appendChild(templateEl.content.cloneNode(true));
 
                                         var form = editModalContent.querySelector('form');
                                         if (form) {

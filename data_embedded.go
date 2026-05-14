@@ -49,5 +49,5 @@ func GetFavicon() []byte {
 }
 
 func getBookmarksParserJSData() ([]byte, error) {
-       return staticFS.ReadFile("static/js/bookmarks_parser.js")
+	return staticFS.ReadFile("static/js/bookmarks_parser.js")
 }

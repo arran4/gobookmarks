@@ -64,15 +64,15 @@ func GetFavicon() []byte {
 }
 
 func getBookmarksParserJSData() ([]byte, error) {
-       paths := []string{
-               "static/js/bookmarks_parser.js",
-               "../static/js/bookmarks_parser.js",
-               "../../static/js/bookmarks_parser.js",
-       }
-       for _, fsPath := range paths {
-               if _, err := os.Stat(fsPath); err == nil {
-                       return os.ReadFile(fsPath)
-               }
-       }
-       return nil, os.ErrNotExist
+	paths := []string{
+		"static/js/bookmarks_parser.js",
+		"../static/js/bookmarks_parser.js",
+		"../../static/js/bookmarks_parser.js",
+	}
+	for _, fsPath := range paths {
+		if _, err := os.Stat(fsPath); err == nil {
+			return os.ReadFile(fsPath)
+		}
+	}
+	return nil, os.ErrNotExist
 }
