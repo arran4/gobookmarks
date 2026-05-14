@@ -153,11 +153,11 @@
                                     if (isEditCategory) {
                                         text = extractCategoryByIndex(bookmarksText, tabIdx, pageIdx, catIdx);
                                         templateId = "edit-category-template";
-                                        formAction = "/editCategory?edit=1";
+                                        formAction = "/editCategory";
                                     } else if (isEditPage) {
                                         text = extractPage(bookmarksText, tabIdx, pageIdx);
                                         templateId = "edit-page-template";
-                                        formAction = "/editPage?edit=1";
+                                        formAction = "/editPage";
                                     } else if (isEditTab) {
                                         text = extractTabByIndex(bookmarksText, tabIdx);
                                         templateId = "edit-tab-template";
@@ -171,7 +171,7 @@
 
                                         var form = editModalContent.querySelector('form');
                                         if (form) {
-                                            form.action = formAction;
+                                            form.action = formAction + '?edit=1&from_modal=1&tab=' + tabIdx + '&page=' + pageIdx + '&category=' + catIdx;
 
                                             if (isEditTab || isEditPage) {
                                                 let firstLineEnd = text.indexOf('\n');
