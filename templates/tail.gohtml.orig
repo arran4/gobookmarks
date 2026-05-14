@@ -161,7 +161,7 @@
                                     } else if (isEditTab) {
                                         text = extractTabByIndex(bookmarksText, tabIdx);
                                         templateId = "edit-tab-template";
-                                        formAction = "/editTab";
+                                        formAction = "/editTab?edit=1";
                                     }
 
                                     var templateEl = document.getElementById(templateId);
