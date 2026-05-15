@@ -16,6 +16,57 @@
                        </div>
 </footer>
                 {{ end }}
+
+{{ if .EditMode }}
+<textarea id="raw-bookmarks" style="display:none;">
+{{ bookmarks }}
+</textarea>
+<script>
+{{ bookmarksParserJS }}
+</script>
+
+<template id="edit-tab-template" class="edit-tab-template">
+    <form action="/editTab?edit=1" method="POST" class="edit-form tab-form">
+        <input type="hidden" name="tab" value="" class="tab-input">
+        <label>Name</label>: <input type="text" name="name" class="name-input" value=""><br>
+        <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=submit name="task" value="Save and Close" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+    </form>
+</template>
+
+<template id="edit-page-template" class="edit-page-template">
+    <form action="/editPage?edit=1" method="POST" class="edit-form page-form">
+        <input type="hidden" name="tab" value="" class="tab-input">
+        <input type="hidden" name="page" value="" class="page-input">
+        <label>Name</label>: <input type="text" name="name" class="name-input" value=""><br>
+        <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=submit name="task" value="Save and Close" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+    </form>
+</template>
+
+<template id="edit-category-template" class="edit-category-template">
+    <form action="/editCategory?edit=1" method="POST" class="edit-form category-form">
+        <input type="hidden" name="tab" value="" class="tab-input">
+        <input type="hidden" name="page" value="" class="page-input">
+        <input type="hidden" name="category" value="" class="category-input">
+        <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type=hidden name="ref" value="{{ref}}" />
+        <input type=hidden name="sha" value="{{bookmarksSHA}}" />
+        <input type=submit name="task" value="Save and Close" />
+        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+    </form>
+</template>
+{{ end }}
+
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     var editModal = document.getElementById('edit-modal');
@@ -47,7 +98,8 @@
                                     var templateId = textContent === '+ Add Tab' ? 'add-tab-template' : (textContent === '+ Add Page' ? 'add-page-template' : 'add-category-template');
                                     var templateEl = document.getElementById(templateId);
                                     if (templateEl) {
-                                        editModalContent.innerHTML = templateEl.innerHTML;
+                                        editModalContent.innerHTML = '';
+                                        editModalContent.appendChild(templateEl.content.cloneNode(true));
                                         var form = editModalContent.querySelector('form');
                                         if (form) {
                                             var formActionUrl = new URL(target.href);
@@ -80,6 +132,82 @@
                             }
 
                             var url = new URL(target.href);
+                            var isEditMode = document.body.classList.contains('edit-mode');
+                            if (!isEditMode) url.searchParams.set('edit', '1');
+
+                            // JS PARSER INTERCEPTION START
+                            let rawScript = document.getElementById("raw-bookmarks");
+                            if (rawScript && typeof extractCategoryByIndex === 'function') {
+                                let bookmarksText = rawScript.value;
+                                let isEditCategory = target.href.includes('editCategory');
+                                let isEditPage = target.href.includes('editPage');
+                                let isEditTab = target.href.includes('editTab');
+
+                                if (isEditCategory || isEditPage || isEditTab) {
+                                    let tabIdx = parseInt(url.searchParams.get("tab") || "0");
+                                    let pageIdx = parseInt(url.searchParams.get("page") || "0");
+                                    let catIdx = parseInt(url.searchParams.get("category") || "0");
+
+                                    let text = "";
+                                    let templateId = "";
+                                    let formAction = "";
+
+                                    if (isEditCategory) {
+                                        text = extractCategoryByIndex(bookmarksText, tabIdx, pageIdx, catIdx);
+                                        templateId = "edit-category-template";
+                                        formAction = "/editCategory";
+                                    } else if (isEditPage) {
+                                        text = extractPage(bookmarksText, tabIdx, pageIdx);
+                                        templateId = "edit-page-template";
+                                        formAction = "/editPage";
+                                    } else if (isEditTab) {
+                                        text = extractTabByIndex(bookmarksText, tabIdx);
+                                        templateId = "edit-tab-template";
+                                        formAction = "/editTab";
+                                    }
+
+                                    var templateEl = document.getElementById(templateId);
+                                    if (templateEl && editModalContent && editModal) {
+                                        editModalContent.innerHTML = '';
+                                        editModalContent.appendChild(templateEl.content.cloneNode(true));
+
+                                        var form = editModalContent.querySelector('form');
+                                        if (form) {
+                                            form.action = formAction + '?edit=1&from_modal=1&tab=' + tabIdx + '&page=' + pageIdx + '&category=' + catIdx;
+
+                                            if (isEditTab || isEditPage) {
+                                                let firstLineEnd = text.indexOf('\n');
+                                                let firstLine = text;
+                                                if (firstLineEnd !== -1) {
+                                                    firstLine = text.substring(0, firstLineEnd);
+                                                    text = text.substring(firstLineEnd + 1);
+                                                }
+                                                let nameParts = firstLine.split(':');
+                                                let nameVal = nameParts.length > 1 ? nameParts.slice(1).join(':').trim() : firstLine.trim();
+                                                var nameInput = form.querySelector('input[name="name"]');
+                                                if (nameInput) nameInput.value = nameVal;
+                                            }
+
+                                            var textArea = form.querySelector('textarea[name="text"]');
+                                            if (textArea) textArea.value = text;
+
+                                            var tabInput = form.querySelector('input[name="tab"]');
+                                            if (tabInput) tabInput.value = tabIdx;
+
+                                            var pageInput = form.querySelector('input[name="page"]');
+                                            if (pageInput) pageInput.value = pageIdx;
+
+                                            var catInput = form.querySelector('input[name="category"]');
+                                            if (catInput) catInput.value = catIdx;
+                                        }
+
+                                        editModal.showModal();
+                                    }
+                                    return;
+                                }
+                            }
+                            // JS PARSER INTERCEPTION END
+
                             url.pathname = url.pathname.replace(/\/$/, '') + '/modal';
 
                             fetch(url.toString())

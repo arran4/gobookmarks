@@ -15,6 +15,8 @@ var (
 	mainCSSData []byte
 	//go:embed "logo.png"
 	faviconData []byte
+	//go:embed static
+	staticFS embed.FS
 
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
@@ -44,4 +46,8 @@ func GetMainCSSData() []byte {
 
 func GetFavicon() []byte {
 	return faviconData
+}
+
+func getBookmarksParserJSData() ([]byte, error) {
+	return staticFS.ReadFile("static/js/bookmarks_parser.js")
 }
