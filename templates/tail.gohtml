@@ -131,7 +131,9 @@
                                 return;
                             }
 
-                                                        var url = new URL(target.href);
+                            var url = new URL(target.href);
+                            var isEditMode = document.body.classList.contains('edit-mode');
+                            if (!isEditMode) url.searchParams.set('edit', '1');
 
                             // JS PARSER INTERCEPTION START
                             let rawScript = document.getElementById("raw-bookmarks");
