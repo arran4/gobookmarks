@@ -24,7 +24,7 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		login = githubUser.Login
 	}
 
-	_, curSha, err := GetBookmarks(r.Context(), login, ref, token)
+	currentBookmarks, curSha, err := GetBookmarks(r.Context(), login, ref, token)
 	if err != nil {
 		if errors.Is(err, ErrSignedOut) {
 			return ErrSignedOut
@@ -43,7 +43,17 @@ func BookmarksEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if sha != "" && curSha != sha {
-		return fmt.Errorf("bookmark modified concurrently")
+		return renderEditConflict(w, r, "edit.gohtml", EditBookmarksData{
+			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			Text:     text,
+			HasText:  true,
+			Conflict: newEditConflict(
+				"Current saved bookmarks",
+				"Your rejected bookmark edit",
+				currentBookmarks,
+				text,
+			),
+		})
 	}
 
 	if err := UpdateBookmarks(r.Context(), login, token, ref, branch, text, curSha); err != nil {
@@ -97,7 +107,26 @@ func CategoryEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if sha != "" && curSha != sha {
-		return fmt.Errorf("bookmark modified concurrently")
+		col, _ := strconv.Atoi(r.PostFormValue("col"))
+		currentText, extractErr := ExtractCategoryByIndex(currentBookmarks, idx)
+		currentLabel := "Current saved category"
+		if extractErr != nil {
+			currentText = currentBookmarks
+			currentLabel = "Current saved bookmarks"
+		}
+		return renderEditConflict(w, r, "editCategory.gohtml", EditCategoryData{
+			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			Index:    idx,
+			Text:     text,
+			Sha:      curSha,
+			Col:      col,
+			Conflict: newEditConflict(
+				currentLabel,
+				"Your rejected category edit",
+				currentText,
+				text,
+			),
+		})
 	}
 	updated, err := ReplaceCategoryByIndex(currentBookmarks, idx, text)
 	if err != nil {

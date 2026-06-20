@@ -92,3 +92,74 @@ func TestCategoryEditSaveActionAnonymous(t *testing.T) {
 		t.Fatalf("expected %q got %q", expected, got)
 	}
 }
+
+func TestCategoryEditSaveActionDifferentPageUsesGlobalCategoryIndex(t *testing.T) {
+	p, user, _, ctx := setupCategoryEditTest(t)
+	original := "Category: First\nhttp://one.com one\nCategory: Second\nhttp://two.com two\nPage\nCategory: Third\nhttp://three.com three\n"
+	if err := p.CreateBookmarks(context.Background(), user, nil, "main", original); err != nil {
+		t.Fatalf("CreateBookmarks: %v", err)
+	}
+	_, sha, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks: %v", err)
+	}
+
+	newSection := "Category: Third\nhttp://changed.com changed"
+	form := url.Values{"text": {newSection}, "branch": {"main"}, "ref": {"refs/heads/main"}, "sha": {sha}, "tab": {"0"}, "page": {"1"}}
+	req := httptest.NewRequest("POST", "/editCategory?index=2", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	if err := CategoryEditSaveAction(w, req); err != nil {
+		t.Fatalf("CategoryEditSaveAction: %v", err)
+	}
+	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks after: %v", err)
+	}
+	expected := "Category: First\nhttp://one.com one\nCategory: Second\nhttp://two.com two\nPage\n" + newSection
+	if got != expected {
+		t.Fatalf("expected %q got %q", expected, got)
+	}
+}
+
+func TestCategoryEditSaveActionConcurrentReturnsEditConflict(t *testing.T) {
+	p, user, _, ctx := setupCategoryEditTest(t)
+	original := "Category: First\nhttp://one.com one\nCategory: Second\nhttp://two.com two\n"
+	if err := p.CreateBookmarks(context.Background(), user, nil, "main", original); err != nil {
+		t.Fatalf("CreateBookmarks: %v", err)
+	}
+	_, sha1, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks: %v", err)
+	}
+	updated := "Category: First\nhttp://one.com one\nCategory: Second\nhttp://updated.com updated\n"
+	if err := p.UpdateBookmarks(context.Background(), user, nil, "refs/heads/main", "main", updated, sha1); err != nil {
+		t.Fatalf("UpdateBookmarks: %v", err)
+	}
+
+	rejected := "Category: Second\nhttp://rejected.com rejected"
+	form := url.Values{"text": {rejected}, "branch": {"main"}, "ref": {"refs/heads/main"}, "sha": {sha1}, "tab": {"0"}, "page": {"0"}}
+	req := httptest.NewRequest("POST", "/editCategory?edit=1&index=1", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = req.WithContext(ctx)
+	w := httptest.NewRecorder()
+	if err := CategoryEditSaveAction(w, req); err != ErrHandled {
+		t.Fatalf("expected handled conflict, got %v", err)
+	}
+	if w.Code != 409 {
+		t.Fatalf("expected HTTP 409, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Save rejected") || !strings.Contains(body, "http://updated.com updated") || !strings.Contains(body, "http://rejected.com rejected") {
+		t.Fatalf("expected conflict response with current and rejected category, got %q", body)
+	}
+
+	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks after: %v", err)
+	}
+	if got != updated {
+		t.Fatalf("bookmarks changed unexpectedly: %q", got)
+	}
+}

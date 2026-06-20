@@ -219,7 +219,7 @@ func Test_parseBookmarks(t *testing.T) {
 }
 
 func Test_parseBookmarksIndices(t *testing.T) {
-	input := "Category: A\nColumn\nCategory: B\nPage\nCategory: C\n"
+	input := "Category: A\nColumn\nCategory: B\nPage\nCategory: C\nTab: Two\nCategory: D\n"
 	tabs := ParseBookmarks(input)
 	var got []int
 	for _, t := range tabs {
@@ -233,7 +233,7 @@ func Test_parseBookmarksIndices(t *testing.T) {
 			}
 		}
 	}
-	expected := []int{0, 1, 2}
+	expected := []int{0, 1, 2, 3}
 	if diff := cmp.Diff(expected, got); diff != "" {
 		t.Fatalf("diff:\n%s", diff)
 	}

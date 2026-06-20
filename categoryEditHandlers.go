@@ -36,14 +36,7 @@ func EditCategoryPage(w http.ResponseWriter, r *http.Request) error {
 
 	col, _ := strconv.Atoi(r.URL.Query().Get("col"))
 
-	data := struct {
-		*CoreData
-		Error string
-		Index int
-		Text  string
-		Sha   string
-		Col   int
-	}{
+	data := EditCategoryData{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Index:    idx,

@@ -38,8 +38,18 @@ func TestBookmarksEditSaveActionConcurrent(t *testing.T) {
 	req = req.WithContext(ctx)
 	w := httptest.NewRecorder()
 	err = BookmarksEditSaveAction(w, req)
-	if err == nil || !strings.Contains(err.Error(), "concurrently") {
-		t.Fatalf("expected concurrency error, got %v", err)
+	if err == nil || err != ErrHandled {
+		t.Fatalf("expected handled concurrency response, got %v", err)
+	}
+	if w.Code != 409 {
+		t.Fatalf("expected HTTP 409, got %d", w.Code)
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "Save rejected") {
+		t.Fatalf("expected rejected save message, got %q", body)
+	}
+	if !strings.Contains(body, updated) || !strings.Contains(body, "Category: C\nhttp://three.com three") {
+		t.Fatalf("expected current and submitted content in response, got %q", body)
 	}
 
 	got, _, err := p.GetBookmarks(context.Background(), user, "refs/heads/main", nil)

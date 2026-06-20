@@ -1,11 +1,5 @@
 function extractCategoryByIndex(bookmarks, tabIndex, pageIndex, categoryIndex) {
-    let tabCount = 0;
-    let pageCount = 0;
-    let categoryCount = 0;
-
-    let inTargetTab = false;
-    let inTargetPage = false;
-
+    let categoryCount = -1;
     let result = [];
     let collecting = false;
 
@@ -14,39 +8,19 @@ function extractCategoryByIndex(bookmarks, tabIndex, pageIndex, categoryIndex) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        const isTab = line.toLowerCase().startsWith("tab:");
-        const isPage = line.toLowerCase().startsWith("page:");
-        const isCategory = line.toLowerCase().startsWith("category:");
+        const trimmed = line.trim();
+        const lower = trimmed.toLowerCase();
+        const isCategory = lower.startsWith("category:");
 
-        if (isTab) {
-            inTargetTab = (tabCount === tabIndex);
-            if (inTargetTab) {
-                pageCount = 0; // Reset page count for new tab
-            } else {
-                collecting = false; // Stop collecting if we leave the target tab
-            }
-            tabCount++;
-        }
-
-        if (inTargetTab && isPage) {
-            inTargetPage = (pageCount === pageIndex);
-            if (inTargetPage) {
-                categoryCount = 0; // Reset category count for new page
-            } else {
-                collecting = false; // Stop collecting if we leave the target page
-            }
-            pageCount++;
-        }
-
-        if (inTargetTab && inTargetPage && isCategory) {
+        if (isCategory) {
+            categoryCount++;
             if (categoryCount === categoryIndex) {
                 collecting = true;
             } else if (collecting) {
                 collecting = false;
                 break; // We've finished collecting the target category
             }
-            categoryCount++;
-        } else if (collecting && (isTab || line.toLowerCase() === "tab" || isPage || line.toLowerCase() === "column" || line.toLowerCase().startsWith("column:") || line.trim() === "--")) {
+        } else if (collecting && (lower === "tab" || lower.startsWith("tab ") || lower.startsWith("tab:") || lower.startsWith("page") || lower === "column" || lower.startsWith("column:") || trimmed === "--")) {
             collecting = false;
             break;
         }

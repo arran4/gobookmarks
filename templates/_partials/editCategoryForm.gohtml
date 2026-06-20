@@ -1,3 +1,4 @@
+    {{ template "_partials/editConflict.gohtml" $.Conflict }}
     <form method=post action="?{{if $.EditMode}}edit=1&{{end}}index={{$.Index}}" class="edit-form category-form">
         <label for="code">Category</label><br/>
         <textarea id="code" name="text" rows="10">{{$.Text}}</textarea><br>

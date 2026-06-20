@@ -55,4 +55,10 @@ assertEqual(cat1, "Category: Cat 1\n- Link 1\n- Link 2", "Extract Tab 1, Page 1,
 let cat2 = extractCategoryByIndex(sampleBookmarks, 0, 0, 1);
 assertEqual(cat2, "Category: Cat 2\n- Link 3", "Extract Tab 1, Page 1, Cat 2");
 
+let cat3 = extractCategoryByIndex(sampleBookmarks, 0, 1, 2);
+assertEqual(cat3, "Category: Cat 3\n- Link 4", "Extract Tab 1, Page 2, global Cat 3");
+
+let cat4 = extractCategoryByIndex(sampleBookmarks, 1, 0, 3);
+assertEqual(cat4, "Category: Cat 4\n- Link 5", "Extract Tab 2, Page 1, global Cat 4");
+
 console.log("All JS parser tests passed!");

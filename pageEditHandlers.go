@@ -28,13 +28,7 @@ func EditPagePage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 
-	data := struct {
-		*CoreData
-		Error string
-		Name  string
-		Text  string
-		Sha   string
-	}{
+	data := EditPageData{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Name:     r.URL.Query().Get("name"),
@@ -87,7 +81,30 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if sha != "" && curSha != sha {
-		return fmt.Errorf("bookmark modified concurrently")
+		currentText := currentBookmarks
+		currentLabel := "Current saved bookmarks"
+		if pageErr == nil && pageIdx >= 0 {
+			tabs := ParseBookmarks(currentBookmarks)
+			if tabIdx >= 0 && tabIdx < len(tabs) && pageIdx < len(tabs[tabIdx].Pages) {
+				pageText, pageName, err := ExtractPage(currentBookmarks, tabIdx, pageIdx)
+				if err == nil {
+					currentText = pageConflictText(pageName, pageText)
+					currentLabel = "Current saved page"
+				}
+			}
+		}
+		return renderEditConflict(w, r, "editPage.gohtml", EditPageData{
+			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			Name:     name,
+			Text:     text,
+			Sha:      curSha,
+			Conflict: newEditConflict(
+				currentLabel,
+				"Your rejected page edit",
+				currentText,
+				pageConflictText(name, text),
+			),
+		})
 	}
 
 	list := ParseBookmarks(currentBookmarks)

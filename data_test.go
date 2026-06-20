@@ -59,23 +59,23 @@ func testFuncMap() template.FuncMap {
 			}
 			return 0
 		},
-		"atoi":           func(s string) int { i, _ := strconv.Atoi(s); return i },
-		"tab":            func() string { return "0" },
-		"tabPath":        func(tab int) string { return "/" },
-		"tabEditPath":    func(tab int) string { return TabEditPath(tab) },
-		"tabEditHref":    func(tab int, ref, name string) string { return TabEditHref(tab, ref, name) },
-		"currentTabPath": func() string { return "/" },
-		"appendQuery":    func(rawURL string, params ...string) string { return AppendQueryParams(rawURL, params...) },
-		"tabName":        func() string { return "Main" },
-		"page":           func() string { return "" },
-		"historyRef":     func() string { return "refs/heads/main" },
-		"useCSSColumns":  func() bool { return false },
-		"devMode":        func() bool { return false },
-		"showFooter":     func() bool { return true },
-		"showPages":      func() bool { return true },
-		"loggedIn":       func() (bool, error) { return true, nil },
-		"bookmarks":          func() (string, error) { return "", nil },
-		"bookmarksParserJS":  func() (template.JS, error) { return template.JS(""), nil },
+		"atoi":              func(s string) int { i, _ := strconv.Atoi(s); return i },
+		"tab":               func() string { return "0" },
+		"tabPath":           func(tab int) string { return "/" },
+		"tabEditPath":       func(tab int) string { return TabEditPath(tab) },
+		"tabEditHref":       func(tab int, ref, name string) string { return TabEditHref(tab, ref, name) },
+		"currentTabPath":    func() string { return "/" },
+		"appendQuery":       func(rawURL string, params ...string) string { return AppendQueryParams(rawURL, params...) },
+		"tabName":           func() string { return "Main" },
+		"page":              func() string { return "" },
+		"historyRef":        func() string { return "refs/heads/main" },
+		"useCSSColumns":     func() bool { return false },
+		"devMode":           func() bool { return false },
+		"showFooter":        func() bool { return true },
+		"showPages":         func() bool { return true },
+		"loggedIn":          func() (bool, error) { return true, nil },
+		"bookmarks":         func() (string, error) { return "", nil },
+		"bookmarksParserJS": func() (template.JS, error) { return template.JS(""), nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
 			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""}}, nil
 		},
@@ -177,19 +177,15 @@ func TestExecuteTemplates(t *testing.T) {
 	}
 	baseData := struct {
 		*CoreData
-		Error string
+		Error    string
+		Text     string
+		HasText  bool
+		Conflict *EditConflict
 	}{
 		CoreData: &CoreData{Title: "Test", UserRef: "user"},
 	}
 
-	catData := struct {
-		*CoreData
-		Error string
-		Index int
-		Text  string
-		Sha   string
-		Col   int
-	}{
+	catData := EditCategoryData{
 		CoreData: baseData.CoreData,
 		Index:    0,
 		Text:     "Category: Demo",
@@ -197,13 +193,7 @@ func TestExecuteTemplates(t *testing.T) {
 		Col:      0,
 	}
 
-	pageData := struct {
-		*CoreData
-		Error string
-		Name  string
-		Text  string
-		Sha   string
-	}{
+	pageData := EditPageData{
 		CoreData: baseData.CoreData,
 		Name:     "Demo",
 		Text:     "Category: Demo",

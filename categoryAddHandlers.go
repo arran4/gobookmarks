@@ -27,14 +27,7 @@ func AddCategoryPage(w http.ResponseWriter, r *http.Request) error {
 
 	col, _ := strconv.Atoi(r.URL.Query().Get("col"))
 
-	data := struct {
-		*CoreData
-		Error string
-		Index int
-		Text  string
-		Sha   string
-		Col   int
-	}{
+	data := EditCategoryData{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Index:    -1,
@@ -76,7 +69,19 @@ func CategoryAddSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if sha != "" && curSha != sha {
-		return fmt.Errorf("bookmark modified concurrently")
+		return renderEditConflict(w, r, "editCategory.gohtml", EditCategoryData{
+			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			Index:    -1,
+			Text:     text,
+			Sha:      curSha,
+			Col:      colIdx,
+			Conflict: newEditConflict(
+				"Current saved bookmarks",
+				"Your rejected new category",
+				currentBookmarks,
+				text,
+			),
+		})
 	}
 
 	list := ParseBookmarks(currentBookmarks)

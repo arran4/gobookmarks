@@ -34,3 +34,22 @@ func TestEditTabAddMode(t *testing.T) {
 		t.Errorf("Expected isAddMode to be false when tab is present")
 	}
 }
+
+func TestPageFragmentFromIndex(t *testing.T) {
+	tests := []struct {
+		page string
+		want string
+	}{
+		{"", ""},
+		{"0", ""},
+		{"1", "page2"},
+		{"2", "page3"},
+		{"custom", "pagecustom"},
+	}
+
+	for _, tt := range tests {
+		if got := PageFragmentFromIndex(tt.page); got != tt.want {
+			t.Errorf("PageFragmentFromIndex(%q) = %q, want %q", tt.page, got, tt.want)
+		}
+	}
+}

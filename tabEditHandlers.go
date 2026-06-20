@@ -55,14 +55,7 @@ func EditTabPage(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	data := struct {
-		*CoreData
-		Error   string
-		Name    string
-		OldName string
-		Text    string
-		Sha     string
-	}{
+	data := EditTabData{
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 		Error:    r.URL.Query().Get("error"),
 		Name:     tabName,
@@ -104,7 +97,29 @@ func TabEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("GetBookmarks: %w", err)
 	}
 	if sha != "" && curSha != sha {
-		return fmt.Errorf("bookmark modified concurrently")
+		currentText := currentBookmarks
+		currentLabel := "Current saved bookmarks"
+		hasTabParam := HasTabParam(r)
+		if hasTabParam && tabIdx >= 0 && tabIdx < len(ParseBookmarks(currentBookmarks)) {
+			tabText, err := ExtractTabByIndex(currentBookmarks, tabIdx)
+			if err == nil {
+				currentText = tabText
+				currentLabel = "Current saved tab"
+			}
+		}
+		return renderEditConflict(w, r, "editTab.gohtml", EditTabData{
+			CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
+			Name:     name,
+			OldName:  oldName,
+			Text:     text,
+			Sha:      curSha,
+			Conflict: newEditConflict(
+				currentLabel,
+				"Your rejected tab edit",
+				currentText,
+				tabConflictText(name, text),
+			),
+		})
 	}
 
 	var updated string

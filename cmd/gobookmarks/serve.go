@@ -561,7 +561,10 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 
 		type Data struct {
 			*gobookmarks.CoreData
-			Error string
+			Error    string
+			Text     string
+			HasText  bool
+			Conflict *gobookmarks.EditConflict
 		}
 
 		data := Data{

@@ -92,12 +92,17 @@ func AppendQueryParams(rawURL string, params ...string) string {
 	return u.String()
 }
 
-// PageFragmentFromIndex converts a zero-based page index string to a 1-based fragment identifier.
+// PageFragmentFromIndex converts a zero-based page index string to a 1-based
+// fragment identifier. The first page is the default scroll position, so it
+// does not need a fragment.
 func PageFragmentFromIndex(pageStr string) string {
 	if pageStr == "" {
 		return ""
 	}
 	if pageIdx, err := strconv.Atoi(pageStr); err == nil {
+		if pageIdx <= 0 {
+			return ""
+		}
 		return fmt.Sprintf("page%d", pageIdx+1)
 	}
 	return "page" + pageStr

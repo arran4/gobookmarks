@@ -70,7 +70,7 @@ func TestRunTemplate_BufferedError(t *testing.T) {
 }
 
 func TestRedirectToHandlerBranchToRefNoCache(t *testing.T) {
-	req := httptest.NewRequest("POST", "/edit?edit=1", strings.NewReader("branch=main"))
+	req := httptest.NewRequest("POST", "/edit?edit=1", strings.NewReader("branch=main&page=0"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	ctx := context.WithValue(req.Context(), gb.ContextValues("coreData"), &gb.CoreData{})
 	req = req.WithContext(ctx)
@@ -83,6 +83,25 @@ func TestRedirectToHandlerBranchToRefNoCache(t *testing.T) {
 		t.Fatalf("expected redirect, got %d", res.StatusCode)
 	}
 	if loc := res.Header.Get("Location"); loc != "/?edit=1&ref=refs%2Fheads%2Fmain" {
+		t.Fatalf("unexpected location: %s", loc)
+	}
+	assertNoDynamicCache(t, res)
+}
+
+func TestRedirectToHandlerBranchToRefSecondPageFragment(t *testing.T) {
+	req := httptest.NewRequest("POST", "/edit?edit=1", strings.NewReader("branch=main&page=1"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx := context.WithValue(req.Context(), gb.ContextValues("coreData"), &gb.CoreData{})
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	redirectToHandlerBranchToRef("/")(w, req)
+	res := w.Result()
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected redirect, got %d", res.StatusCode)
+	}
+	if loc := res.Header.Get("Location"); loc != "/?edit=1&ref=refs%2Fheads%2Fmain#page2" {
 		t.Fatalf("unexpected location: %s", loc)
 	}
 	assertNoDynamicCache(t, res)
