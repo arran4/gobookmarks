@@ -56,7 +56,7 @@
     <form action="/editCategory?edit=1" method="POST" class="edit-form category-form">
         <input type="hidden" name="tab" value="" class="tab-input">
         <input type="hidden" name="page" value="" class="page-input">
-        <input type="hidden" name="category" value="" class="category-input">
+        <input type="hidden" name="index" value="" class="category-input">
         <textarea name="text" class="text-input" rows="20" cols="80"></textarea><br>
         <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
         <input type=hidden name="ref" value="{{ref}}" />
@@ -146,7 +146,7 @@
                                 if (isEditCategory || isEditPage || isEditTab) {
                                     let tabIdx = parseInt(url.searchParams.get("tab") || "0");
                                     let pageIdx = parseInt(url.searchParams.get("page") || "0");
-                                    let catIdx = parseInt(url.searchParams.get("category") || "0");
+                                    let catIdx = parseInt(url.searchParams.get("index") || "0");
 
                                     let text = "";
                                     let templateId = "";
@@ -173,7 +173,7 @@
 
                                         var form = editModalContent.querySelector('form');
                                         if (form) {
-                                            form.action = formAction + '?edit=1&from_modal=1&tab=' + tabIdx + '&page=' + pageIdx + '&category=' + catIdx;
+                                            form.action = formAction + '?edit=1&from_modal=1&tab=' + tabIdx + '&page=' + pageIdx + '&index=' + catIdx;
 
                                             if (isEditTab || isEditPage) {
                                                 let firstLineEnd = text.indexOf('\n');
@@ -197,7 +197,7 @@
                                             var pageInput = form.querySelector('input[name="page"]');
                                             if (pageInput) pageInput.value = pageIdx;
 
-                                            var catInput = form.querySelector('input[name="category"]');
+                                            var catInput = form.querySelector('input[name="index"]');
                                             if (catInput) catInput.value = catIdx;
                                         }
 

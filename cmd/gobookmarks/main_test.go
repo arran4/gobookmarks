@@ -54,6 +54,7 @@ func TestRunTemplate_BufferedError(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	runTemplate("mainPage.gohtml")(w, req)
+	res := w.Result()
 
 	body := w.Body.String()
 	if !strings.Contains(body, "Database error") {
@@ -65,6 +66,26 @@ func TestRunTemplate_BufferedError(t *testing.T) {
 	if strings.Contains(body, "tab-list") {
 		t.Fatalf("unexpected partial page content: %q", body)
 	}
+	assertNoDynamicCache(t, res)
+}
+
+func TestRedirectToHandlerBranchToRefNoCache(t *testing.T) {
+	req := httptest.NewRequest("POST", "/edit?edit=1", strings.NewReader("branch=main"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx := context.WithValue(req.Context(), gb.ContextValues("coreData"), &gb.CoreData{})
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	redirectToHandlerBranchToRef("/")(w, req)
+	res := w.Result()
+
+	if res.StatusCode != http.StatusSeeOther {
+		t.Fatalf("expected redirect, got %d", res.StatusCode)
+	}
+	if loc := res.Header.Get("Location"); loc != "/?edit=1&ref=refs%2Fheads%2Fmain" {
+		t.Fatalf("unexpected location: %s", loc)
+	}
+	assertNoDynamicCache(t, res)
 }
 
 func TestLoadConfigUsesExternalURL(t *testing.T) {
@@ -78,5 +99,18 @@ func TestLoadConfigUsesExternalURL(t *testing.T) {
 
 	if rc.cfg.ExternalURL != "http://example.com/app" {
 		t.Fatalf("external url not loaded from env: %q", rc.cfg.ExternalURL)
+	}
+}
+
+func assertNoDynamicCache(t *testing.T, res *http.Response) {
+	t.Helper()
+	if got := res.Header.Get("Cache-Control"); got != "no-store, no-cache, must-revalidate, max-age=0" {
+		t.Fatalf("unexpected Cache-Control: %q", got)
+	}
+	if got := res.Header.Get("Pragma"); got != "no-cache" {
+		t.Fatalf("unexpected Pragma: %q", got)
+	}
+	if got := res.Header.Get("Expires"); got != "0" {
+		t.Fatalf("unexpected Expires: %q", got)
 	}
 }

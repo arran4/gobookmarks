@@ -520,6 +520,7 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 							q := u.Query()
 							q.Set("error", uerr.Msg)
 							u.RawQuery = q.Encode()
+							setDynamicNoCacheHeaders(w)
 							http.Redirect(w, r, u.String(), http.StatusSeeOther)
 							return
 						}
@@ -556,6 +557,8 @@ func runHandlerChain(chain ...any) func(http.ResponseWriter, *http.Request) {
 
 func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDynamicNoCacheHeaders(w)
+
 		type Data struct {
 			*gobookmarks.CoreData
 			Error string
@@ -609,14 +612,23 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	})
 }
 
+func setDynamicNoCacheHeaders(w http.ResponseWriter) {
+	h := w.Header()
+	h.Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	h.Set("Pragma", "no-cache")
+	h.Set("Expires", "0")
+}
+
 func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDynamicNoCacheHeaders(w)
 		http.Redirect(w, r, toURL, http.StatusSeeOther)
 	})
 }
 
 func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDynamicNoCacheHeaders(w)
 		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		qs.Set("ref", "refs/heads/"+r.PostFormValue("branch"))
@@ -654,6 +666,7 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 
 func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDynamicNoCacheHeaders(w)
 		u, _ := url.Parse(toURL)
 		qs := u.Query()
 		u.Path = gobookmarks.TabPath(gobookmarks.TabFromRequest(r))
