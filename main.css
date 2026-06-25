@@ -136,10 +136,6 @@ body:not(.edit-mode) .edit-link {
         flex-direction: column;
 }
 
-.cssColumns .bookmarkColumn:last-child {
-        margin-right: 0;
-}
-
 .cssColumns .categoryBlock {
         break-inside: avoid;
         page-break-inside: avoid;
