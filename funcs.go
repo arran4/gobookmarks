@@ -129,15 +129,6 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			i, _ := strconv.Atoi(s)
 			return i
 		},
-		"useCSSColumns": func() bool {
-			sessioni := r.Context().Value(ContextValues("session"))
-			if session, ok := sessioni.(*sessions.Session); ok && session != nil {
-				if v, ok := session.Values["useCSSColumns"].(bool); ok {
-					return v
-				}
-			}
-			return Config.CSSColumns
-		},
 		"devMode": func() bool {
 			return Config.GetDevMode()
 		},

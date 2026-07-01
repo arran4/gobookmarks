@@ -12,7 +12,7 @@
             <div class="tab-panel" data-tab-index="{{$tabIdx}}" data-tab-name="{{$tabName}}">
                 {{- range $i, $p := $t.Pages }}
                 {{- $baseId := printf "page%d" (add1 $i) -}}
-                <div class="bookmarkPage{{ if useCSSColumns }} cssColumns{{ end }}" data-base-id="{{$baseId}}" id="{{printf "tab%d-%s" $tabIdx $baseId}}" data-sha="{{$p.Sha}}" data-page-label="{{if $p.IndexName}}{{$p.IndexName}}{{else if $p.Name}}{{$p.Name}}{{else}}Page {{add1 $i}}{{end}}" data-page-index="{{$i}}">
+                <div class="bookmarkPage cssColumns" data-base-id="{{$baseId}}" id="{{printf "tab%d-%s" $tabIdx $baseId}}" data-sha="{{$p.Sha}}" data-page-label="{{if $p.IndexName}}{{$p.IndexName}}{{else if $p.Name}}{{$p.Name}}{{else}}Page {{add1 $i}}{{end}}" data-page-index="{{$i}}">
                     {{- if and (eq $i 0) $tabName }}
                     {{- $editTab := appendQuery (tabEditHref $tabIdx (ref) $t.Name) "edit" "1" -}}
                     <h1>{{ $tabName }} <a class="edit-link" href="{{$editTab}}" title="Edit">&#9998;</a></h1>
@@ -21,7 +21,7 @@
                     {{- range .Blocks }}
                     {{- if .HR }}
                     <hr class="bookmarkHr" />
-                    {{- else if useCSSColumns }}
+                    {{- else }}
                     <div class="bookmarkColumns">
                         {{- range $ci, $c := .Columns }}
                             <div class="bookmarkColumn">
@@ -50,37 +50,6 @@
                             <div class="newColumnDropZone" data-col="{{$ci}}"></div>
                         {{- end }}
                     </div>
-                    {{- else }}
-                    <table>
-                        <tr valign="top">
-                            {{- range $ci, $c := .Columns }}
-                            <td>
-                                {{- range $c.Categories }}
-                                    <div class="categoryBlock" id="cat{{ .Index }}">
-                                        <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?edit=1&index={{ .Index }}&ref={{ref}}&tab={{$tabIdx}}&page={{$i}}" title="Edit">&#9998;</a></h2>
-                                        <ul class="bookmark-entries" data-index="{{ .Index }}" data-page="{{$i}}" style="list-style-type: none;">
-                                          {{- range $j, $e := .Entries }}
-                                              <li>
-                                                  <span class="move-handle">&#9776;</span>
-                                                  <img src="/proxy/favicon?url={{ if isSearchURL .Url }}{{ searchURL .Url }}{{ else }}{{ .Url }}{{ end }}" alt="•" style="width: 1em; max-height: 1em; font-weight: bolder; font-family: -moz-bullet-font;" />
-                                                  {{- if isSearchURL .Url }}
-                                                  <input type="text" class="search-widget" data-search-url="{{ searchURL .Url }}" placeholder="{{ .DisplayName }}" />
-                                                  {{- else }}
-                                                  <a href="{{ .Url }}" target="_blank">{{ .DisplayName }}</a>
-                                                  {{- end }}
-                                              </li>
-                                          {{- end }}
-                                        </ul>
-                                    </div>
-                                {{- end }}
-                                <div class="columnEndDropZone" data-col="{{$ci}}">
-                                    {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?edit=1&ref={{ref}}&tab={{$tabIdx}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
-                                </div>
-                            </td>
-                            <td class="newColumnDropZone" data-col="{{$ci}}"></td>
-                            {{- end }}
-                        </tr>
-                    </table>
                 {{- end }}
                 {{- end }}
             </div>
