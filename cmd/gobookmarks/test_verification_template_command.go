@@ -159,7 +159,6 @@ https://example.com Example Link
 	// The templates receive `data` which has `CoreData`.
 
 	// However, some funcs might need session or other context values.
-	// For "useCSSColumns" etc.
 
 	ctx := context.WithValue(req.Context(), gobookmarks.ContextValues("coreData"), coreData)
 	req = req.WithContext(ctx)

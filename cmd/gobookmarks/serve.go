@@ -238,12 +238,6 @@ func (c *ServeCommand) Execute(args []string) error {
 		_, _ = writer.Write(gobookmarks.GetFavicon())
 	}).Methods("GET")
 
-	// Development helpers to toggle layout mode
-	if gobookmarks.Config.GetDevMode() {
-		r.HandleFunc("/_css", runHandlerChain(gobookmarks.EnableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
-		r.HandleFunc("/_table", runHandlerChain(gobookmarks.DisableCSSColumnsAction, redirectToHandler("/"))).Methods("GET")
-	}
-
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
 	r.Handle("/tab", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")

@@ -52,18 +52,6 @@
                                                         {{- end }}
                                                 </ul>
                                                 {{ end }}
-                                                {{ if devMode }}
-                                                    <div id="devtools" style="margin-top:1em;">
-                                                        Devtools:
-                                                        <ul>
-                                                        {{ if useCSSColumns }}
-                                                            <li><a href="/_table">switch to table view</a></li>
-                                                        {{ else }}
-                                                            <li><a href="/_css">switch to CSS view</a></li>
-                                                        {{ end }}
-                                                        </ul>
-                                                    </div>
-                                                {{ end }}
                                         {{ else }}
                                                 <a href="/login">Login</a><br/>
                                         {{ end }}

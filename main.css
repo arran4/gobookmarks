@@ -131,14 +131,9 @@ body:not(.edit-mode) .edit-link {
 }
 
 .cssColumns .bookmarkColumn {
-        width: 18em;
-        margin-right: 2em;
+        padding-right: 1em;
         display: flex;
         flex-direction: column;
-}
-
-.cssColumns .bookmarkColumn:last-child {
-        margin-right: 0;
 }
 
 .cssColumns .categoryBlock {
