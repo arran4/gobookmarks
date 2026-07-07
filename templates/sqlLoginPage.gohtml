@@ -1,5 +1,6 @@
 {{ template "head" $ }}
 <form method="POST" action="/login/sql">
+    {{- if .Redirect }}<input type="hidden" name="redirect" value="{{ .Redirect }}">{{ end }}
     {{- if .Error }}<p style="color:red">{{ errorMsg .Error }}</p>{{ end }}
     Username: <input type="text" name="username"><br>
     Password: <input type="password" name="password"><br>

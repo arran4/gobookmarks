@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -68,7 +69,19 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return s[:l]
 		},
+		"CurrentURL": func() string {
+			if r != nil {
+				return r.URL.RequestURI()
+			}
+			return ""
+		},
 		"LoginURL": func(p string) string {
+			if r != nil {
+				redirect := r.URL.Query().Get("redirect")
+				if redirect != "" {
+					return "/login/" + p + "?redirect=" + url.QueryEscape(redirect)
+				}
+			}
 			return "/login/" + p
 		},
 		"Providers": func() []string {

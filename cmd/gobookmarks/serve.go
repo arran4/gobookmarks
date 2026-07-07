@@ -552,12 +552,14 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		type Data struct {
 			*gobookmarks.CoreData
-			Error string
+			Error    string
+			Redirect string
 		}
 
 		data := Data{
 			CoreData: r.Context().Value(gobookmarks.ContextValues("coreData")).(*gobookmarks.CoreData),
 			Error:    r.URL.Query().Get("error"),
+			Redirect: r.URL.Query().Get("redirect"),
 		}
 
 		var buf bytes.Buffer
@@ -605,6 +607,30 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 
 func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		redirect := r.FormValue("redirect")
+		if session, err := gobookmarks.SessionStore.Get(r, gobookmarks.Config.GetSessionName()); err == nil {
+			if rURL, ok := session.Values["Redirect"].(string); ok && rURL != "" {
+				if redirect == "" {
+					redirect = rURL
+				}
+				delete(session.Values, "Redirect")
+				_ = session.Save(r, w)
+			}
+		}
+
+		if redirect != "" && strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") {
+			if strings.HasPrefix(toURL, "/login/") {
+				u, _ := url.Parse(toURL)
+				qs := u.Query()
+				qs.Set("redirect", redirect)
+				u.RawQuery = qs.Encode()
+				http.Redirect(w, r, u.String(), http.StatusSeeOther)
+				return
+			}
+			http.Redirect(w, r, redirect, http.StatusSeeOther)
+			return
+		}
+
 		http.Redirect(w, r, toURL, http.StatusSeeOther)
 	})
 }
