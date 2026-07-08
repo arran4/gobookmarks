@@ -86,7 +86,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	session.Values["Provider"] = providerName
-	if redirect := r.URL.Query().Get("redirect"); redirect != "" {
+	if redirect := r.URL.Query().Get("redirect"); redirect != "" && len(redirect) < 2048 {
 		session.Values["Redirect"] = redirect
 	}
 	if err := session.Save(r, w); err != nil {

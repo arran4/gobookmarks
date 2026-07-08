@@ -618,17 +618,19 @@ func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 			}
 		}
 
-		if redirect != "" && strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") {
-			if strings.HasPrefix(toURL, "/login/") {
-				u, _ := url.Parse(toURL)
-				qs := u.Query()
-				qs.Set("redirect", redirect)
-				u.RawQuery = qs.Encode()
-				http.Redirect(w, r, u.String(), http.StatusSeeOther)
+		if redirect != "" {
+			if u, err := url.Parse(redirect); err == nil && u.Scheme == "" && u.Host == "" && strings.HasPrefix(u.Path, "/") && !strings.HasPrefix(u.Path, "//") && !strings.Contains(redirect, "\\") {
+				if strings.HasPrefix(toURL, "/login/") {
+					loginURL, _ := url.Parse(toURL)
+					qs := loginURL.Query()
+					qs.Set("redirect", redirect)
+					loginURL.RawQuery = qs.Encode()
+					http.Redirect(w, r, loginURL.String(), http.StatusSeeOther)
+					return
+				}
+				http.Redirect(w, r, redirect, http.StatusSeeOther)
 				return
 			}
-			http.Redirect(w, r, redirect, http.StatusSeeOther)
-			return
 		}
 
 		http.Redirect(w, r, toURL, http.StatusSeeOther)
