@@ -14,7 +14,6 @@
                 {{- $baseId := printf "page%d" (add1 $i) -}}
                 <div class="bookmarkPage cssColumns" data-base-id="{{$baseId}}" id="{{printf "tab%d-%s" $tabIdx $baseId}}" data-sha="{{$p.Sha}}" data-page-label="{{if $p.IndexName}}{{$p.IndexName}}{{else if $p.Name}}{{$p.Name}}{{else}}Page {{add1 $i}}{{end}}" data-page-index="{{$i}}">
                     {{- if and (eq $i 0) $tabName }}
-                    {{- $editTab := appendQuery (tabEditHref $tabIdx (ref) $t.Name) "edit" "1" -}}
                     <h1>{{ $tabName }} <a class="edit-link" href="{{tabEditHref $tabIdx (ref) $t.Name}}" title="Edit">&#9998;</a></h1>
                     {{- end }}
                     {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
@@ -59,8 +58,6 @@
         </div>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
-            if (!document.body.classList.contains('edit-mode')) return;
-
             var startZone = null;
 
             function findColumnZone(block) {

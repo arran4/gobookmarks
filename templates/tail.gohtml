@@ -28,6 +28,13 @@
                         });
                     }
 
+                    document.body.addEventListener('submit', function(e) {
+                        var submitter = e.submitter || document.activeElement;
+                        if (submitter && (submitter.value === 'Save and Stop Editing' || submitter.name === 'task' && submitter.value.includes('Stop'))) {
+                            localStorage.setItem('edit-mode', '0');
+                        }
+                    });
+
                     document.body.addEventListener('click', function(e) {
                         var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit"], a[href*="/editPage"], a[href*="/editTab"]');
                         if (!target || target.id === 'toggle-edit' || !document.body.classList.contains('edit-mode')) return;
@@ -173,17 +180,18 @@
                             document.body.classList.toggle('edit-mode');
                             localStorage.setItem('edit-mode', document.body.classList.contains('edit-mode') ? '1' : '0');
                             updateEditLink(tabIdx);
+                            if (typeof updatePageList === 'function') {
+                                updatePageList(tabIdx);
+                            }
                         };
 
 
                     }
 
-                    document.addEventListener('DOMContentLoaded', function() {
-                        if (localStorage.getItem('edit-mode') === '1') {
-                            document.body.classList.add('edit-mode');
-                        }
-                        updateEditLink(currentTabIndex);
-                    });
+                    if (localStorage.getItem('edit-mode') === '1') {
+                        document.body.classList.add('edit-mode');
+                    }
+                    updateEditLink(currentTabIndex);
 
                     function setActiveTab(tabIdx) {
                         currentTabIndex = tabIdx;

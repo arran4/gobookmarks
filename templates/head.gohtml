@@ -12,6 +12,11 @@
         {{ end }}
         </head>
         <body{{if tab}} data-tab="{{tab}}"{{end}}>
+                <script>
+                if (localStorage.getItem('edit-mode') === '1') {
+                    document.body.classList.add('edit-mode');
+                }
+                </script>
                 <table border=0 id="layout">
                         <tr valign=top>
                                 <td width=200px id="nav">
