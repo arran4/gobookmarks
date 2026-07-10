@@ -632,19 +632,6 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 	})
 }
 
-func redirectToHandlerTabPage(toURL string) func(http.ResponseWriter, *http.Request) {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, _ := url.Parse(toURL)
-		qs := u.Query()
-		u.Path = gobookmarks.TabPath(gobookmarks.TabFromRequest(r))
-		if fragment := gobookmarks.PageFragmentFromIndex(r.URL.Query().Get("page")); fragment != "" {
-			u.Fragment = fragment
-		}
-
-		u.RawQuery = qs.Encode()
-		http.Redirect(w, r, u.String(), http.StatusSeeOther)
-	})
-}
 
 func RequiresAnAccount() mux.MatcherFunc {
 	return func(request *http.Request, _ *mux.RouteMatch) bool {
