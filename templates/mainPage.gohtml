@@ -58,6 +58,13 @@
         </div>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Prevent any drag operations if edit mode is not active
+            document.body.addEventListener('dragstart', function(e) {
+                if (!document.body.classList.contains('edit-mode')) {
+                    e.preventDefault();
+                }
+            }, true);
+
             var startZone = null;
 
             function findColumnZone(block) {

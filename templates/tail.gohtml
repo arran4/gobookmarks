@@ -30,7 +30,7 @@
 
                     document.body.addEventListener('submit', function(e) {
                         var submitter = e.submitter || document.activeElement;
-                        if (submitter && (submitter.value === 'Save and Stop Editing' || submitter.name === 'task' && submitter.value.includes('Stop'))) {
+                        if (submitter && (submitter.value === 'Save and Stop Editing' || (submitter.name === 'task' && typeof submitter.value === 'string' && submitter.value.includes('Stop')))) {
                             localStorage.setItem('edit-mode', '0');
                         }
                     });
@@ -185,7 +185,14 @@
                             }
                         };
 
-
+                        // Update "Edit All" link to preserve ref and tab context
+                        var editAll = document.querySelector('.edit-all-link');
+                        if (editAll) {
+                            var eaUrl = new URL('/edit', window.location.origin);
+                            if (currentRef) eaUrl.searchParams.set('ref', currentRef);
+                            if (tabIdx > 0) eaUrl.searchParams.set('tab', tabIdx);
+                            editAll.href = eaUrl.pathname + eaUrl.search;
+                        }
                     }
 
                     if (localStorage.getItem('edit-mode') === '1') {
