@@ -15,7 +15,7 @@
                 <div class="bookmarkPage cssColumns" data-base-id="{{$baseId}}" id="{{printf "tab%d-%s" $tabIdx $baseId}}" data-sha="{{$p.Sha}}" data-page-label="{{if $p.IndexName}}{{$p.IndexName}}{{else if $p.Name}}{{$p.Name}}{{else}}Page {{add1 $i}}{{end}}" data-page-index="{{$i}}">
                     {{- if and (eq $i 0) $tabName }}
                     {{- $editTab := appendQuery (tabEditHref $tabIdx (ref) $t.Name) "edit" "1" -}}
-                    <h1>{{ $tabName }} <a class="edit-link" href="{{$editTab}}" title="Edit">&#9998;</a></h1>
+                    <h1>{{ $tabName }} <a class="edit-link" href="{{tabEditHref $tabIdx (ref) $t.Name}}" title="Edit">&#9998;</a></h1>
                     {{- end }}
                     {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
                     {{- range .Blocks }}
@@ -27,7 +27,7 @@
                             <div class="bookmarkColumn">
                             {{- range $c.Categories }}
                                 <div class="categoryBlock" id="cat{{ .Index }}">
-                                    <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?edit=1&index={{ .Index }}&ref={{ref}}&tab={{$tabIdx}}&page={{$i}}" title="Edit">&#9998;</a></h2>
+                                    <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{$tabIdx}}&page={{$i}}" title="Edit">&#9998;</a></h2>
                                     <ul class="bookmark-entries" data-index="{{ .Index }}" data-page="{{$i}}" style="list-style-type: none;">
                                         {{- range $j, $e := .Entries }}
                                             <li>
@@ -44,7 +44,7 @@
                                 </div>
                             {{- end }}
                             <div class="columnEndDropZone" data-col="{{$ci}}">
-                                {{- if $.EditMode }}<a class="add-category-link" href="/addCategory?edit=1&ref={{ref}}&tab={{$tabIdx}}&page={{$i}}&col={{$ci}}">+ Add Category</a>{{- end }}
+                                <a class="add-category-link edit-mode-only" href="/addCategory?ref={{ref}}&tab={{$tabIdx}}&page={{$i}}&col={{$ci}}">+ Add Category</a>
                             </div>
                             </div>
                             <div class="newColumnDropZone" data-col="{{$ci}}"></div>
@@ -57,7 +57,6 @@
         </div>
         {{- end }}
         </div>
-    {{ if $.EditMode }}
         <script>
         document.addEventListener('DOMContentLoaded', function () {
             if (!document.body.classList.contains('edit-mode')) return;
@@ -343,11 +342,8 @@
             }
         });
         </script>
-        {{ end }}
     {{end}}
-{{ if $.EditMode }}
 {{ template "dragdrop" $ }}
-{{ end }}
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

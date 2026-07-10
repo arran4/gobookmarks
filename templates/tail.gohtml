@@ -29,7 +29,7 @@
                     }
 
                     document.body.addEventListener('click', function(e) {
-                        var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit?edit=1"], a[href*="/editPage?edit=1"], a[href*="/editTab?edit=1"]');
+                        var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit"], a[href*="/editPage"], a[href*="/editTab"]');
                         if (!target || target.id === 'toggle-edit' || !document.body.classList.contains('edit-mode')) return;
 
                         // Do not intercept if Ctrl, Shift, Meta, or Alt is pressed (allow default browser behavior)
@@ -38,7 +38,7 @@
                         }
 
                         // Only intercept if it's an edit-related link (has edit=1 or goes to an edit page)
-                        if (target.href && (target.href.includes('edit=1') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
+                        if (target.href && (target.href.includes('edit') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
                             e.preventDefault();
 
                             var textContent = target.textContent.trim();
@@ -95,17 +95,6 @@
                                             formActionUrl.searchParams.delete('modal');
                                             formActionUrl.searchParams.set('from_modal', '1');
                                             form.action = formActionUrl.toString();
-
-                                            // Restore "stay in edit mode" preference
-                                            var keepEditCb = form.querySelector('#keep_edit_mode');
-                                            if (keepEditCb) {
-                                                if (localStorage.getItem('keepEditMode') === '1') {
-                                                    keepEditCb.checked = true;
-                                                }
-                                                keepEditCb.addEventListener('change', function() {
-                                                    localStorage.setItem('keepEditMode', this.checked ? '1' : '0');
-                                                });
-                                            }
 
                                             // Catch Ctrl+Enter inside the modal to submit the form
                                             form.addEventListener('keydown', function(evt) {
@@ -177,23 +166,24 @@
                     function updateEditLink(tabIdx) {
                         if (!toggleEdit) return;
                         var isEditMode = document.body.classList.contains('edit-mode');
-                        var basePath = (tabIdx === 0) ? '/' : ('/tab/' + tabIdx);
-                        var url = new URL(basePath, window.location.origin);
-                        if (currentRef) url.searchParams.set('ref', currentRef);
-                        if (!isEditMode) url.searchParams.set('edit', '1');
-                        toggleEdit.href = url.pathname + '?' + url.searchParams.toString();
+                        toggleEdit.textContent = isEditMode ? 'Stop Edit' : 'Edit';
+                        toggleEdit.href = 'javascript:void(0)';
+                        toggleEdit.onclick = function(e) {
+                            e.preventDefault();
+                            document.body.classList.toggle('edit-mode');
+                            localStorage.setItem('edit-mode', document.body.classList.contains('edit-mode') ? '1' : '0');
+                            updateEditLink(tabIdx);
+                        };
 
-                        // Update "Edit All" link if it exists
-                        // The selector searches for a link that goes to /edit and has edit=1 param, typically "Edit All"
-                        var editAll = document.querySelector('a[href*="/edit?edit=1"]');
-                        if (editAll && isEditMode) {
-                             var eaUrl = new URL('/edit', window.location.origin);
-                             eaUrl.searchParams.set('edit', '1');
-                             if (currentRef) eaUrl.searchParams.set('ref', currentRef);
-                             if (tabIdx > 0) eaUrl.searchParams.set('tab', tabIdx);
-                             editAll.href = eaUrl.pathname + '?' + eaUrl.searchParams.toString();
-                        }
+
                     }
+
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (localStorage.getItem('edit-mode') === '1') {
+                            document.body.classList.add('edit-mode');
+                        }
+                        updateEditLink(currentTabIndex);
+                    });
 
                     function setActiveTab(tabIdx) {
                         currentTabIndex = tabIdx;
@@ -753,13 +743,13 @@
                 </script>
                 {{ if loggedIn }}
                 <template id="add-tab-template">
-                    <form method=post action="/editTab?edit=1" class="edit-form tab-form">
+                    <form method=post action="/editTab" class="edit-form tab-form">
                         <label for="name">Name</label>: <input id="name" type="text" name="name" value="" /><br>
                         <label for="code">Tab Contents</label><br/>
                         <textarea id="code" name="text" rows="10"></textarea><br>
                         <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
                         <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
-                        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+
                         <input type=hidden name="ref" value="{{ref}}" />
                         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
                         <input type=hidden name="tab" value="" />
@@ -767,13 +757,13 @@
                 </template>
 
                 <template id="add-page-template">
-                    <form method=post action="/editPage?edit=1" class="edit-form page-form">
+                    <form method=post action="/editPage" class="edit-form page-form">
                         <label for="name">Name</label>: <input id="name" type="text" name="name" value="" /><br>
                         <label for="code">Page Contents</label><br/>
                         <textarea id="code" name="text" rows="10"></textarea><br>
                         <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
                         <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
-                        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+
                         <input type=hidden name="ref" value="{{ref}}" />
                         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
                         <input type=hidden name="tab" value="" />
@@ -781,12 +771,12 @@
                 </template>
 
                 <template id="add-category-template">
-                    <form method=post action="/addCategory?edit=1" class="edit-form category-form">
+                    <form method=post action="/addCategory" class="edit-form category-form">
                         <label for="code">Category</label><br/>
                         <textarea id="code" name="text" rows="10">Category: </textarea><br>
                         <input type=hidden name="branch" value="{{ branchOrEditBranch }}" />
                         <input type=submit name="task" value="{{taskSaveAndStopEditing}}" />
-                        <label style="margin-left: 10px; font-size: 0.9em;"><input type="checkbox" name="keep_edit_mode" id="keep_edit_mode" value="1"> Stay in edit mode</label><br>
+
                         <input type=hidden name="ref" value="{{ref}}" />
                         <input type=hidden name="sha" value="{{bookmarksSHA}}" />
                         <input type=hidden name="tab" value="" />

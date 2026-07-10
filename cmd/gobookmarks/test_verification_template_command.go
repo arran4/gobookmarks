@@ -72,7 +72,6 @@ func (c *TemplateCommand) Execute(args []string) error {
 	coreData := &gobookmarks.CoreData{
 		Title:    "Test Verification",
 		UserRef:  "testuser",
-		EditMode: false,
 		Tab:      0,
 	}
 
@@ -116,7 +115,6 @@ Page: Default Page
 Category: Default Category
 https://example.com Example Link
 `
-		coreData.EditMode = true
 	default:
 		// If unknown range, maybe treat it as empty or minimal
 		bookmarksStr = "Tab: Empty\n"
@@ -132,7 +130,6 @@ https://example.com Example Link
 		type JSONInput struct {
 			Title     string `json:"title"`
 			UserRef   string `json:"user_ref"`
-			EditMode  bool   `json:"edit_mode"`
 			Bookmarks string `json:"bookmarks"`
 		}
 		var input JSONInput
@@ -145,7 +142,6 @@ https://example.com Example Link
 		if input.UserRef != "" {
 			coreData.UserRef = input.UserRef
 		}
-		coreData.EditMode = input.EditMode
 		if input.Bookmarks != "" {
 			bookmarksStr = input.Bookmarks
 		}
@@ -203,7 +199,6 @@ https://example.com Example Link
 					Name:        t.Name,
 					IndexName:   indexName,
 					Href:        href,
-					EditHref:    gobookmarks.AppendQueryParams(href, "edit", "1"),
 					LastPageSha: lastSha,
 				})
 			}
@@ -230,8 +225,7 @@ https://example.com Example Link
 						Name:        t.Name,
 						IndexName:   indexName,
 						Href:        href,
-						EditHref:    gobookmarks.AppendQueryParams(href, "edit", "1"),
-						LastPageSha: lastSha,
+							LastPageSha: lastSha,
 					},
 					Pages: t.Pages,
 				})

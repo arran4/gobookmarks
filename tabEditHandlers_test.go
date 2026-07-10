@@ -20,14 +20,14 @@ func TestTabFromRequest(t *testing.T) {
 }
 
 func TestEditTabAddMode(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/editTab?edit=1", nil)
+	req, _ := http.NewRequest("GET", "/editTab", nil)
 	tabName := req.URL.Query().Get("name")
 	isAddMode := !req.URL.Query().Has("tab") && tabName == ""
 	if !isAddMode {
 		t.Errorf("Expected isAddMode to be true")
 	}
 
-	req2, _ := http.NewRequest("GET", "/editTab?edit=1&tab=0", nil)
+	req2, _ := http.NewRequest("GET", "/editTab?tab=0", nil)
 	tabName2 := req2.URL.Query().Get("name")
 	isAddMode2 := !req2.URL.Query().Has("tab") && tabName2 == ""
 	if isAddMode2 {

@@ -19,7 +19,6 @@ type TabInfo struct {
 	Name        string
 	IndexName   string
 	Href        string
-	EditHref    string
 	LastPageSha string
 }
 
@@ -265,7 +264,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 					if len(t.Pages) > 0 {
 						lastSha = t.Pages[len(t.Pages)-1].Sha()
 					}
-					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, EditHref: AppendQueryParams(href, "edit", "1"), LastPageSha: lastSha})
+					tabs = append(tabs, TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, LastPageSha: lastSha})
 				}
 			}
 			return tabs, nil
@@ -306,7 +305,7 @@ func NewFuncs(r *http.Request) template.FuncMap {
 						lastSha = t.Pages[len(t.Pages)-1].Sha()
 					}
 					tabs = append(tabs, TabWithPages{
-						TabInfo: TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, EditHref: AppendQueryParams(href, "edit", "1"), LastPageSha: lastSha},
+						TabInfo: TabInfo{Index: i, Name: t.Name, IndexName: indexName, Href: href, LastPageSha: lastSha},
 						Pages:   t.Pages,
 					})
 				}

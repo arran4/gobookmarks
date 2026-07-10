@@ -34,12 +34,10 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
-		editMode := request.URL.Query().Get("edit") == "1"
-		tab := TabFromRequest(request)
+			tab := TabFromRequest(request)
 		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
 			UserRef:      login,
 			Title:        title,
-			EditMode:     editMode,
 			Tab:          tab,
 			requestCache: &requestCache{data: make(map[string]*bookmarkCacheEntry)},
 		})
@@ -51,7 +49,6 @@ type CoreData struct {
 	Title        string
 	AutoRefresh  bool
 	UserRef      string
-	EditMode     bool
 	Tab          int
 	requestCache *requestCache
 }

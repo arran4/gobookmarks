@@ -11,7 +11,7 @@
             <meta http-equiv="refresh" content="1">
         {{ end }}
         </head>
-        <body{{if $.EditMode}} class="edit-mode"{{end}}{{if tab}} data-tab="{{tab}}"{{end}}>
+        <body{{if tab}} data-tab="{{tab}}"{{end}}>
                 <table border=0 id="layout">
                         <tr valign=top>
                                 <td width=200px id="nav">
@@ -25,19 +25,16 @@
                                                     {{ $prev := prevCommit }}{{ if $prev }}<a href="/?ref={{ $prev }}&historyRef={{ historyRef }}{{ if tab }}&tab={{ tab }}{{ end }}">Back 1 commit</a><br/>{{ end }}
                                                     {{ $next := nextCommit }}{{ if $next }}<a href="/?ref={{ $next }}&historyRef={{ historyRef }}{{ if tab }}&tab={{ tab }}{{ end }}">Forwards 1 commit</a><br/>{{ end }}
                                                 {{ end }}
-                                                <a id="toggle-edit" href="{{if $.EditMode}}{{$tabPath}}{{else}}{{appendQuery $tabPath "edit" "1"}}{{end}}">{{if $.EditMode}}Stop Edit{{else}}Edit{{end}}</a><br/>
-                                                {{if $.EditMode}}<a href="/edit?edit=1{{if ref}}&ref={{ref}}{{end}}{{if tab}}&tab={{tab}}{{end}}">Edit All</a><br/>{{end}}
-                                                <input id="search-box" type="text" placeholder="Search" style="width: 100%;" autocomplete="off" spellcheck="false" /><br/>
+                                                <a id="toggle-edit" href="#">Edit</a><br/>
+                                                <a class="edit-mode-only edit-all-link" href="/edit">Edit All</a><br/>
+                                                                                                <input id="search-box" type="text" placeholder="Search" style="width: 100%;" autocomplete="off" spellcheck="false" /><br/>
                                                 <hr/>
                                                 <b>Tabs</b>
                                                 <ul id="tab-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $t := bookmarkTabs }}
-                                                       {{- $editTab := appendQuery (tabEditHref $t.Index (ref) $t.Name) "edit" "1" -}}
-                                                       <li data-page-sha="{{ $t.LastPageSha }}" data-tab-index="{{$t.Index}}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{$t.EditHref}}{{else}}{{$t.Href}}{{end}}" data-tab-index="{{$t.Index}}">{{ $t.IndexName }}</a><a class="edit-link" href="{{$editTab}}" title="Edit Tab">&#9998;</a></li>
+                                                                                                              <li data-page-sha="{{ $t.LastPageSha }}" data-tab-index="{{$t.Index}}"{{if eq $i $.CoreData.Tab}} class="active-tab"{{end}}><span class="move-handle">&#9776;</span><a href="{{$t.Href}}" data-tab-index="{{$t.Index}}">{{ $t.IndexName }}</a><a class="edit-link" href="{{ tabEditHref $t.Index (ref) $t.Name }}" title="Edit Tab">&#9998;</a></li>
                                                        {{- end }}
-                                                       {{- if $.EditMode }}
-                                                               <li><a href="{{appendQuery (tabEditHref (len bookmarkTabs) (ref) "") "edit" "1"}}">+ Add Tab</a></li>
-                                                        {{- end }}
+                                                       <li class="edit-mode-only"><a href="{{tabEditHref (len bookmarkTabs) (ref) ""}}">+ Add Tab</a></li>
                                                 </ul>
                                                 <hr/>
                                                 {{ if showPages }}
@@ -45,11 +42,9 @@
                                                 <ul id="page-list" style="list-style-type:none;padding-left:0;">
                                                         {{- range $i, $p := bookmarkPages }}
                                                        {{- $fragment := printf "#page%d" (add1 $i) -}}
-                                                       <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{if $.EditMode}}{{appendQuery $tabPath "edit" "1"}}{{$fragment}}{{else}}{{$tabPath}}{{$fragment}}{{end}}">{{ if $p.IndexName }}{{$p.IndexName}}{{ else }}Page {{ add1 $i }}{{ end }}</a><a class="edit-link" href="/editPage?edit=1&ref={{ref}}{{if tab}}&tab={{tab}}{{end}}&page={{$i}}" title="Edit Page">&#9998;</a></li>
+                                                       <li data-page-sha="{{$p.Sha}}"><span class="move-handle">&#9776;</span><a href="{{$tabPath}}{{$fragment}}">{{ if $p.IndexName }}{{$p.IndexName}}{{ else }}Page {{ add1 $i }}{{ end }}</a><a class="edit-link" href="/editPage?ref={{ref}}{{if tab}}&tab={{tab}}{{end}}&page={{$i}}" title="Edit Page">&#9998;</a></li>
                                                        {{- end }}
-                                                       {{- if $.EditMode }}
-                                                               <li><a href="/editPage?edit=1&ref={{ref}}&tab={{tab}}&page={{len bookmarkPages}}">+ Add Page</a></li>
-                                                        {{- end }}
+                                                       <li class="edit-mode-only"><a href="/editPage?ref={{ref}}&tab={{tab}}&page={{len bookmarkPages}}">+ Add Page</a></li>
                                                 </ul>
                                                 {{ end }}
                                         {{ else }}
