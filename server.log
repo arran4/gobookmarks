@@ -1,8 +1,0 @@
-2026/07/12 02:53:15 config.go:92: attempting to load config from /home/jules/.config/gobookmarks/config.json
-2026/07/12 02:53:15 config.go:107: successfully loaded config from /home/jules/.config/gobookmarks/config.json (keys: db_connection_provider)
-2026/07/12 02:53:15 serve.go:333: gobookmarks: dev, commit none, built at unknown
-2026/07/12 02:53:15 serve.go:335: Redirect URL configured to: /oauth2Callback
-2026/07/12 02:53:15 serve.go:336: Server started on http://localhost:8080
-2026/07/12 02:53:15 serve.go:337: Server started on https://localhost:8443
-HTTPS server listening on :8443...
-HTTP server listening on :8080...
