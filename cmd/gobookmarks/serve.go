@@ -560,6 +560,9 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 		var buf bytes.Buffer
 		err := gobookmarks.GetCompiledTemplates(gobookmarks.NewFuncs(r)).ExecuteTemplate(&buf, tmpl, data)
 		if err == nil {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
 			_, _ = io.Copy(w, &buf)
 			return
 		}
@@ -620,6 +623,9 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 		}
 		u.Path = gobookmarks.TabPath(tab)
 		page := r.PostFormValue("page")
+		if page == "" {
+			page = r.URL.Query().Get("page")
+		}
 		if v, ok := r.Context().Value(gobookmarks.ContextValues("redirectPage")).(string); ok {
 			page = v
 		}
