@@ -195,10 +195,25 @@
                         }
                     }
 
+                    function jumpToHash() {
+                        if (window.location.hash) {
+                            var id = window.location.hash.substring(1);
+                            var el = document.getElementById(id);
+                            if (el) {
+                                el.scrollIntoView();
+                            }
+                        }
+                    }
+
+                    jumpToHash();
+
                     if (localStorage.getItem('edit-mode') === '1') {
                         document.body.classList.add('edit-mode');
                     }
                     updateEditLink(currentTabIndex);
+
+                    // The DOM might rearrange after updateEditLink/setActiveTab. Give it a tick to settle.
+                    setTimeout(jumpToHash, 50);
 
                     function setActiveTab(tabIdx) {
                         currentTabIndex = tabIdx;
