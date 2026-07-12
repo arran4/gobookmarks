@@ -75,7 +75,7 @@ func testFuncMap() template.FuncMap {
 		"showPages":      func() bool { return true },
 		"loggedIn":       func() (bool, error) { return true, nil },
 		"bookmarkTabs": func() ([]TabInfo, error) {
-			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""}}, nil
+			return []TabInfo{{Index: 0, Name: "", IndexName: "Main", Href: "/", LastPageSha: ""}}, nil
 		},
 		"bookmarkTabsWithPages": func() ([]TabWithPages, error) {
 			pages := []*BookmarkPage{
@@ -100,7 +100,7 @@ func testFuncMap() template.FuncMap {
 				},
 			}
 			return []TabWithPages{{
-				TabInfo: TabInfo{Index: 0, Name: "", IndexName: "Main", Href: "/", EditHref: "/?edit=1", LastPageSha: ""},
+				TabInfo: TabInfo{Index: 0, Name: "", IndexName: "Main", Href: "/", LastPageSha: ""},
 				Pages:   pages,
 			}}, nil
 		},

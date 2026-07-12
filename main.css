@@ -113,6 +113,10 @@ body:not(.edit-mode) .edit-link {
         display: none;
 }
 
+body:not(.edit-mode) .edit-mode-only {
+        display: none;
+}
+
 .edit-form textarea {
         width: 90vw;
         height: 80vh;
