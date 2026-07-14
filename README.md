@@ -376,3 +376,24 @@ An example `config.json` looks like:
 ## Legacy migration
 
 The `sql/legacy_migrate.sql` file contains SQL statements that convert the original `goa4web-bookmarks` tables into the schema used here. Execute the script manually on your database before enabling the SQL provider.
+
+## Agent Skills
+
+`gobookmarks` supports an agent-skill system to help AI coding agents understand how to interact with the application.
+
+### Commands
+
+*   `gobookmarks skill install <source> [name]`: Install a new skill. Supports local paths and remote Git repositories.
+*   `gobookmarks skill update <name>`: Update an installed skill. Use `--all` to update all skills.
+*   `gobookmarks skill remove <name>`: Remove an installed skill.
+*   `gobookmarks skill list`: List all installed skills.
+*   `gobookmarks skill inspect <name>`: View metadata and details for a skill.
+*   `gobookmarks skill doctor`: Check the health and integrity of installed skills.
+
+### Installing the Official Skill
+
+You can install the official skill directly from the binary using the `embedded` source:
+
+```bash
+gobookmarks skill install embedded gobookmarks
+```
