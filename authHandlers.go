@@ -106,7 +106,8 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	state := providerName
-	if redirect := r.URL.Query().Get("redirect"); redirect != "" {
+	redirect := r.URL.Query().Get("redirect")
+	if redirect != "" && len(redirect) < 2048 {
 		state = providerName + ":" + redirect
 	}
 
