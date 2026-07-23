@@ -9,6 +9,7 @@ import (
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
@@ -103,7 +104,13 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 		http.NotFound(w, r)
 		return nil
 	}
-	http.Redirect(w, r, cfg.AuthCodeURL(providerName), http.StatusTemporaryRedirect)
+
+	state := providerName
+	if redirect := r.URL.Query().Get("redirect"); redirect != "" {
+		state = providerName + ":" + redirect
+	}
+
+	http.Redirect(w, r, cfg.AuthCodeURL(state), http.StatusTemporaryRedirect)
 	return nil
 }
 
@@ -115,7 +122,13 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	providerName := r.URL.Query().Get("state")
-	if providerName == "" {
+	if providerName != "" {
+		parts := strings.SplitN(providerName, ":", 2)
+		providerName = parts[0]
+		if len(parts) > 1 && parts[1] != "" && len(parts[1]) < 2048 {
+			session.Values["Redirect"] = parts[1]
+		}
+	} else {
 		providerName, _ = session.Values["Provider"].(string)
 	}
 	p := GetProvider(providerName)
