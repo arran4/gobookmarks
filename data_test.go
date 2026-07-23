@@ -47,6 +47,7 @@ func testFuncMap() template.FuncMap {
 		"now":                func() time.Time { return time.Unix(0, 0) },
 		"version":            func() string { return "test" },
 		"CurrentURL":         func() string { return "/" },
+		"LoginPageURL":       func() string { return "https://example.com/login" },
 		"LoginURL":           func(p string) string { return "https://example.com/login/" + p },
 		"Providers":          func() []string { return []string{"github", "gitlab"} },
 		"AllProviders":       func() []string { return []string{"github", "gitlab"} },

@@ -74,10 +74,19 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			}
 			return ""
 		},
+		"LoginPageURL": func() string {
+			if r != nil {
+				redirect := r.URL.RequestURI()
+				if redirect != "" && redirect != "/" {
+					return "/login?redirect=" + url.QueryEscape(redirect)
+				}
+			}
+			return "/login"
+		},
 		"LoginURL": func(p string) string {
 			if r != nil {
 				redirect := r.URL.Query().Get("redirect")
-				if redirect != "" {
+				if redirect != "" && redirect != "/" {
 					return "/login/" + p + "?redirect=" + url.QueryEscape(redirect)
 				}
 			}
