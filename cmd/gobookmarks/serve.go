@@ -620,6 +620,9 @@ func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 
 		if redirect != "" {
 			if u, err := url.Parse(redirect); err == nil && u.Scheme == "" && u.Host == "" && strings.HasPrefix(u.Path, "/") && !strings.HasPrefix(u.Path, "//") && !strings.Contains(redirect, "\\") {
+				if u.Path == "/logout" || u.Path == "/login" || strings.HasPrefix(u.Path, "/login/") {
+					redirect = "/"
+				}
 				if strings.HasPrefix(toURL, "/login/") {
 					loginURL, _ := url.Parse(toURL)
 					qs := loginURL.Query()
