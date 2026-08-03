@@ -1,7 +1,7 @@
 {{define "head"}}
 <html>
 	<head>
-                <title>{{$.Title}}</title>
+                <title>{{$.Title}}{{ $tname := tabName }}{{ if $tname }}: {{ $tname }}{{ end }}</title>
 		<style type="text/css">
         <!--
         @import url("/main.css");
