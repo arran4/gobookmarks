@@ -149,6 +149,10 @@
             });
 
             function dragStart(e) {
+                if (window.isDragUpdating) {
+                    e.preventDefault();
+                    return;
+                }
                 var block = e.currentTarget.closest('.categoryBlock');
                 startZone = findColumnZone(block);
                 e.dataTransfer.setData('text/plain', block.id);
@@ -247,9 +251,11 @@
             function drop(e) {
                 e.preventDefault();
                 e.currentTarget.classList.remove('drag-over');
+                if (window.isDragUpdating) return;
                 var id = e.dataTransfer.getData('text/plain');
                 var el = document.getElementById(id);
                 if (el && el !== e.currentTarget) {
+                    window.isDragUpdating = true;
                     e.currentTarget.parentNode.insertBefore(el, e.currentTarget);
                     var from = parseInt(id.substring(3));
                     var to = parseInt(e.currentTarget.id.substring(3));
@@ -267,9 +273,11 @@
             function dropNewColumn(e) {
                 e.preventDefault();
                 e.currentTarget.classList.remove('drag-over');
+                if (window.isDragUpdating) return;
                 var id = e.dataTransfer.getData('text/plain');
                 var el = document.getElementById(id);
                 if (el) {
+                    window.isDragUpdating = true;
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
                     var destPage = e.currentTarget.closest('.bookmarkPage');
@@ -302,9 +310,11 @@
             function dropEndColumn(e) {
                 e.preventDefault();
                 e.currentTarget.classList.remove('drag-over');
+                if (window.isDragUpdating) return;
                 var id = e.dataTransfer.getData('text/plain');
                 var el = document.getElementById(id);
                 if (el) {
+                    window.isDragUpdating = true;
                     var parent = e.currentTarget.parentNode;
                     parent.insertBefore(el, e.currentTarget);
                     var from = parseInt(id.substring(3));
@@ -322,8 +332,10 @@
             function dropOnPageIndex(e) {
                 e.preventDefault();
                 e.currentTarget.classList.remove('drag-over');
+                if (window.isDragUpdating) return;
                 var id = e.dataTransfer.getData('text/plain');
                 if (id) {
+                    window.isDragUpdating = true;
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
                     var destSha = e.currentTarget.dataset.pageSha;
@@ -335,8 +347,10 @@
             function dropOnTabIndex(e) {
                 e.preventDefault();
                 e.currentTarget.classList.remove('drag-over');
+                if (window.isDragUpdating) return;
                 var id = e.dataTransfer.getData('text/plain');
                 if (id) {
+                    window.isDragUpdating = true;
                     var from = parseInt(id.substring(3));
                     var pageSha = e.dataTransfer.getData('pageSha');
                     var destSha = e.currentTarget.dataset.pageSha;
