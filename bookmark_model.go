@@ -488,7 +488,17 @@ func (b BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destP
 	}
 
 	if len(src.column.Categories) == 0 && src.column != destColumn {
-		src.block.Columns = append(src.block.Columns[:src.colIdx], src.block.Columns[src.colIdx+1:]...)
+		// Find the current index of the source column, as it may have shifted
+		colIdx := -1
+		for i, col := range src.block.Columns {
+			if col == src.column {
+				colIdx = i
+				break
+			}
+		}
+		if colIdx != -1 {
+			src.block.Columns = append(src.block.Columns[:colIdx], src.block.Columns[colIdx+1:]...)
+		}
 	}
 
 	// reindex
