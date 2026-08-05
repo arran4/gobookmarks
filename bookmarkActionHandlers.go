@@ -235,7 +235,10 @@ func CategoryMoveNewColumnAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("invalid from index: %w", err)
 	}
-	destCol, _ := strconv.Atoi(destColStr)
+	destCol, err := strconv.Atoi(destColStr)
+	if destColStr == "" || err != nil {
+		destCol = -1
+	}
 
 	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
 	githubUser, _ := session.Values["GithubUser"].(*User)
