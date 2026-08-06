@@ -195,6 +195,20 @@ body:not(.edit-mode) .edit-mode-only {
     margin-left: 0.5em;
 }
 
+.bookmarkColumns .newColumnDropZone:last-child {
+    width: 15em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(128, 0, 0, 0.6);
+}
+
+.bookmarkColumns .newColumnDropZone:last-child::after {
+    content: "Drop here to create a new column";
+    text-align: center;
+    padding: 1em;
+}
+
 .columnEndDropZone {
     width: 100%;
     min-height: 150px;
