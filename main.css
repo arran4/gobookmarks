@@ -1,26 +1,48 @@
+:root {
+    --bg-color: #FFFBF0;
+    --text-color: #800000;
+    --link-color: #808000;
+    --link-hover-color: #FF0000;
+    --border-color: #800000;
+    --dropzone-text-color: rgba(128, 0, 0, 0.6);
+    --search-selected-bg: #ffe0e0;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #121212;
+        --text-color: #ffcccc;
+        --link-color: #cccc66;
+        --link-hover-color: #ff6666;
+        --border-color: rgba(230, 179, 179, 0.6);
+        --dropzone-text-color: rgba(230, 179, 179, 0.6);
+        --search-selected-bg: #4a0000;
+    }
+}
+
 body {
-        background-color: #FFFBF0;
-        color: #800000;
+        background-color: var(--bg-color);
+        color: var(--text-color);
         min-height: 100vh;
         display: flex;
         flex-direction: column;
 }
 a {
 	background-color: transparent;
-	color: #808000;
+	color: var(--link-color);
 }
 a:visited {
 	background-color: transparent;
-	color: #808000;
+	color: var(--link-color);
 }
 a:hover {
 	background-color: transparent;
-	color: #FF0000;
+	color: var(--link-hover-color);
 }
 h1 {
 	font-family: tahoma, arial, helvetica, sans-serif;
 	text-align: center;
-	color: #800000;
+	color: var(--text-color);
 	background-color: transparent;
 }
 div.index {
@@ -55,14 +77,14 @@ div.title {
 	font-family: tahoma, arial, helvetica, sans-serif;
 	text-align: right;
 	font-size: 0.8em;
-	color: #800000;
+	color: var(--text-color);
 	background-color: transparent;
 }
 .caption {
 	font-family: tahoma, arial, helvetica, sans-serif;
 	text-align: center;
 	font-size: 0.8em;
-	color: #800000;
+	color: var(--text-color);
 	background-color: transparent;
 }
 .footnote {
@@ -75,21 +97,21 @@ div.title {
 	text-align: left;
 	font-family: tahoma, arial, helvetica, sans-serif;
 	font-size: 0.8em;
-	color: #800000;
+	color: var(--text-color);
 	background-color: transparent;
 }
 .textright {
 	text-align: right;
 	font-family: tahoma, arial, helvetica, sans-serif;
 	font-size: 0.8em;
-	color: #800000;
+	color: var(--text-color);
 	background-color: transparent;
 }
 .textcenter {
         text-align: center;
         font-family: tahoma, arial, helvetica, sans-serif;
         font-size: 0.8em;
-        color: #800000;
+        color: var(--text-color);
         background-color: transparent;
 }
 
@@ -100,7 +122,7 @@ div.title {
 .bookmarkHr {
         margin: 1em 0;
         border: none;
-        border-top: 1px solid #800000;
+        border-top: 1px solid var(--border-color);
 }
 
 .edit-link {
@@ -175,18 +197,18 @@ body:not(.edit-mode) .edit-mode-only {
 }
 
 .categoryBlock.drag-over {
-    outline: 2px dotted #800000;
+    outline: 2px dotted var(--border-color);
 }
 
 #tab-list li.drag-over,
 #page-list li.drag-over {
-    outline: 2px dotted #800000;
+    outline: 2px dotted var(--border-color);
 }
 
 .newColumnDropZone,
 .columnEndDropZone {
     display: inline-block;
-    border: 2px dotted #800000;
+    border: 2px dotted var(--border-color);
 }
 
 .newColumnDropZone {
@@ -200,7 +222,7 @@ body:not(.edit-mode) .edit-mode-only {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(128, 0, 0, 0.6);
+    color: var(--dropzone-text-color);
 }
 
 .bookmarkColumns .newColumnDropZone:last-child::after {
@@ -262,7 +284,7 @@ body:not(.edit-mode) .move-handle {
     display: none;
 }
 .search-selected {
-    background-color: #ffe0e0;
+    background-color: var(--search-selected-bg);
 }
 
 input.search-widget {
