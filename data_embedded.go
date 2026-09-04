@@ -11,6 +11,8 @@ import (
 var (
 	//go:embed all:templates
 	templateFS embed.FS
+	//go:embed "main.css" "logo.png"
+	assetFS embed.FS
 	//go:embed "main.css"
 	mainCSSData []byte
 	//go:embed "logo.png"
@@ -18,7 +20,21 @@ var (
 
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
+
+	assetRegistry     *Registry
+	assetRegistryOnce sync.Once
 )
+
+func GetAssetRegistry() *Registry {
+	assetRegistryOnce.Do(func() {
+		var err error
+		assetRegistry, err = NewRegistry(assetFS)
+		if err != nil {
+			panic(err)
+		}
+	})
+	return assetRegistry
+}
 
 // GetCompiledTemplates returns a clone of the compiled templates with the given funcs applied.
 // The templates are parsed only once at initialization using NewFuncs(nil) to establish the function map keys.

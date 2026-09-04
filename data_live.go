@@ -7,10 +7,39 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 func init() {
 	log.Printf("Live data mode")
+}
+
+var (
+	assetRegistry     *Registry
+	assetRegistryOnce sync.Once
+)
+
+func getAssetDir() string {
+	fsPath := "."
+	if _, err := os.Stat(filepath.Join(fsPath, "main.css")); os.IsNotExist(err) {
+		fsPath = "../../"
+	}
+	if _, err := os.Stat(filepath.Join(fsPath, "main.css")); os.IsNotExist(err) {
+		fsPath = "../"
+	}
+	return fsPath
+}
+
+func GetAssetRegistry() *Registry {
+	assetRegistryOnce.Do(func() {
+		dir := getAssetDir()
+		var err error
+		assetRegistry, err = NewRegistry(os.DirFS(dir))
+		if err != nil {
+			log.Printf("Asset registry error: %v", err)
+		}
+	})
+	return assetRegistry
 }
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {

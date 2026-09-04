@@ -291,15 +291,25 @@ https://example.com Example Link
 
 		// For serving, we need to handle main.css and favicon too, otherwise the page looks broken
 		mux := http.NewServeMux()
+		mux.Handle("/assets/", gobookmarks.GetAssetRegistry())
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write(output)
 		})
 		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
+			if url, err := gobookmarks.AssetURL("main.css"); err == nil {
+				http.Redirect(w, r, url, http.StatusFound)
+				return
+			}
 			w.Header().Set("Content-Type", "text/css")
 			_, _ = w.Write(
 				gobookmarks.GetMainCSSData())
 		})
 		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+			if url, err := gobookmarks.AssetURL("logo.png"); err == nil {
+				http.Redirect(w, r, url, http.StatusFound)
+				return
+			}
+			w.Header().Set("Content-Type", "image/png")
 			_, _ = w.Write(
 				gobookmarks.GetFavicon())
 		})

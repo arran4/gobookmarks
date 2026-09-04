@@ -45,6 +45,8 @@ func TestCompileGoHTML(t *testing.T) {
 func testFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"now":                func() time.Time { return time.Unix(0, 0) },
+		"asset":              func(p string) (string, error) { return AssetURL(p) },
+		"assetURL":           func(p string) (string, error) { return AssetURL(p) },
 		"version":            func() string { return "test" },
 		"CurrentURL":         func() string { return "/" },
 		"LoginPageURL":       func() string { return "https://example.com/login" },

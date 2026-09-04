@@ -45,6 +45,12 @@ func SetVersion(pVersion, pCommit, pDate string) {
 func NewFuncs(r *http.Request) template.FuncMap {
 	return map[string]any{
 		"now": func() time.Time { return time.Now() },
+		"asset": func(p string) (string, error) {
+			return AssetURL(p)
+		},
+		"assetURL": func(p string) (string, error) {
+			return AssetURL(p)
+		},
 		"version": func() string {
 			return version
 		},
