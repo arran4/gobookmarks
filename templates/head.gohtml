@@ -13,6 +13,16 @@
         </head>
         <body{{if tab}} data-tab="{{tab}}"{{end}}>
                 <script>
+                (function() {
+                    var theme = localStorage.getItem("theme");
+                    if (!theme) {
+                        var match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+                        if (match) theme = match[1];
+                    }
+                    if (theme === "dark" || theme === "light") {
+                        document.documentElement.setAttribute("data-theme", theme);
+                    }
+                })();
                 if (localStorage.getItem('edit-mode') === '1') {
                     document.body.classList.add('edit-mode');
                 }
