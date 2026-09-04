@@ -160,19 +160,19 @@ body:not(.edit-mode) .edit-mode-only {
 }
 
 
-.cssColumns .bookmarkColumns {
+.bookmarkColumns {
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
 }
 
-.cssColumns .bookmarkColumn {
+.bookmarkColumn {
         padding-right: 1em;
         display: flex;
         flex-direction: column;
 }
 
-.cssColumns .categoryBlock {
+.categoryBlock {
         break-inside: avoid;
         page-break-inside: avoid;
         -webkit-column-break-inside: avoid;
