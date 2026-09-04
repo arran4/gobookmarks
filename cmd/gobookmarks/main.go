@@ -178,7 +178,7 @@ func (c *RootCommand) loadConfig() error {
 	}
 
 	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
-	found, err := gobookmarks.LoadConfigFile(&c.cfg, configPath)
+	found, err := gobookmarks.LoadConfigFileInto(&c.cfg, configPath)
 	if err != nil {
 		return fmt.Errorf("unable to load config file %s: %w", configPath, err)
 	}

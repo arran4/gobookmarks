@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -82,10 +83,52 @@ func (c Configuration) GetSessionName() string {
 	return "gobookmarks"
 }
 
-// LoadConfigFile loads configuration from the given path directly onto a struct.
+// LoadConfigFile loads configuration from the given path.
+// It returns the loaded Configuration, a boolean indicating if the file existed,
+// and any error that occurred while reading or parsing the file.
+func LoadConfigFile(path string) (Configuration, bool, error) {
+	var c Configuration
+
+	log.Printf("attempting to load config from %s", path)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("config file %s not found", path)
+			return c, false, nil
+		}
+		return c, false, fmt.Errorf("unable to read config file: %w", err)
+	}
+
+	if err := json.Unmarshal(data, &c); err != nil {
+		return c, true, fmt.Errorf("unable to parse config file: %w", err)
+	}
+
+	log.Printf("successfully loaded config from %s (keys: %s)", path, strings.Join(loadedConfigKeys(c), ", "))
+
+	return c, true, nil
+}
+
+func loadedConfigKeys(c Configuration) []string {
+	var keys []string
+	v := reflect.ValueOf(c)
+	t := reflect.TypeOf(c)
+	for i := 0; i < v.NumField(); i++ {
+		if !v.Field(i).IsZero() {
+			key := t.Field(i).Tag.Get("json")
+			if key == "" {
+				key = t.Field(i).Name
+			}
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
+// LoadConfigFileInto loads configuration from the given path directly onto a struct.
 // It modifies `c` and returns a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
-func LoadConfigFile(c *Configuration, path string) (bool, error) {
+func LoadConfigFileInto(c *Configuration, path string) (bool, error) {
 	log.Printf("attempting to load config from %s", path)
 
 	data, err := os.ReadFile(path)
@@ -113,6 +156,76 @@ func LoadConfigFile(c *Configuration, path string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// MergeConfig copies values from src into dst if they are non-zero.
+func MergeConfig(dst *Configuration, src Configuration) {
+	if src.GithubClientID != "" {
+		dst.GithubClientID = src.GithubClientID
+	}
+	if src.GithubSecret != "" {
+		dst.GithubSecret = src.GithubSecret
+	}
+	if src.GitlabClientID != "" {
+		dst.GitlabClientID = src.GitlabClientID
+	}
+	if src.GitlabSecret != "" {
+		dst.GitlabSecret = src.GitlabSecret
+	}
+	if src.ExternalURL != "" {
+		dst.ExternalURL = src.ExternalURL
+	}
+	if src.CSSColumns {
+		dst.CSSColumns = true
+	}
+	if src.DevMode != nil {
+		dst.DevMode = src.DevMode
+	}
+	if src.Namespace != "" {
+		dst.Namespace = src.Namespace
+	}
+	if src.Title != "" {
+		dst.Title = src.Title
+	}
+	if src.GithubServer != "" {
+		dst.GithubServer = src.GithubServer
+	}
+	if src.GitlabServer != "" {
+		dst.GitlabServer = src.GitlabServer
+	}
+	if src.FaviconCacheDir != "" {
+		dst.FaviconCacheDir = src.FaviconCacheDir
+	}
+	if src.FaviconCacheSize != 0 {
+		dst.FaviconCacheSize = src.FaviconCacheSize
+	}
+	if src.FaviconMaxCacheCount != 0 {
+		dst.FaviconMaxCacheCount = src.FaviconMaxCacheCount
+	}
+	if src.LocalGitPath != "" {
+		dst.LocalGitPath = src.LocalGitPath
+	}
+	if src.NoFooter {
+		dst.NoFooter = true
+	}
+	if src.SessionKey != "" {
+		dst.SessionKey = src.SessionKey
+	}
+	if src.SessionName != "" {
+		dst.SessionName = src.SessionName
+	}
+	if src.DBConnectionProvider != "" {
+		dst.DBConnectionProvider = src.DBConnectionProvider
+	}
+	if src.DBConnectionString != "" {
+		dst.DBConnectionString = src.DBConnectionString
+	}
+	if src.CommitsPerPage != 0 {
+		dst.CommitsPerPage = src.CommitsPerPage
+	}
+	if len(src.ProviderOrder) > 0 {
+		dst.ProviderOrder = append([]string(nil), src.ProviderOrder...)
+	}
 }
 
 // DefaultConfigPath returns the path to the config file depending on

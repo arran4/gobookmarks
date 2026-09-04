@@ -82,6 +82,33 @@ func TestLoadConfigUsesExternalURL(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_EnvOnlyProvider(t *testing.T) {
+	t.Setenv("LOCAL_GIT_PATH", "/env/path/for/git")
+
+	rc := NewRootCommand()
+	if err := rc.loadConfig(); err != nil {
+		t.Fatalf("loadConfig returned error: %v", err)
+	}
+
+	// Ensure that LocalGitPath actually populates
+	if rc.cfg.LocalGitPath != "/env/path/for/git" {
+		t.Fatalf("expected /env/path/for/git, got %q", rc.cfg.LocalGitPath)
+	}
+
+	gb.Config = rc.cfg
+	provs := gb.ConfiguredProviderNames()
+	foundGit := false
+	for _, p := range provs {
+		if p == "git" {
+			foundGit = true
+			break
+		}
+	}
+	if !foundGit {
+		t.Fatalf("expected 'git' provider to be configured from env variable LOCAL_GIT_PATH alone")
+	}
+}
+
 func TestLoadConfig_EnvPrecedence(t *testing.T) {
 	t.Setenv("LOCAL_GIT_PATH", "/env/path")
 	t.Setenv("SESSION_NAME", "env_session")
