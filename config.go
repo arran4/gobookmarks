@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"errors"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -22,6 +23,31 @@ const (
 	DefaultFaviconCacheMaxAge   time.Duration = 24 * time.Hour
 	DefaultCommitsPerPage       int           = 100
 )
+
+
+type Environment interface {
+	Getenv(key string) string
+	Setenv(key, value string) error
+	Geteuid() int
+}
+
+type DefaultEnvironment struct{}
+
+func (DefaultEnvironment) Getenv(key string) string { return os.Getenv(key) }
+func (DefaultEnvironment) Setenv(key, value string) error { return os.Setenv(key, value) }
+func (DefaultEnvironment) Geteuid() int { return os.Geteuid() }
+
+type FileReader interface {
+	ReadFile(name string) ([]byte, error)
+	Open(name string) (*os.File, error)
+	Stat(name string) (os.FileInfo, error)
+}
+
+type DefaultFileReader struct{}
+
+func (DefaultFileReader) ReadFile(name string) ([]byte, error) { return os.ReadFile(name) }
+func (DefaultFileReader) Open(name string) (*os.File, error) { return os.Open(name) }
+func (DefaultFileReader) Stat(name string) (os.FileInfo, error) { return os.Stat(name) }
 
 // Configuration holds runtime configuration values.
 type Configuration struct {
@@ -86,14 +112,20 @@ func (c Configuration) GetSessionName() string {
 // LoadConfigFile loads configuration from the given path.
 // It returns the loaded Configuration, a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
-func LoadConfigFile(path string) (Configuration, bool, error) {
+func LoadConfigFile(path string, ops ...any) (Configuration, bool, error) {
+	var reader FileReader = DefaultFileReader{}
+	for _, opt := range ops {
+		if r, ok := opt.(FileReader); ok {
+			reader = r
+		}
+	}
 	var c Configuration
 
 	log.Printf("attempting to load config from %s", path)
 
-	data, err := os.ReadFile(path)
+	data, err := reader.ReadFile(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			log.Printf("config file %s not found", path)
 			return c, false, nil
 		}
@@ -128,12 +160,18 @@ func loadedConfigKeys(c Configuration) []string {
 // LoadConfigFileInto loads configuration from the given path directly onto a struct.
 // It modifies `c` and returns a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
-func LoadConfigFileInto(c *Configuration, path string) (bool, error) {
+func LoadConfigFileInto(c *Configuration, path string, ops ...any) (bool, error) {
+	var reader FileReader = DefaultFileReader{}
+	for _, opt := range ops {
+		if r, ok := opt.(FileReader); ok {
+			reader = r
+		}
+	}
 	log.Printf("attempting to load config from %s", path)
 
-	data, err := os.ReadFile(path)
+	data, err := reader.ReadFile(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			log.Printf("config file %s not found", path)
 			return false, nil
 		}
@@ -232,16 +270,23 @@ func MergeConfig(dst *Configuration, src Configuration) {
 // environment and the effective user. If running as a non-root user and
 // XDG variables are set, the config lives under the XDG config directory.
 // Otherwise it falls back to /etc/gobookmarks/config.json.
-func DefaultConfigPath() string {
-	if p := os.Getenv("GOBM_CONFIG_FILE"); p != "" {
+func DefaultConfigPath(ops ...any) string {
+	var env Environment = DefaultEnvironment{}
+	for _, opt := range ops {
+		_ = opt // To silence unused warning if empty block
+		if e, ok := opt.(Environment); ok {
+			env = e
+		}
+	}
+	if p := env.Getenv("GOBM_CONFIG_FILE"); p != "" {
 		return p
 	}
-	if os.Geteuid() != 0 {
-		xdg := os.Getenv("XDG_CONFIG_HOME")
+	if env.Geteuid() != 0 {
+		xdg := env.Getenv("XDG_CONFIG_HOME")
 		if xdg != "" {
 			return filepath.Join(xdg, "gobookmarks", "config.json")
 		}
-		if home := os.Getenv("HOME"); home != "" {
+		if home := env.Getenv("HOME"); home != "" {
 			return filepath.Join(home, ".config", "gobookmarks", "config.json")
 		}
 	}
@@ -256,19 +301,26 @@ func DefaultConfigPath() string {
 // chooses the path appropriate for the current user. When reading it
 // checks the usual locations and returns the first existing file,
 // falling back to the writing location if none are found.
-func DefaultSessionKeyPath(writing bool) string {
+func DefaultSessionKeyPath(writing bool, ops ...any) string {
+	var env Environment = DefaultEnvironment{}
+	for _, opt := range ops {
+		_ = opt // To silence unused warning if empty block
+		if e, ok := opt.(Environment); ok {
+			env = e
+		}
+	}
 	var userPaths []string
-	if xdg := os.Getenv("XDG_STATE_HOME"); xdg != "" {
+	if xdg := env.Getenv("XDG_STATE_HOME"); xdg != "" {
 		userPaths = append(userPaths, filepath.Join(xdg, "gobookmarks", "session.key"))
 	}
-	if home := os.Getenv("HOME"); home != "" {
+	if home := env.Getenv("HOME"); home != "" {
 		userPaths = append(userPaths, filepath.Join(home, ".local", "state", "gobookmarks", "session.key"))
 	}
 
 	systemPath := "/var/lib/gobookmarks/session.key"
 
 	if !writing {
-		if os.Geteuid() == 0 {
+		if env.Geteuid() == 0 {
 			if fileExists(systemPath) {
 				return systemPath
 			}
@@ -289,7 +341,7 @@ func DefaultSessionKeyPath(writing bool) string {
 		}
 	}
 
-	if os.Geteuid() != 0 {
+	if env.Geteuid() != 0 {
 		if len(userPaths) > 0 {
 			return userPaths[0]
 		}
@@ -297,16 +349,32 @@ func DefaultSessionKeyPath(writing bool) string {
 	return systemPath
 }
 
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
+func fileExists(path string, ops ...any) bool {
+	var reader FileReader = DefaultFileReader{}
+	for _, opt := range ops {
+		if r, ok := opt.(FileReader); ok {
+			reader = r
+		}
+	}
+	_, err := reader.Stat(path)
 	return err == nil
 }
 
 // Lines should be in KEY=VALUE format and may be commented with '#'.
-func LoadEnvFile(path string) error {
-	f, err := os.Open(path)
+func LoadEnvFile(path string, ops ...any) error {
+	var env Environment = DefaultEnvironment{}
+	var reader FileReader = DefaultFileReader{}
+	for _, opt := range ops {
+		if e, ok := opt.(Environment); ok {
+			env = e
+		}
+		if r, ok := opt.(FileReader); ok {
+			reader = r
+		}
+	}
+	f, err := reader.Open(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return err
@@ -325,8 +393,8 @@ func LoadEnvFile(path string) error {
 		}
 		key := strings.TrimSpace(parts[0])
 		val := strings.TrimSpace(parts[1])
-		if os.Getenv(key) == "" {
-			_ = os.Setenv(key, val)
+		if env.Getenv(key) == "" {
+			_ = env.Setenv(key, val)
 		}
 	}
 	return scanner.Err()

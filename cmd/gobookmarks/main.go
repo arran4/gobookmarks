@@ -135,50 +135,56 @@ func (c *RootCommand) Execute(args []string) error {
 	return nil
 }
 
-func (c *RootCommand) loadConfig() error {
-	envPath := os.Getenv("GOBM_ENV_FILE")
+func (c *RootCommand) loadConfig(ops ...any) error {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	envPath := env.Getenv("GOBM_ENV_FILE")
 	if envPath == "" {
 		envPath = "/etc/gobookmarks/gobookmarks.env"
 	}
-	if err := gobookmarks.LoadEnvFile(envPath); err != nil {
+	if err := gobookmarks.LoadEnvFile(envPath, ops...); err != nil {
 		log.Printf("unable to load env file %s: %v", envPath, err)
 	}
 
 	c.cfg = gobookmarks.Configuration{
-		GithubClientID:       os.Getenv("GITHUB_CLIENT_ID"),
-		GithubSecret:         os.Getenv("GITHUB_SECRET"),
-		GitlabClientID:       os.Getenv("GITLAB_CLIENT_ID"),
-		GitlabSecret:         os.Getenv("GITLAB_SECRET"),
-		ExternalURL:          os.Getenv("EXTERNAL_URL"),
-		CSSColumns:           getenvSet("GBM_CSS_COLUMNS"),
-		DevMode:              getenvBoolPtr("GBM_DEV_MODE"),
-		Namespace:            os.Getenv("GBM_NAMESPACE"),
-		Title:                os.Getenv("GBM_TITLE"),
-		GithubServer:         os.Getenv("GITHUB_SERVER"),
-		GitlabServer:         os.Getenv("GITLAB_SERVER"),
-		FaviconCacheDir:      os.Getenv("FAVICON_CACHE_DIR"),
-		FaviconCacheSize:     getenvInt64("FAVICON_CACHE_SIZE"),
-		FaviconMaxCacheCount: getenvInt("FAVICON_MAX_CACHE_COUNT"),
-		LocalGitPath:         os.Getenv("LOCAL_GIT_PATH"),
-		NoFooter:             getenvBool("GBM_NO_FOOTER"),
-		SessionKey:           os.Getenv("SESSION_KEY"),
-		SessionName:          os.Getenv("SESSION_NAME"),
-		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
-		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
-		ProviderOrder:        getenvStringSlice("PROVIDER_ORDER"),
-		CommitsPerPage:       getenvInt("COMMITS_PER_PAGE"),
+		GithubClientID:       env.Getenv("GITHUB_CLIENT_ID"),
+		GithubSecret:         env.Getenv("GITHUB_SECRET"),
+		GitlabClientID:       env.Getenv("GITLAB_CLIENT_ID"),
+		GitlabSecret:         env.Getenv("GITLAB_SECRET"),
+		ExternalURL:          env.Getenv("EXTERNAL_URL"),
+		CSSColumns:           getenvSet("GBM_CSS_COLUMNS", ops...),
+		DevMode:              getenvBoolPtr("GBM_DEV_MODE", ops...),
+		Namespace:            env.Getenv("GBM_NAMESPACE"),
+		Title:                env.Getenv("GBM_TITLE"),
+		GithubServer:         env.Getenv("GITHUB_SERVER"),
+		GitlabServer:         env.Getenv("GITLAB_SERVER"),
+		FaviconCacheDir:      env.Getenv("FAVICON_CACHE_DIR"),
+		FaviconCacheSize:     getenvInt64("FAVICON_CACHE_SIZE", ops...),
+		FaviconMaxCacheCount: getenvInt("FAVICON_MAX_CACHE_COUNT", ops...),
+		LocalGitPath:         env.Getenv("LOCAL_GIT_PATH"),
+		NoFooter:             getenvBool("GBM_NO_FOOTER", ops...),
+		SessionKey:           env.Getenv("SESSION_KEY"),
+		SessionName:          env.Getenv("SESSION_NAME"),
+		DBConnectionProvider: env.Getenv("DB_CONNECTION_PROVIDER"),
+		DBConnectionString:   env.Getenv("DB_CONNECTION_STRING"),
+		ProviderOrder:        getenvStringSlice("PROVIDER_ORDER", ops...),
+		CommitsPerPage:       getenvInt("COMMITS_PER_PAGE", ops...),
 	}
 
-	configPath := gobookmarks.DefaultConfigPath()
-	if envCfg := os.Getenv("GOBM_CONFIG_FILE"); envCfg != "" {
+	configPath := gobookmarks.DefaultConfigPath(ops...)
+	if envCfg := env.Getenv("GOBM_CONFIG_FILE"); envCfg != "" {
 		configPath = envCfg
 	}
 	if c.ConfigPath != "" {
 		configPath = c.ConfigPath
 	}
 
-	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
-	found, err := gobookmarks.LoadConfigFileInto(&c.cfg, configPath)
+	cfgSpecified := c.ConfigPath != "" || env.Getenv("GOBM_CONFIG_FILE") != ""
+	found, err := gobookmarks.LoadConfigFileInto(&c.cfg, configPath, ops...)
 	if err != nil {
 		return fmt.Errorf("unable to load config file %s: %w", configPath, err)
 	}
@@ -192,13 +198,27 @@ func printHelp(cmd Command, err error) {
 	fmt.Print(renderTemplate(cmd, err))
 }
 
-func getenvSet(key string) bool {
-	val := os.Getenv(key)
+func getenvSet(key string, ops ...any) bool {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	_ = env
+	val := env.Getenv(key)
 	return val != ""
 }
 
-func getenvBool(key string) bool {
-	val := os.Getenv(key)
+func getenvBool(key string, ops ...any) bool {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	_ = env
+	val := env.Getenv(key)
 	if val == "" {
 		return false
 	}
@@ -209,8 +229,15 @@ func getenvBool(key string) bool {
 	return b
 }
 
-func getenvBoolPtr(key string) *bool {
-	val := os.Getenv(key)
+func getenvBoolPtr(key string, ops ...any) *bool {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	_ = env
+	val := env.Getenv(key)
 	if val == "" {
 		return nil
 	}
@@ -222,8 +249,15 @@ func getenvBoolPtr(key string) *bool {
 	return &b
 }
 
-func getenvInt(key string) int {
-	val := os.Getenv(key)
+func getenvInt(key string, ops ...any) int {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	_ = env
+	val := env.Getenv(key)
 	if val == "" {
 		return 0
 	}
@@ -234,8 +268,15 @@ func getenvInt(key string) int {
 	return i
 }
 
-func getenvInt64(key string) int64 {
-	val := os.Getenv(key)
+func getenvInt64(key string, ops ...any) int64 {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	_ = env
+	val := env.Getenv(key)
 	if val == "" {
 		return 0
 	}
@@ -246,8 +287,15 @@ func getenvInt64(key string) int64 {
 	return i
 }
 
-func getenvStringSlice(key string) []string {
-	val := os.Getenv(key)
+func getenvStringSlice(key string, ops ...any) []string {
+	var env gobookmarks.Environment = gobookmarks.DefaultEnvironment{}
+	for _, opt := range ops {
+		if e, ok := opt.(gobookmarks.Environment); ok {
+			env = e
+		}
+	}
+	_ = env
+	val := env.Getenv(key)
 	if val == "" {
 		return nil
 	}

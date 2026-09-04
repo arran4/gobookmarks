@@ -14,6 +14,35 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type MockEnv map[string]string
+
+func (m MockEnv) Getenv(key string) string { return m[key] }
+func (m MockEnv) Setenv(key, value string) error { m[key] = value; return nil }
+func (m MockEnv) Geteuid() int { return 1000 }
+
+type MockFileReader struct {
+	Files map[string][]byte
+}
+
+func (m MockFileReader) ReadFile(name string) ([]byte, error) {
+	if data, ok := m.Files[name]; ok {
+		return data, nil
+	}
+	return nil, os.ErrNotExist
+}
+func (m MockFileReader) Open(name string) (*os.File, error) {
+    // not used deeply here but can return error to avoid failure
+	return nil, os.ErrNotExist
+}
+func (m MockFileReader) Stat(name string) (os.FileInfo, error) {
+	if _, ok := m.Files[name]; ok {
+        // returning nil fileinfo is problematic if accessed, but we just need err == nil for fileExists
+		return nil, nil
+	}
+	return nil, os.ErrNotExist
+}
+
+
 func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 	gb.Config.SessionName = "testsess"
 	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
@@ -71,9 +100,8 @@ func TestRunTemplate_BufferedError(t *testing.T) {
 func TestLoadConfigUsesExternalURL(t *testing.T) {
 	rc := NewRootCommand()
 
-	t.Setenv("EXTERNAL_URL", "http://example.com/app")
-
-	if err := rc.loadConfig(); err != nil {
+	env := MockEnv{"EXTERNAL_URL": "http://example.com/app"}
+	if err := rc.loadConfig(env); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
@@ -83,10 +111,9 @@ func TestLoadConfigUsesExternalURL(t *testing.T) {
 }
 
 func TestLoadConfig_EnvOnlyProvider(t *testing.T) {
-	t.Setenv("LOCAL_GIT_PATH", "/env/path/for/git")
-
 	rc := NewRootCommand()
-	if err := rc.loadConfig(); err != nil {
+	env := MockEnv{"LOCAL_GIT_PATH": "/env/path/for/git"}
+	if err := rc.loadConfig(env); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
@@ -110,24 +137,22 @@ func TestLoadConfig_EnvOnlyProvider(t *testing.T) {
 }
 
 func TestLoadConfig_EnvPrecedence(t *testing.T) {
-	t.Setenv("LOCAL_GIT_PATH", "/env/path")
-	t.Setenv("SESSION_NAME", "env_session")
-	t.Setenv("GBM_CSS_COLUMNS", "0") // Documented contract: any non-empty value sets it to true
-	t.Setenv("GBM_NO_FOOTER", "true")
-	t.Setenv("GBM_DEV_MODE", "false")
-	t.Setenv("COMMITS_PER_PAGE", "50")
-
-	jsonConfig := `{"local_git_path": "/json/path", "css_columns": false, "no_footer": false, "dev_mode": true, "commits_per_page": 0, "session_name": ""}`
-
-	tmpDir := t.TempDir()
-	configPath := tmpDir + "/config.json"
-	if err := os.WriteFile(configPath, []byte(jsonConfig), 0644); err != nil {
-		t.Fatal(err)
+	env := MockEnv{
+		"LOCAL_GIT_PATH": "/env/path",
+		"SESSION_NAME": "env_session",
+		"GBM_CSS_COLUMNS": "0",
+		"GBM_NO_FOOTER": "true",
+		"GBM_DEV_MODE": "false",
+		"COMMITS_PER_PAGE": "50",
 	}
 
+	jsonConfig := `{"local_git_path": "/json/path", "css_columns": false, "no_footer": false, "dev_mode": true, "commits_per_page": 0, "session_name": ""}`
+	fs := MockFileReader{Files: map[string][]byte{"/config.json": []byte(jsonConfig)}}
+	_ = fs
+
 	rc := NewRootCommand()
-	rc.ConfigPath = configPath // JSON config should override env
-	if err := rc.loadConfig(); err != nil {
+	rc.ConfigPath = "/config.json"
+	if err := rc.loadConfig(env, fs); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
