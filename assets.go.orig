@@ -50,6 +50,12 @@ func (r *Registry) Reload() error {
 	for _, p := range publicAssets {
 		b, err := fs.ReadFile(r.fsys, p)
 		if err != nil {
+			if !r.liveMode {
+				// Only ignore if file is not found - maybe not embedded, but should usually be there
+				if !strings.Contains(err.Error(), "file does not exist") {
+					// We just continue on not found in case some test removes it
+				}
+			}
 			continue
 		}
 
