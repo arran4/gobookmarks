@@ -5,6 +5,7 @@ package gobookmarks
 import (
 	"html/template"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -30,16 +31,35 @@ func getAssetDir() string {
 	return fsPath
 }
 
-func GetAssetRegistry() *Registry {
+type LiveRegistryWrapper struct {
+	reg *Registry
+}
+
+func (l *LiveRegistryWrapper) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	_ = l.reg.Reload()
+	l.reg.ServeHTTP(w, req)
+}
+
+func (l *LiveRegistryWrapper) AssetURL(logicalName string) (string, error) {
+	_ = l.reg.Reload()
+	return l.reg.AssetURL(logicalName)
+}
+
+func (l *LiveRegistryWrapper) GetAsset(url string) (*Asset, bool) {
+	_ = l.reg.Reload()
+	return l.reg.GetAsset(url)
+}
+
+func GetAssetProvider() AssetProvider {
 	assetRegistryOnce.Do(func() {
 		dir := getAssetDir()
 		var err error
-		assetRegistry, err = NewRegistry(os.DirFS(dir))
+		assetRegistry, err = NewRegistry(os.DirFS(dir), true)
 		if err != nil {
 			log.Printf("Asset registry error: %v", err)
 		}
 	})
-	return assetRegistry
+	return &LiveRegistryWrapper{reg: assetRegistry}
 }
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {

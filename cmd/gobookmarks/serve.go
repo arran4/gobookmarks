@@ -231,9 +231,10 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.Use(gobookmarks.UserAdderMiddleware)
 	r.Use(gobookmarks.CoreAdderMiddleware)
 
-	r.PathPrefix("/assets/").Handler(gobookmarks.GetAssetRegistry()).Methods("GET")
+	r.PathPrefix("/assets/").Handler(gobookmarks.GetAssetProvider()).Methods("GET")
 
 	r.HandleFunc("/main.css", func(writer http.ResponseWriter, req *http.Request) {
+		writer.Header().Set("Cache-Control", "no-cache")
 		if url, err := gobookmarks.AssetURL("main.css"); err == nil {
 			http.Redirect(writer, req, url, http.StatusFound)
 			return
@@ -242,6 +243,7 @@ func (c *ServeCommand) Execute(args []string) error {
 		_, _ = writer.Write(gobookmarks.GetMainCSSData())
 	}).Methods("GET")
 	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, req *http.Request) {
+		writer.Header().Set("Cache-Control", "no-cache")
 		if url, err := gobookmarks.AssetURL("logo.png"); err == nil {
 			http.Redirect(writer, req, url, http.StatusFound)
 			return
