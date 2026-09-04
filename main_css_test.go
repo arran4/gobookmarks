@@ -18,3 +18,11 @@ func TestBookmarkColumnsLayoutDoesNotDependOnCSSColumnsClass(t *testing.T) {
 		t.Fatal("bookmarkColumn must retain its column flex layout by default")
 	}
 }
+
+func TestDropZonesHiddenInNonEditMode(t *testing.T) {
+	css := string(GetMainCSSData())
+
+	if !strings.Contains(css, "body:not(.edit-mode) .bookmarkColumns .newColumnDropZone:last-child") {
+		t.Fatal("main.css must hide .bookmarkColumns .newColumnDropZone:last-child when not in edit mode")
+	}
+}

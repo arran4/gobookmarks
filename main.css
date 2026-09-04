@@ -260,7 +260,9 @@ body:not(.edit-mode) .add-category-link {
 }
 
 body:not(.edit-mode) .newColumnDropZone,
-body:not(.edit-mode) .columnEndDropZone {
+body:not(.edit-mode) .columnEndDropZone,
+body:not(.edit-mode) .bookmarkColumns .newColumnDropZone,
+body:not(.edit-mode) .bookmarkColumns .newColumnDropZone:last-child {
     display: none;
 }
 
