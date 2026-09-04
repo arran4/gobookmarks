@@ -4,9 +4,10 @@
                 <title>{{$.Title}}{{ $tname := tabName }}{{ if $tname }}: {{ $tname }}{{ end }}</title>
 		<style type="text/css">
         <!--
-        @import url("/main.css");
+        @import url("{{ asset "main.css" }}");
         -->
         </style>
+        <link rel="icon" type="image/png" href="{{ asset "logo.png" }}">
         {{ if $.AutoRefresh }}
             <meta http-equiv="refresh" content="1">
         {{ end }}

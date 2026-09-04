@@ -231,10 +231,22 @@ func (c *ServeCommand) Execute(args []string) error {
 	r.Use(gobookmarks.UserAdderMiddleware)
 	r.Use(gobookmarks.CoreAdderMiddleware)
 
-	r.HandleFunc("/main.css", func(writer http.ResponseWriter, _ *http.Request) {
+	r.PathPrefix("/assets/").Handler(gobookmarks.GetAssetRegistry()).Methods("GET")
+
+	r.HandleFunc("/main.css", func(writer http.ResponseWriter, req *http.Request) {
+		if url, err := gobookmarks.AssetURL("main.css"); err == nil {
+			http.Redirect(writer, req, url, http.StatusFound)
+			return
+		}
+		writer.Header().Set("Content-Type", "text/css")
 		_, _ = writer.Write(gobookmarks.GetMainCSSData())
 	}).Methods("GET")
-	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, _ *http.Request) {
+	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, req *http.Request) {
+		if url, err := gobookmarks.AssetURL("logo.png"); err == nil {
+			http.Redirect(writer, req, url, http.StatusFound)
+			return
+		}
+		writer.Header().Set("Content-Type", "image/png")
 		_, _ = writer.Write(gobookmarks.GetFavicon())
 	}).Methods("GET")
 
