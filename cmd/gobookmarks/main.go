@@ -205,7 +205,6 @@ func getenvSet(key string, ops ...any) bool {
 			env = e
 		}
 	}
-	_ = env
 	val := env.Getenv(key)
 	return val != ""
 }
@@ -217,7 +216,6 @@ func getenvBool(key string, ops ...any) bool {
 			env = e
 		}
 	}
-	_ = env
 	val := env.Getenv(key)
 	if val == "" {
 		return false
@@ -236,7 +234,6 @@ func getenvBoolPtr(key string, ops ...any) *bool {
 			env = e
 		}
 	}
-	_ = env
 	val := env.Getenv(key)
 	if val == "" {
 		return nil
@@ -256,7 +253,6 @@ func getenvInt(key string, ops ...any) int {
 			env = e
 		}
 	}
-	_ = env
 	val := env.Getenv(key)
 	if val == "" {
 		return 0
@@ -275,7 +271,6 @@ func getenvInt64(key string, ops ...any) int64 {
 			env = e
 		}
 	}
-	_ = env
 	val := env.Getenv(key)
 	if val == "" {
 		return 0
@@ -294,7 +289,6 @@ func getenvStringSlice(key string, ops ...any) []string {
 			env = e
 		}
 	}
-	_ = env
 	val := env.Getenv(key)
 	if val == "" {
 		return nil

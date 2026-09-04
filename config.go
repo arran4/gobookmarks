@@ -2,11 +2,13 @@ package gobookmarks
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"errors"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -24,7 +26,6 @@ const (
 	DefaultCommitsPerPage       int           = 100
 )
 
-
 type Environment interface {
 	Getenv(key string) string
 	Setenv(key, value string) error
@@ -33,21 +34,21 @@ type Environment interface {
 
 type DefaultEnvironment struct{}
 
-func (DefaultEnvironment) Getenv(key string) string { return os.Getenv(key) }
+func (DefaultEnvironment) Getenv(key string) string       { return os.Getenv(key) }
 func (DefaultEnvironment) Setenv(key, value string) error { return os.Setenv(key, value) }
-func (DefaultEnvironment) Geteuid() int { return os.Geteuid() }
+func (DefaultEnvironment) Geteuid() int                   { return os.Geteuid() }
 
 type FileReader interface {
 	ReadFile(name string) ([]byte, error)
-	Open(name string) (*os.File, error)
+	Open(name string) (io.ReadCloser, error)
 	Stat(name string) (os.FileInfo, error)
 }
 
 type DefaultFileReader struct{}
 
-func (DefaultFileReader) ReadFile(name string) ([]byte, error) { return os.ReadFile(name) }
-func (DefaultFileReader) Open(name string) (*os.File, error) { return os.Open(name) }
-func (DefaultFileReader) Stat(name string) (os.FileInfo, error) { return os.Stat(name) }
+func (DefaultFileReader) ReadFile(name string) ([]byte, error)    { return os.ReadFile(name) }
+func (DefaultFileReader) Open(name string) (io.ReadCloser, error) { return os.Open(name) }
+func (DefaultFileReader) Stat(name string) (os.FileInfo, error)   { return os.Stat(name) }
 
 // Configuration holds runtime configuration values.
 type Configuration struct {
@@ -321,21 +322,21 @@ func DefaultSessionKeyPath(writing bool, ops ...any) string {
 
 	if !writing {
 		if env.Geteuid() == 0 {
-			if fileExists(systemPath) {
+			if fileExists(systemPath, ops...) {
 				return systemPath
 			}
 			for _, p := range userPaths {
-				if fileExists(p) {
+				if fileExists(p, ops...) {
 					return p
 				}
 			}
 		} else {
 			for _, p := range userPaths {
-				if fileExists(p) {
+				if fileExists(p, ops...) {
 					return p
 				}
 			}
-			if fileExists(systemPath) {
+			if fileExists(systemPath, ops...) {
 				return systemPath
 			}
 		}
@@ -372,16 +373,15 @@ func LoadEnvFile(path string, ops ...any) error {
 			reader = r
 		}
 	}
-	f, err := reader.Open(path)
+	data, err := reader.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
 		return err
 	}
-	defer func() { _ = f.Close() }()
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
