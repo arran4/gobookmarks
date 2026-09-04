@@ -50,7 +50,7 @@ func (l *LiveRegistryWrapper) GetAsset(url string) (*Asset, bool) {
 	return l.reg.GetAsset(url)
 }
 
-func GetAssetProvider() AssetProvider {
+func GetAssetRegistry() *Registry {
 	assetRegistryOnce.Do(func() {
 		dir := getAssetDir()
 		var err error
@@ -59,7 +59,11 @@ func GetAssetProvider() AssetProvider {
 			log.Printf("Asset registry error: %v", err)
 		}
 	})
-	return &LiveRegistryWrapper{reg: assetRegistry}
+	return assetRegistry
+}
+
+func GetAssetProvider() AssetProvider {
+	return &LiveRegistryWrapper{reg: GetAssetRegistry()}
 }
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {

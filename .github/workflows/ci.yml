@@ -316,6 +316,8 @@ jobs:
           cache: true
       - name: Test
         run: go test ./... -v
+      - name: Test (Live)
+        run: go test -tags=live ./... -v
 
   go-vet:
     name: Go vet

@@ -20,7 +20,7 @@ var (
 	assetRegistryOnce sync.Once
 )
 
-func GetAssetProvider() AssetProvider {
+func GetAssetRegistry() *Registry {
 	assetRegistryOnce.Do(func() {
 		var err error
 		assetRegistry, err = NewRegistry(assetFS, false)
@@ -29,6 +29,10 @@ func GetAssetProvider() AssetProvider {
 		}
 	})
 	return assetRegistry
+}
+
+func GetAssetProvider() AssetProvider {
+	return GetAssetRegistry()
 }
 
 // GetCompiledTemplates returns a clone of the compiled templates with the given funcs applied.

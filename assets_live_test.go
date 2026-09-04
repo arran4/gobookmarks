@@ -92,3 +92,17 @@ func TestLiveAssetReloading(t *testing.T) {
 		t.Errorf("expected updated content %q, got %q", string(cssContent2), rec2.Body.String())
 	}
 }
+
+func TestGetAssetRegistryLive(t *testing.T) {
+	// Should not panic in live mode
+	reg := GetAssetRegistry()
+	if reg == nil {
+		t.Fatal("GetAssetRegistry returned nil")
+	}
+
+	// Should also work
+	prov := GetAssetProvider()
+	if prov == nil {
+		t.Fatal("GetAssetProvider returned nil")
+	}
+}
