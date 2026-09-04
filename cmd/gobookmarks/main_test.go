@@ -80,3 +80,20 @@ func TestLoadConfigUsesExternalURL(t *testing.T) {
 		t.Fatalf("external url not loaded from env: %q", rc.cfg.ExternalURL)
 	}
 }
+
+func TestLoadConfig_EnvPrecedence(t *testing.T) {
+	t.Setenv("LOCAL_GIT_PATH", "/env/path")
+	t.Setenv("SESSION_NAME", "env_session")
+
+	rc := NewRootCommand()
+	if err := rc.loadConfig(); err != nil {
+		t.Fatalf("loadConfig returned error: %v", err)
+	}
+
+	if rc.cfg.LocalGitPath != "/env/path" {
+		t.Fatalf("expected /env/path, got %q", rc.cfg.LocalGitPath)
+	}
+	if rc.cfg.SessionName != "env_session" {
+		t.Fatalf("expected env_session, got %q", rc.cfg.SessionName)
+	}
+}
