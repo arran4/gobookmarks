@@ -11,12 +11,43 @@
                                        <a href="https://github.com/arran4/gobookmarks">gobookmarks</a> v{{ version }}<br>
                                        commit {{ commitShort }}<br>
                                        built at {{ buildDate }}
-                                       <br><a href="/status">Status</a>
+                                       <br><a href="/status">Status</a><br>Theme: <button class="theme-btn" data-theme-target="auto">Auto</button> | <button class="theme-btn" data-theme-target="light">Light</button> | <button class="theme-btn" data-theme-target="dark">Dark</button>
                                </i>
                        </div>
 </footer>
                 {{ end }}
                 <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    // Clean up old cookie
+                    document.cookie = "theme=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+                    var themeBtns = document.querySelectorAll('.theme-btn');
+                    function updateThemeButtons() {
+                        var currentTheme = document.documentElement.getAttribute('data-theme') || 'auto';
+                        themeBtns.forEach(function(btn) {
+                            if (btn.getAttribute('data-theme-target') === currentTheme) {
+                                btn.setAttribute('aria-pressed', 'true');
+                            } else {
+                                btn.setAttribute('aria-pressed', 'false');
+                            }
+                        });
+                    }
+                    updateThemeButtons();
+
+                    themeBtns.forEach(function(btn) {
+                        btn.addEventListener('click', function(e) {
+                            var target = btn.getAttribute('data-theme-target');
+                            if (target === 'auto') {
+                                document.documentElement.removeAttribute('data-theme');
+                                localStorage.removeItem('theme');
+                            } else {
+                                document.documentElement.setAttribute('data-theme', target);
+                                localStorage.setItem('theme', target);
+                            }
+                            updateThemeButtons();
+                        });
+                    });
+                });
                 document.addEventListener('DOMContentLoaded', function () {
                     var editModal = document.getElementById('edit-modal');
                     var editModalContent = document.getElementById('edit-modal-content');
