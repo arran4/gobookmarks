@@ -328,3 +328,22 @@ input.search-widget {
 #page-list li.active-page a {
     font-weight: bold;
 }
+
+.theme-btn {
+    background: none;
+    border: none;
+    color: var(--link-color);
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font: inherit;
+}
+.theme-btn:hover {
+    color: var(--link-hover-color);
+}
+.theme-btn[aria-pressed="true"] {
+    font-weight: bold;
+    color: var(--text-color);
+    text-decoration: none;
+    cursor: default;
+}
