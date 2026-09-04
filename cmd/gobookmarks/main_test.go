@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +14,34 @@ import (
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
+
+type MockEnv struct {
+	Env map[string]string
+	Uid int
+}
+
+func (m MockEnv) Getenv(key string) string       { return m.Env[key] }
+func (m MockEnv) Setenv(key, value string) error { m.Env[key] = value; return nil }
+func (m MockEnv) Geteuid() int                   { return m.Uid }
+
+type MockFileReader struct {
+	Files map[string][]byte
+}
+
+func (m *MockFileReader) ReadFile(name string) ([]byte, error) {
+	if data, ok := m.Files[name]; ok {
+		return data, nil
+	}
+	return nil, os.ErrNotExist
+}
+func (m *MockFileReader) Open(name string) (io.ReadCloser, error) { return nil, os.ErrNotExist }
+func (m *MockFileReader) Stat(name string) (os.FileInfo, error) {
+	if _, ok := m.Files[name]; ok {
+		// returning nil fileinfo is problematic if accessed, but we just need err == nil for fileExists
+		return nil, nil
+	}
+	return nil, os.ErrNotExist
+}
 
 func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 	gb.Config.SessionName = "testsess"
@@ -71,9 +100,8 @@ func TestRunTemplate_BufferedError(t *testing.T) {
 func TestLoadConfigUsesExternalURL(t *testing.T) {
 	rc := NewRootCommand()
 
-	t.Setenv("EXTERNAL_URL", "http://example.com/app")
-
-	if err := rc.loadConfig(); err != nil {
+	env := MockEnv{Env: map[string]string{"EXTERNAL_URL": "http://example.com/app"}, Uid: 1000}
+	if err := rc.loadConfig(env); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
@@ -83,10 +111,9 @@ func TestLoadConfigUsesExternalURL(t *testing.T) {
 }
 
 func TestLoadConfig_EnvOnlyProvider(t *testing.T) {
-	t.Setenv("LOCAL_GIT_PATH", "/env/path/for/git")
-
 	rc := NewRootCommand()
-	if err := rc.loadConfig(); err != nil {
+	env := MockEnv{Env: map[string]string{"LOCAL_GIT_PATH": "/env/path/for/git"}, Uid: 1000}
+	if err := rc.loadConfig(env); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
@@ -110,24 +137,22 @@ func TestLoadConfig_EnvOnlyProvider(t *testing.T) {
 }
 
 func TestLoadConfig_EnvPrecedence(t *testing.T) {
-	t.Setenv("LOCAL_GIT_PATH", "/env/path")
-	t.Setenv("SESSION_NAME", "env_session")
-	t.Setenv("GBM_CSS_COLUMNS", "0") // Documented contract: any non-empty value sets it to true
-	t.Setenv("GBM_NO_FOOTER", "true")
-	t.Setenv("GBM_DEV_MODE", "false")
-	t.Setenv("COMMITS_PER_PAGE", "50")
+	env := MockEnv{Env: map[string]string{
+		"LOCAL_GIT_PATH":   "/env/path",
+		"SESSION_NAME":     "env_session",
+		"GBM_CSS_COLUMNS":  "0",
+		"GBM_NO_FOOTER":    "true",
+		"GBM_DEV_MODE":     "false",
+		"COMMITS_PER_PAGE": "50",
+	}, Uid: 1000}
 
 	jsonConfig := `{"local_git_path": "/json/path", "css_columns": false, "no_footer": false, "dev_mode": true, "commits_per_page": 0, "session_name": ""}`
-
-	tmpDir := t.TempDir()
-	configPath := tmpDir + "/config.json"
-	if err := os.WriteFile(configPath, []byte(jsonConfig), 0644); err != nil {
-		t.Fatal(err)
-	}
+	fs := &MockFileReader{Files: map[string][]byte{"/config.json": []byte(jsonConfig)}}
+	_ = fs
 
 	rc := NewRootCommand()
-	rc.ConfigPath = configPath // JSON config should override env
-	if err := rc.loadConfig(); err != nil {
+	rc.ConfigPath = "/config.json"
+	if err := rc.loadConfig(env, fs); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
@@ -189,5 +214,54 @@ func TestLoadConfig_EnvPrecedence(t *testing.T) {
 	}
 	if !foundGit {
 		t.Fatalf("expected 'git' provider to be configured since LocalGitPath is set")
+	}
+}
+
+func TestDefaultSessionKeyPath(t *testing.T) {
+	envRoot := MockEnv{Env: map[string]string{"XDG_STATE_HOME": "/xdg_state", "HOME": "/home/root"}, Uid: 0}
+	fsRoot := &MockFileReader{Files: map[string][]byte{"/var/lib/gobookmarks/session.key": []byte("key")}}
+
+	path := gb.DefaultSessionKeyPath(false, envRoot, fsRoot)
+	if path != "/var/lib/gobookmarks/session.key" {
+		t.Errorf("Expected root path to be /var/lib/gobookmarks/session.key, got %s", path)
+	}
+
+	envUser := MockEnv{Env: map[string]string{"XDG_STATE_HOME": "/xdg_state", "HOME": "/home/user"}, Uid: 1000}
+	fsUser := &MockFileReader{Files: map[string][]byte{"/xdg_state/gobookmarks/session.key": []byte("key")}}
+
+	path = gb.DefaultSessionKeyPath(false, envUser, fsUser)
+	if path != "/xdg_state/gobookmarks/session.key" {
+		t.Errorf("Expected user path to be /xdg_state/gobookmarks/session.key, got %s", path)
+	}
+}
+
+func TestLoadEnvFile(t *testing.T) {
+	env := MockEnv{Env: map[string]string{"EXISTING_KEY": "existing_value"}, Uid: 1000}
+
+	envContent := `
+# A comment
+NEW_KEY=new_value
+EXISTING_KEY=overridden_value
+BLANK=
+
+INVALID_LINE
+`
+	fs := &MockFileReader{Files: map[string][]byte{"/test.env": []byte(envContent)}}
+
+	err := gb.LoadEnvFile("/test.env", env, fs)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	if env.Env["NEW_KEY"] != "new_value" {
+		t.Errorf("Expected NEW_KEY to be new_value, got %s", env.Env["NEW_KEY"])
+	}
+
+	if env.Env["EXISTING_KEY"] != "existing_value" {
+		t.Errorf("Expected EXISTING_KEY to retain its original value, got %s", env.Env["EXISTING_KEY"])
+	}
+
+	if env.Env["BLANK"] != "" {
+		t.Errorf("Expected BLANK to be empty, got %s", env.Env["BLANK"])
 	}
 }
