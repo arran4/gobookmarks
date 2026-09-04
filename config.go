@@ -125,6 +125,39 @@ func loadedConfigKeys(c Configuration) []string {
 	return keys
 }
 
+// LoadConfigFileInto loads configuration from the given path directly onto a struct.
+// It modifies `c` and returns a boolean indicating if the file existed,
+// and any error that occurred while reading or parsing the file.
+func LoadConfigFileInto(c *Configuration, path string) (bool, error) {
+	log.Printf("attempting to load config from %s", path)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("config file %s not found", path)
+			return false, nil
+		}
+		return false, fmt.Errorf("unable to read config file: %w", err)
+	}
+
+	if err := json.Unmarshal(data, c); err != nil {
+		return true, fmt.Errorf("unable to parse config file: %w", err)
+	}
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err == nil {
+		var keys []string
+		for k := range parsed {
+			keys = append(keys, k)
+		}
+		log.Printf("successfully loaded config from %s (keys: %s)", path, strings.Join(keys, ", "))
+	} else {
+		log.Printf("successfully loaded config from %s", path)
+	}
+
+	return true, nil
+}
+
 // MergeConfig copies values from src into dst if they are non-zero.
 func MergeConfig(dst *Configuration, src Configuration) {
 	if src.GithubClientID != "" {

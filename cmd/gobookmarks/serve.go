@@ -669,7 +669,6 @@ func redirectToHandlerBranchToRef(toURL string) func(http.ResponseWriter, *http.
 	})
 }
 
-
 func RequiresAnAccount() mux.MatcherFunc {
 	return func(request *http.Request, _ *mux.RouteMatch) bool {
 		var session *sessions.Session

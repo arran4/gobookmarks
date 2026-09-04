@@ -34,7 +34,7 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(request.Context(), ContextValues("provider"), providerName)
-			tab := TabFromRequest(request)
+		tab := TabFromRequest(request)
 		ctx = context.WithValue(ctx, ContextValues("coreData"), &CoreData{
 			UserRef:      login,
 			Title:        title,

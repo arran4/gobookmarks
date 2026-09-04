@@ -70,9 +70,9 @@ func (c *TemplateCommand) Execute(args []string) error {
 	}
 
 	coreData := &gobookmarks.CoreData{
-		Title:    "Test Verification",
-		UserRef:  "testuser",
-		Tab:      0,
+		Title:   "Test Verification",
+		UserRef: "testuser",
+		Tab:     0,
 	}
 
 	var bookmarksStr string
@@ -225,7 +225,7 @@ https://example.com Example Link
 						Name:        t.Name,
 						IndexName:   indexName,
 						Href:        href,
-							LastPageSha: lastSha,
+						LastPageSha: lastSha,
 					},
 					Pages: t.Pages,
 				})

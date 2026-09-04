@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	gobookmarks "github.com/arran4/gobookmarks"
 )
@@ -148,8 +150,23 @@ func (c *RootCommand) loadConfig() error {
 		GitlabClientID:       os.Getenv("GITLAB_CLIENT_ID"),
 		GitlabSecret:         os.Getenv("GITLAB_SECRET"),
 		ExternalURL:          os.Getenv("EXTERNAL_URL"),
+		CSSColumns:           getenvSet("GBM_CSS_COLUMNS"),
+		DevMode:              getenvBoolPtr("GBM_DEV_MODE"),
+		Namespace:            os.Getenv("GBM_NAMESPACE"),
+		Title:                os.Getenv("GBM_TITLE"),
+		GithubServer:         os.Getenv("GITHUB_SERVER"),
+		GitlabServer:         os.Getenv("GITLAB_SERVER"),
+		FaviconCacheDir:      os.Getenv("FAVICON_CACHE_DIR"),
+		FaviconCacheSize:     getenvInt64("FAVICON_CACHE_SIZE"),
+		FaviconMaxCacheCount: getenvInt("FAVICON_MAX_CACHE_COUNT"),
+		LocalGitPath:         os.Getenv("LOCAL_GIT_PATH"),
+		NoFooter:             getenvBool("GBM_NO_FOOTER"),
+		SessionKey:           os.Getenv("SESSION_KEY"),
+		SessionName:          os.Getenv("SESSION_NAME"),
 		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
 		DBConnectionString:   os.Getenv("DB_CONNECTION_STRING"),
+		ProviderOrder:        getenvStringSlice("PROVIDER_ORDER"),
+		CommitsPerPage:       getenvInt("COMMITS_PER_PAGE"),
 	}
 
 	configPath := gobookmarks.DefaultConfigPath()
@@ -161,13 +178,11 @@ func (c *RootCommand) loadConfig() error {
 	}
 
 	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
-	fileCfg, found, err := gobookmarks.LoadConfigFile(configPath)
+	found, err := gobookmarks.LoadConfigFileInto(&c.cfg, configPath)
 	if err != nil {
 		return fmt.Errorf("unable to load config file %s: %w", configPath, err)
 	}
-	if found {
-		gobookmarks.MergeConfig(&c.cfg, fileCfg)
-	} else if cfgSpecified {
+	if !found && cfgSpecified {
 		return fmt.Errorf("unable to load config file %s: not found", configPath)
 	}
 	return nil
@@ -175,6 +190,75 @@ func (c *RootCommand) loadConfig() error {
 
 func printHelp(cmd Command, err error) {
 	fmt.Print(renderTemplate(cmd, err))
+}
+
+func getenvSet(key string) bool {
+	val := os.Getenv(key)
+	return val != ""
+}
+
+func getenvBool(key string) bool {
+	val := os.Getenv(key)
+	if val == "" {
+		return false
+	}
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		return true // fallback per original logic
+	}
+	return b
+}
+
+func getenvBoolPtr(key string) *bool {
+	val := os.Getenv(key)
+	if val == "" {
+		return nil
+	}
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		t := true
+		return &t
+	}
+	return &b
+}
+
+func getenvInt(key string) int {
+	val := os.Getenv(key)
+	if val == "" {
+		return 0
+	}
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return 0
+	}
+	return i
+}
+
+func getenvInt64(key string) int64 {
+	val := os.Getenv(key)
+	if val == "" {
+		return 0
+	}
+	i, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return i
+}
+
+func getenvStringSlice(key string) []string {
+	val := os.Getenv(key)
+	if val == "" {
+		return nil
+	}
+	var res []string
+	for _, s := range strings.Split(val, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			res = append(res, s)
+		}
+	}
+	return res
 }
 
 func main() {
