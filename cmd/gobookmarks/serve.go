@@ -142,10 +142,10 @@ func (c *ServeCommand) Execute(args []string) error {
 		cfg.Title = c.Title.value
 	}
 	if c.CSSColumns.set {
-		cfg.CSSColumns = c.CSSColumns.value
+			cfg.CSSColumns = &c.CSSColumns.value
 	}
 	if c.NoFooter.set {
-		cfg.NoFooter = c.NoFooter.value
+			cfg.NoFooter = &c.NoFooter.value
 	}
 	if c.DevMode.set {
 		cfg.DevMode = gobookmarks.BP(c.DevMode.value)

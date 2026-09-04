@@ -150,7 +150,7 @@ func (c *RootCommand) loadConfig() error {
 		GitlabClientID:       os.Getenv("GITLAB_CLIENT_ID"),
 		GitlabSecret:         os.Getenv("GITLAB_SECRET"),
 		ExternalURL:          os.Getenv("EXTERNAL_URL"),
-		CSSColumns:           getenvBool("GBM_CSS_COLUMNS"),
+		CSSColumns:           getenvSet("GBM_CSS_COLUMNS"),
 		DevMode:              getenvBoolPtr("GBM_DEV_MODE"),
 		Namespace:            os.Getenv("GBM_NAMESPACE"),
 		Title:                os.Getenv("GBM_TITLE"),
@@ -160,7 +160,7 @@ func (c *RootCommand) loadConfig() error {
 		FaviconCacheSize:     getenvInt64("FAVICON_CACHE_SIZE"),
 		FaviconMaxCacheCount: getenvInt("FAVICON_MAX_CACHE_COUNT"),
 		LocalGitPath:         os.Getenv("LOCAL_GIT_PATH"),
-		NoFooter:             getenvBool("GBM_NO_FOOTER"),
+		NoFooter:             getenvBoolPtr("GBM_NO_FOOTER"),
 		SessionKey:           os.Getenv("SESSION_KEY"),
 		SessionName:          os.Getenv("SESSION_NAME"),
 		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
@@ -194,16 +194,13 @@ func printHelp(cmd Command, err error) {
 	fmt.Print(renderTemplate(cmd, err))
 }
 
-func getenvBool(key string) bool {
+func getenvSet(key string) *bool {
 	val := os.Getenv(key)
 	if val == "" {
-		return false
+		return nil
 	}
-	b, err := strconv.ParseBool(val)
-	if err != nil {
-		return true // as per README, if set (to any value)
-	}
-	return b
+	b := true
+	return &b
 }
 
 func getenvBoolPtr(key string) *bool {

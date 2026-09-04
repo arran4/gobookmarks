@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -84,16 +85,66 @@ func TestLoadConfigUsesExternalURL(t *testing.T) {
 func TestLoadConfig_EnvPrecedence(t *testing.T) {
 	t.Setenv("LOCAL_GIT_PATH", "/env/path")
 	t.Setenv("SESSION_NAME", "env_session")
+	t.Setenv("GBM_CSS_COLUMNS", "0") // Documented contract: any non-empty value sets it to true
+	t.Setenv("GBM_NO_FOOTER", "true")
+	t.Setenv("GBM_DEV_MODE", "false")
+
+	jsonConfig := `{"local_git_path": "/json/path", "css_columns": false, "no_footer": false, "dev_mode": true}`
+
+	f, err := os.CreateTemp("", "config*.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+	f.WriteString(jsonConfig)
+	f.Close()
 
 	rc := NewRootCommand()
+	rc.ConfigPath = f.Name() // JSON config should override env
 	if err := rc.loadConfig(); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
 
-	if rc.cfg.LocalGitPath != "/env/path" {
-		t.Fatalf("expected /env/path, got %q", rc.cfg.LocalGitPath)
+	if rc.cfg.LocalGitPath != "/json/path" {
+		t.Fatalf("expected /json/path, got %q", rc.cfg.LocalGitPath)
 	}
 	if rc.cfg.SessionName != "env_session" {
 		t.Fatalf("expected env_session, got %q", rc.cfg.SessionName)
+	}
+	if rc.cfg.CSSColumns == nil || *rc.cfg.CSSColumns != false {
+		t.Fatalf("expected CSSColumns false from json override, got %v", rc.cfg.CSSColumns)
+	}
+	if rc.cfg.NoFooter == nil || *rc.cfg.NoFooter != false {
+		t.Fatalf("expected NoFooter false from json override, got %v", rc.cfg.NoFooter)
+	}
+	if rc.cfg.DevMode == nil || *rc.cfg.DevMode != true {
+		t.Fatalf("expected DevMode true from json override, got %v", rc.cfg.DevMode)
+	}
+
+	serveCmd, _ := rc.NewServeCommand()
+	// Command line args should override json
+	if err := serveCmd.Flags.Parse([]string{"-local-git-path=/flag/path", "-css-columns=true", "-dev-mode=false"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate Execute behavior updating cfg
+	if serveCmd.LocalGitPath.set {
+		rc.cfg.LocalGitPath = serveCmd.LocalGitPath.value
+	}
+	if serveCmd.CSSColumns.set {
+		rc.cfg.CSSColumns = &serveCmd.CSSColumns.value
+	}
+	if serveCmd.DevMode.set {
+		rc.cfg.DevMode = &serveCmd.DevMode.value
+	}
+
+	if rc.cfg.LocalGitPath != "/flag/path" {
+		t.Fatalf("expected /flag/path, got %q", rc.cfg.LocalGitPath)
+	}
+	if rc.cfg.CSSColumns == nil || *rc.cfg.CSSColumns != true {
+		t.Fatalf("expected CSSColumns true from flag override, got %v", rc.cfg.CSSColumns)
+	}
+	if rc.cfg.DevMode == nil || *rc.cfg.DevMode != false {
+		t.Fatalf("expected DevMode false from flag override, got %v", rc.cfg.DevMode)
 	}
 }

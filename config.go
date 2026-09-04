@@ -30,7 +30,7 @@ type Configuration struct {
 	GitlabClientID       string   `json:"gitlab_client_id"`
 	GitlabSecret         string   `json:"gitlab_secret"`
 	ExternalURL          string   `json:"external_url"`
-	CSSColumns           bool     `json:"css_columns"`
+	CSSColumns           *bool    `json:"css_columns"`
 	DevMode              *bool    `json:"dev_mode"`
 	Namespace            string   `json:"namespace"`
 	Title                string   `json:"title"`
@@ -40,7 +40,7 @@ type Configuration struct {
 	FaviconCacheSize     int64    `json:"favicon_cache_size"`
 	FaviconMaxCacheCount int      `json:"favicon_max_cache_count"`
 	LocalGitPath         string   `json:"local_git_path"`
-	NoFooter             bool     `json:"no_footer"`
+	NoFooter             *bool    `json:"no_footer"`
 	SessionKey           string   `json:"session_key"`
 	SessionName          string   `json:"session_name"`
 	DBConnectionProvider string   `json:"db_connection_provider"`
@@ -142,8 +142,8 @@ func MergeConfig(dst *Configuration, src Configuration) {
 	if src.ExternalURL != "" {
 		dst.ExternalURL = src.ExternalURL
 	}
-	if src.CSSColumns {
-		dst.CSSColumns = true
+	if src.CSSColumns != nil {
+		dst.CSSColumns = src.CSSColumns
 	}
 	if src.DevMode != nil {
 		dst.DevMode = src.DevMode
@@ -172,8 +172,8 @@ func MergeConfig(dst *Configuration, src Configuration) {
 	if src.LocalGitPath != "" {
 		dst.LocalGitPath = src.LocalGitPath
 	}
-	if src.NoFooter {
-		dst.NoFooter = true
+	if src.NoFooter != nil {
+		dst.NoFooter = src.NoFooter
 	}
 	if src.SessionKey != "" {
 		dst.SessionKey = src.SessionKey

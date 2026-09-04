@@ -154,7 +154,16 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return Config.GetDevMode()
 		},
 		"showFooter": func() bool {
-			return !Config.NoFooter
+			if Config.NoFooter != nil {
+				return !*Config.NoFooter
+			}
+			return true
+		},
+		"useCssColumns": func() bool {
+			if Config.CSSColumns != nil {
+				return *Config.CSSColumns
+			}
+			return false
 		},
 		"showPages": func() bool {
 			if r == nil {

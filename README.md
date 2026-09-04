@@ -299,6 +299,9 @@ Configuration values can be supplied as environment variables, via a JSON config
 | `GBM_DEV_MODE` | Enable developer helpers like `/_css` and `/_table`. Defaults to on when built as `dev`. |
 | `FAVICON_CACHE_DIR` | Directory where fetched favicons are stored. If unset icons are kept only in memory. Defaults to `/var/cache/gobookmarks/favcache` when installed system-wide (including the Docker image). |
 | `FAVICON_CACHE_SIZE` | Maximum size in bytes of the favicon cache before old icons are removed. Defaults to `20971520`. |
+| `FAVICON_MAX_CACHE_COUNT` | Maximum number of items in the favicon cache. Defaults to `1000`. |
+| `COMMITS_PER_PAGE` | Number of commits per page shown in history. Defaults to `100`. |
+| `SESSION_NAME` | Name of the session cookie used for auth. Defaults to `gobookmarks`. |
 | `GOBM_ENV_FILE` | Path to a file of `KEY=VALUE` pairs loaded before the environment. Defaults to `/etc/gobookmarks/gobookmarks.env`. |
 | `GOBM_CONFIG_FILE` | Path to the JSON config file. If unset the program uses `$XDG_CONFIG_HOME/gobookmarks/config.json` or `$HOME/.config/gobookmarks/config.json` for normal users and `/etc/gobookmarks/config.json` when installed system-wide or run as root. |
 
