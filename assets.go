@@ -50,7 +50,14 @@ func (r *Registry) Reload() error {
 	for _, p := range publicAssets {
 		b, err := fs.ReadFile(r.fsys, p)
 		if err != nil {
-			continue
+            if !r.liveMode {
+                if !strings.Contains(err.Error(), "file does not exist") && !strings.Contains(err.Error(), "no such file or directory") && !strings.Contains(err.Error(), "not found") {
+                    return err
+                }
+                // We just continue on not found in case some test removes it
+                continue
+            }
+            return err
 		}
 
 		// Calculate full SHA-256 digest
@@ -123,6 +130,10 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Since these are embedded assets, we might not have a real ModTime.
 	// We pass time.Time{} and let ETag handle validation.
 	http.ServeContent(w, req, req.URL.Path, time.Time{}, bytes.NewReader(asset.Bytes))
+}
+
+func GetAssetRegistry() *Registry {
+	return GetAssetProvider().(*Registry)
 }
 
 type AssetProvider interface {
