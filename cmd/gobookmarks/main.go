@@ -160,7 +160,7 @@ func (c *RootCommand) loadConfig() error {
 		FaviconCacheSize:     getenvInt64("FAVICON_CACHE_SIZE"),
 		FaviconMaxCacheCount: getenvInt("FAVICON_MAX_CACHE_COUNT"),
 		LocalGitPath:         os.Getenv("LOCAL_GIT_PATH"),
-		NoFooter:             getenvBoolPtr("GBM_NO_FOOTER"),
+		NoFooter:             getenvBool("GBM_NO_FOOTER"),
 		SessionKey:           os.Getenv("SESSION_KEY"),
 		SessionName:          os.Getenv("SESSION_NAME"),
 		DBConnectionProvider: os.Getenv("DB_CONNECTION_PROVIDER"),
@@ -178,13 +178,11 @@ func (c *RootCommand) loadConfig() error {
 	}
 
 	cfgSpecified := c.ConfigPath != "" || os.Getenv("GOBM_CONFIG_FILE") != ""
-	fileCfg, found, err := gobookmarks.LoadConfigFile(configPath)
+	found, err := gobookmarks.LoadConfigFile(&c.cfg, configPath)
 	if err != nil {
 		return fmt.Errorf("unable to load config file %s: %w", configPath, err)
 	}
-	if found {
-		gobookmarks.MergeConfig(&c.cfg, fileCfg)
-	} else if cfgSpecified {
+	if !found && cfgSpecified {
 		return fmt.Errorf("unable to load config file %s: not found", configPath)
 	}
 	return nil
@@ -194,13 +192,21 @@ func printHelp(cmd Command, err error) {
 	fmt.Print(renderTemplate(cmd, err))
 }
 
-func getenvSet(key string) *bool {
+func getenvSet(key string) bool {
+	val := os.Getenv(key)
+	return val != ""
+}
+
+func getenvBool(key string) bool {
 	val := os.Getenv(key)
 	if val == "" {
-		return nil
+		return false
 	}
-	b := true
-	return &b
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		return true // fallback per original logic
+	}
+	return b
 }
 
 func getenvBoolPtr(key string) *bool {

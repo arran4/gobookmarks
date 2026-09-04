@@ -88,19 +88,18 @@ func TestLoadConfig_EnvPrecedence(t *testing.T) {
 	t.Setenv("GBM_CSS_COLUMNS", "0") // Documented contract: any non-empty value sets it to true
 	t.Setenv("GBM_NO_FOOTER", "true")
 	t.Setenv("GBM_DEV_MODE", "false")
+	t.Setenv("COMMITS_PER_PAGE", "50")
 
-	jsonConfig := `{"local_git_path": "/json/path", "css_columns": false, "no_footer": false, "dev_mode": true}`
+	jsonConfig := `{"local_git_path": "/json/path", "css_columns": false, "no_footer": false, "dev_mode": true, "commits_per_page": 0, "session_name": ""}`
 
-	f, err := os.CreateTemp("", "config*.json")
-	if err != nil {
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config.json"
+	if err := os.WriteFile(configPath, []byte(jsonConfig), 0644); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(f.Name())
-	f.WriteString(jsonConfig)
-	f.Close()
 
 	rc := NewRootCommand()
-	rc.ConfigPath = f.Name() // JSON config should override env
+	rc.ConfigPath = configPath // JSON config should override env
 	if err := rc.loadConfig(); err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
@@ -108,13 +107,16 @@ func TestLoadConfig_EnvPrecedence(t *testing.T) {
 	if rc.cfg.LocalGitPath != "/json/path" {
 		t.Fatalf("expected /json/path, got %q", rc.cfg.LocalGitPath)
 	}
-	if rc.cfg.SessionName != "env_session" {
-		t.Fatalf("expected env_session, got %q", rc.cfg.SessionName)
+	if rc.cfg.SessionName != "" {
+		t.Fatalf("expected empty string from json override, got %q", rc.cfg.SessionName)
 	}
-	if rc.cfg.CSSColumns == nil || *rc.cfg.CSSColumns != false {
+	if rc.cfg.CommitsPerPage != 0 {
+		t.Fatalf("expected 0 from json override, got %d", rc.cfg.CommitsPerPage)
+	}
+	if rc.cfg.CSSColumns != false {
 		t.Fatalf("expected CSSColumns false from json override, got %v", rc.cfg.CSSColumns)
 	}
-	if rc.cfg.NoFooter == nil || *rc.cfg.NoFooter != false {
+	if rc.cfg.NoFooter != false {
 		t.Fatalf("expected NoFooter false from json override, got %v", rc.cfg.NoFooter)
 	}
 	if rc.cfg.DevMode == nil || *rc.cfg.DevMode != true {
@@ -132,7 +134,7 @@ func TestLoadConfig_EnvPrecedence(t *testing.T) {
 		rc.cfg.LocalGitPath = serveCmd.LocalGitPath.value
 	}
 	if serveCmd.CSSColumns.set {
-		rc.cfg.CSSColumns = &serveCmd.CSSColumns.value
+		rc.cfg.CSSColumns = serveCmd.CSSColumns.value
 	}
 	if serveCmd.DevMode.set {
 		rc.cfg.DevMode = &serveCmd.DevMode.value
@@ -141,10 +143,24 @@ func TestLoadConfig_EnvPrecedence(t *testing.T) {
 	if rc.cfg.LocalGitPath != "/flag/path" {
 		t.Fatalf("expected /flag/path, got %q", rc.cfg.LocalGitPath)
 	}
-	if rc.cfg.CSSColumns == nil || *rc.cfg.CSSColumns != true {
+	if rc.cfg.CSSColumns != true {
 		t.Fatalf("expected CSSColumns true from flag override, got %v", rc.cfg.CSSColumns)
 	}
 	if rc.cfg.DevMode == nil || *rc.cfg.DevMode != false {
 		t.Fatalf("expected DevMode false from flag override, got %v", rc.cfg.DevMode)
+	}
+
+	// Update global config as serve would do, and check if provider is configured
+	gb.Config = rc.cfg
+	provs := gb.ConfiguredProviderNames()
+	foundGit := false
+	for _, p := range provs {
+		if p == "git" {
+			foundGit = true
+			break
+		}
+	}
+	if !foundGit {
+		t.Fatalf("expected 'git' provider to be configured since LocalGitPath is set")
 	}
 }

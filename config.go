@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -30,7 +29,7 @@ type Configuration struct {
 	GitlabClientID       string   `json:"gitlab_client_id"`
 	GitlabSecret         string   `json:"gitlab_secret"`
 	ExternalURL          string   `json:"external_url"`
-	CSSColumns           *bool    `json:"css_columns"`
+	CSSColumns           bool     `json:"css_columns"`
 	DevMode              *bool    `json:"dev_mode"`
 	Namespace            string   `json:"namespace"`
 	Title                string   `json:"title"`
@@ -40,7 +39,7 @@ type Configuration struct {
 	FaviconCacheSize     int64    `json:"favicon_cache_size"`
 	FaviconMaxCacheCount int      `json:"favicon_max_cache_count"`
 	LocalGitPath         string   `json:"local_git_path"`
-	NoFooter             *bool    `json:"no_footer"`
+	NoFooter             bool     `json:"no_footer"`
 	SessionKey           string   `json:"session_key"`
 	SessionName          string   `json:"session_name"`
 	DBConnectionProvider string   `json:"db_connection_provider"`
@@ -83,116 +82,37 @@ func (c Configuration) GetSessionName() string {
 	return "gobookmarks"
 }
 
-// LoadConfigFile loads configuration from the given path.
-// It returns the loaded Configuration, a boolean indicating if the file existed,
+// LoadConfigFile loads configuration from the given path directly onto a struct.
+// It modifies `c` and returns a boolean indicating if the file existed,
 // and any error that occurred while reading or parsing the file.
-func LoadConfigFile(path string) (Configuration, bool, error) {
-	var c Configuration
-
+func LoadConfigFile(c *Configuration, path string) (bool, error) {
 	log.Printf("attempting to load config from %s", path)
 
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("config file %s not found", path)
-			return c, false, nil
+			return false, nil
 		}
-		return c, false, fmt.Errorf("unable to read config file: %w", err)
+		return false, fmt.Errorf("unable to read config file: %w", err)
 	}
 
-	if err := json.Unmarshal(data, &c); err != nil {
-		return c, true, fmt.Errorf("unable to parse config file: %w", err)
+	if err := json.Unmarshal(data, c); err != nil {
+		return true, fmt.Errorf("unable to parse config file: %w", err)
 	}
 
-	log.Printf("successfully loaded config from %s (keys: %s)", path, strings.Join(loadedConfigKeys(c), ", "))
-
-	return c, true, nil
-}
-
-func loadedConfigKeys(c Configuration) []string {
-	var keys []string
-	v := reflect.ValueOf(c)
-	t := reflect.TypeOf(c)
-	for i := 0; i < v.NumField(); i++ {
-		if !v.Field(i).IsZero() {
-			key := t.Field(i).Tag.Get("json")
-			if key == "" {
-				key = t.Field(i).Name
-			}
-			keys = append(keys, key)
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(data, &parsed); err == nil {
+		var keys []string
+		for k := range parsed {
+			keys = append(keys, k)
 		}
+		log.Printf("successfully loaded config from %s (keys: %s)", path, strings.Join(keys, ", "))
+	} else {
+		log.Printf("successfully loaded config from %s", path)
 	}
-	return keys
-}
 
-// MergeConfig copies values from src into dst if they are non-zero.
-func MergeConfig(dst *Configuration, src Configuration) {
-	if src.GithubClientID != "" {
-		dst.GithubClientID = src.GithubClientID
-	}
-	if src.GithubSecret != "" {
-		dst.GithubSecret = src.GithubSecret
-	}
-	if src.GitlabClientID != "" {
-		dst.GitlabClientID = src.GitlabClientID
-	}
-	if src.GitlabSecret != "" {
-		dst.GitlabSecret = src.GitlabSecret
-	}
-	if src.ExternalURL != "" {
-		dst.ExternalURL = src.ExternalURL
-	}
-	if src.CSSColumns != nil {
-		dst.CSSColumns = src.CSSColumns
-	}
-	if src.DevMode != nil {
-		dst.DevMode = src.DevMode
-	}
-	if src.Namespace != "" {
-		dst.Namespace = src.Namespace
-	}
-	if src.Title != "" {
-		dst.Title = src.Title
-	}
-	if src.GithubServer != "" {
-		dst.GithubServer = src.GithubServer
-	}
-	if src.GitlabServer != "" {
-		dst.GitlabServer = src.GitlabServer
-	}
-	if src.FaviconCacheDir != "" {
-		dst.FaviconCacheDir = src.FaviconCacheDir
-	}
-	if src.FaviconCacheSize != 0 {
-		dst.FaviconCacheSize = src.FaviconCacheSize
-	}
-	if src.FaviconMaxCacheCount != 0 {
-		dst.FaviconMaxCacheCount = src.FaviconMaxCacheCount
-	}
-	if src.LocalGitPath != "" {
-		dst.LocalGitPath = src.LocalGitPath
-	}
-	if src.NoFooter != nil {
-		dst.NoFooter = src.NoFooter
-	}
-	if src.SessionKey != "" {
-		dst.SessionKey = src.SessionKey
-	}
-	if src.SessionName != "" {
-		dst.SessionName = src.SessionName
-	}
-	if src.DBConnectionProvider != "" {
-		dst.DBConnectionProvider = src.DBConnectionProvider
-	}
-	if src.DBConnectionString != "" {
-		dst.DBConnectionString = src.DBConnectionString
-	}
-	if src.CommitsPerPage != 0 {
-		dst.CommitsPerPage = src.CommitsPerPage
-	}
-	if len(src.ProviderOrder) > 0 {
-		dst.ProviderOrder = append([]string(nil), src.ProviderOrder...)
-	}
+	return true, nil
 }
 
 // DefaultConfigPath returns the path to the config file depending on
