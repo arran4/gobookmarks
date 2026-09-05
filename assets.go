@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -23,13 +24,15 @@ type Registry struct {
 	logicalToURL map[string]string
 	urlToAsset   map[string]*Asset
 	fsys         fs.FS
+	liveMode     bool
 }
 
-func NewRegistry(fsys fs.FS) (*Registry, error) {
+func NewRegistry(fsys fs.FS, liveMode bool) (*Registry, error) {
 	reg := &Registry{
 		logicalToURL: make(map[string]string),
 		urlToAsset:   make(map[string]*Asset),
 		fsys:         fsys,
+		liveMode:     liveMode,
 	}
 
 	err := reg.Reload()
@@ -43,23 +46,19 @@ func (r *Registry) Reload() error {
 	logicalToURL := make(map[string]string)
 	urlToAsset := make(map[string]*Asset)
 
-	err := fs.WalkDir(r.fsys, ".", func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			if p == "." {
-				return nil
-			}
-			name := d.Name()
-			if strings.HasPrefix(name, ".") || name == "localgit" || name == "testdata" || name == "sql" || name == "templates" || name == "packaging" || name == "cmd" || name == "media" {
-				return fs.SkipDir
-			}
-			return nil
-		}
+	publicAssets := []string{"main.css", "logo.png"}
 
+	for _, p := range publicAssets {
 		b, err := fs.ReadFile(r.fsys, p)
 		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				if r.liveMode {
+					// Expected missing file in live mode if not fully populated yet
+					continue
+				}
+				// In production mode, missing an expected asset is an error.
+				return err
+			}
 			return err
 		}
 
@@ -82,11 +81,6 @@ func (r *Registry) Reload() error {
 			Bytes: b,
 			ETag:  fmt.Sprintf(`"%s"`, fullDigest),
 		}
-
-		return nil
-	})
-	if err != nil {
-		return err
 	}
 
 	r.mu.Lock()
@@ -127,19 +121,29 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Set caching headers for immutable fingerprinted asset
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-	w.Header().Set("ETag", asset.ETag)
+	// Set caching headers
+	if r.liveMode {
+		w.Header().Set("Cache-Control", "no-store")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		w.Header().Set("ETag", asset.ETag)
+	}
 
 	// Since these are embedded assets, we might not have a real ModTime.
 	// We pass time.Time{} and let ETag handle validation.
 	http.ServeContent(w, req, req.URL.Path, time.Time{}, bytes.NewReader(asset.Bytes))
 }
 
+type AssetProvider interface {
+	ServeHTTP(w http.ResponseWriter, req *http.Request)
+	AssetURL(logicalName string) (string, error)
+	GetAsset(url string) (*Asset, bool)
+}
+
 func AssetURL(logicalName string) (string, error) {
-	reg := GetAssetRegistry()
+	reg := GetAssetProvider()
 	if reg == nil {
-		return "", fmt.Errorf("asset registry not initialized")
+		return "", fmt.Errorf("asset provider not initialized")
 	}
 	return reg.AssetURL(logicalName)
 }

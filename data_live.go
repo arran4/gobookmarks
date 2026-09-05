@@ -5,6 +5,7 @@ package gobookmarks
 import (
 	"html/template"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -30,16 +31,44 @@ func getAssetDir() string {
 	return fsPath
 }
 
+type LiveRegistryWrapper struct {
+	reg *Registry
+}
+
+func (l *LiveRegistryWrapper) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if err := l.reg.Reload(); err != nil {
+		http.Error(w, "Internal Server Error: failed to reload assets", http.StatusInternalServerError)
+		return
+	}
+	l.reg.ServeHTTP(w, req)
+}
+
+func (l *LiveRegistryWrapper) AssetURL(logicalName string) (string, error) {
+	if err := l.reg.Reload(); err != nil {
+		return "", err
+	}
+	return l.reg.AssetURL(logicalName)
+}
+
+func (l *LiveRegistryWrapper) GetAsset(url string) (*Asset, bool) {
+	_ = l.reg.Reload() // GetAsset cannot return error in signature, best effort fallback to old state
+	return l.reg.GetAsset(url)
+}
+
 func GetAssetRegistry() *Registry {
 	assetRegistryOnce.Do(func() {
 		dir := getAssetDir()
 		var err error
-		assetRegistry, err = NewRegistry(os.DirFS(dir))
+		assetRegistry, err = NewRegistry(os.DirFS(dir), true)
 		if err != nil {
 			log.Printf("Asset registry error: %v", err)
 		}
 	})
 	return assetRegistry
+}
+
+func GetAssetProvider() AssetProvider {
+	return &LiveRegistryWrapper{reg: GetAssetRegistry()}
 }
 
 func GetCompiledTemplates(funcs template.FuncMap) *template.Template {

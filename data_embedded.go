@@ -13,11 +13,6 @@ var (
 	templateFS embed.FS
 	//go:embed "main.css" "logo.png"
 	assetFS embed.FS
-	//go:embed "main.css"
-	mainCSSData []byte
-	//go:embed "logo.png"
-	faviconData []byte
-
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
 
@@ -28,12 +23,16 @@ var (
 func GetAssetRegistry() *Registry {
 	assetRegistryOnce.Do(func() {
 		var err error
-		assetRegistry, err = NewRegistry(assetFS)
+		assetRegistry, err = NewRegistry(assetFS, false)
 		if err != nil {
 			panic(err)
 		}
 	})
 	return assetRegistry
+}
+
+func GetAssetProvider() AssetProvider {
+	return GetAssetRegistry()
 }
 
 // GetCompiledTemplates returns a clone of the compiled templates with the given funcs applied.
@@ -55,9 +54,17 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 }
 
 func GetMainCSSData() []byte {
-	return mainCSSData
+	b, err := assetFS.ReadFile("main.css")
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 func GetFavicon() []byte {
-	return faviconData
+	b, err := assetFS.ReadFile("logo.png")
+	if err != nil {
+		panic(err)
+	}
+	return b
 }

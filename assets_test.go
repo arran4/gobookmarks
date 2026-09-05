@@ -18,7 +18,7 @@ func TestAssetRegistry(t *testing.T) {
 		"logo.png": &fstest.MapFile{Data: pngContent},
 	}
 
-	reg, err := NewRegistry(mockFS)
+	reg, err := NewRegistry(mockFS, false)
 	if err != nil {
 		t.Fatalf("NewRegistry failed: %v", err)
 	}
@@ -100,6 +100,48 @@ func TestAssetRegistry(t *testing.T) {
 	}
 }
 
+func TestNonPublicAssets(t *testing.T) {
+	mockFS := fstest.MapFS{
+		"main.css":   &fstest.MapFile{Data: []byte("css")},
+		"logo.png":   &fstest.MapFile{Data: []byte("png")},
+		"secret.txt": &fstest.MapFile{Data: []byte("secret")},
+		"README.md":  &fstest.MapFile{Data: []byte("readme")},
+	}
+
+	reg, err := NewRegistry(mockFS, false)
+	if err != nil {
+		t.Fatalf("NewRegistry failed: %v", err)
+	}
+
+	// Should succeed for public assets
+	_, err = reg.AssetURL("main.css")
+	if err != nil {
+		t.Errorf("AssetURL(main.css) failed: %v", err)
+	}
+
+	// Should fail for non-public assets even if they exist in FS
+	_, err = reg.AssetURL("secret.txt")
+	if err == nil {
+		t.Errorf("expected error for non-public asset secret.txt, got nil")
+	}
+
+	_, err = reg.AssetURL("README.md")
+	if err == nil {
+		t.Errorf("expected error for non-public asset README.md, got nil")
+	}
+
+	// Also verify ServeHTTP handles non-public correctly by returning 404, not exposing them
+	secretHash := sha256.Sum256([]byte("secret"))
+	secretHex := hex.EncodeToString(secretHash[:])
+	req := httptest.NewRequest("GET", "/assets/secret."+secretHex+".txt", nil)
+	rec := httptest.NewRecorder()
+	reg.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for non-public asset, got %d", rec.Code)
+	}
+}
+
 func TestGlobalAssetRegistry(t *testing.T) {
 	cssURL, err := AssetURL("main.css")
 	if err != nil {
@@ -115,5 +157,17 @@ func TestGlobalAssetRegistry(t *testing.T) {
 	}
 	if logoURL == "" || logoURL == "/logo.png" {
 		t.Errorf("expected fingerprinted asset URL, got %s", logoURL)
+	}
+}
+
+func TestProductionMissingAssetFails(t *testing.T) {
+	mockFS := fstest.MapFS{
+		"main.css":   &fstest.MapFile{Data: []byte("css")},
+		// Missing logo.png
+	}
+
+	_, err := NewRegistry(mockFS, false)
+	if err == nil {
+		t.Fatalf("expected NewRegistry to fail when an expected public asset is missing in production mode")
 	}
 }

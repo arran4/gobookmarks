@@ -105,6 +105,36 @@ func (c *ServeCommand) FlagSet() *flag.FlagSet {
 	return c.Flags
 }
 
+func setupRouter() *mux.Router {
+	r := mux.NewRouter()
+
+	r.Use(gobookmarks.UserAdderMiddleware)
+	r.Use(gobookmarks.CoreAdderMiddleware)
+
+	r.PathPrefix("/assets/").Handler(gobookmarks.GetAssetProvider()).Methods("GET")
+
+	r.HandleFunc("/main.css", func(writer http.ResponseWriter, req *http.Request) {
+		writer.Header().Set("Cache-Control", "no-cache")
+		if url, err := gobookmarks.AssetURL("main.css"); err == nil {
+			http.Redirect(writer, req, url, http.StatusFound)
+			return
+		}
+		writer.Header().Set("Content-Type", "text/css")
+		_, _ = writer.Write(gobookmarks.GetMainCSSData())
+	}).Methods("GET")
+	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, req *http.Request) {
+		writer.Header().Set("Cache-Control", "no-cache")
+		if url, err := gobookmarks.AssetURL("logo.png"); err == nil {
+			http.Redirect(writer, req, url, http.StatusFound)
+			return
+		}
+		writer.Header().Set("Content-Type", "image/png")
+		_, _ = writer.Write(gobookmarks.GetFavicon())
+	}).Methods("GET")
+
+	return r
+}
+
 func (c *ServeCommand) Subcommands() []Command {
 	return nil
 }
@@ -226,29 +256,7 @@ func (c *ServeCommand) Execute(args []string) error {
 		return errors.New("no providers available")
 	}
 
-	r := mux.NewRouter()
-
-	r.Use(gobookmarks.UserAdderMiddleware)
-	r.Use(gobookmarks.CoreAdderMiddleware)
-
-	r.PathPrefix("/assets/").Handler(gobookmarks.GetAssetRegistry()).Methods("GET")
-
-	r.HandleFunc("/main.css", func(writer http.ResponseWriter, req *http.Request) {
-		if url, err := gobookmarks.AssetURL("main.css"); err == nil {
-			http.Redirect(writer, req, url, http.StatusFound)
-			return
-		}
-		writer.Header().Set("Content-Type", "text/css")
-		_, _ = writer.Write(gobookmarks.GetMainCSSData())
-	}).Methods("GET")
-	r.HandleFunc("/favicon.ico", func(writer http.ResponseWriter, req *http.Request) {
-		if url, err := gobookmarks.AssetURL("logo.png"); err == nil {
-			http.Redirect(writer, req, url, http.StatusFound)
-			return
-		}
-		writer.Header().Set("Content-Type", "image/png")
-		_, _ = writer.Write(gobookmarks.GetFavicon())
-	}).Methods("GET")
+	r := setupRouter()
 
 	// News
 	r.Handle("/", http.HandlerFunc(runTemplate("mainPage.gohtml"))).Methods("GET")
