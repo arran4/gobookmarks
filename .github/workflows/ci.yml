@@ -1,17 +1,20 @@
 # Agent rules for generation:
-# https://arran4.github.io/blog/post/2026/006-github-ci-and-deploy/
-# Built using this post as a reference/guide.
+# https://arran4.github.io/blog/post/2026/042-simplified-github-ci-release-safe/
+# Release safety details:
+# https://arran4.github.io/blog/post/2026/041-release-safe-single-owner-github-ci/
+# Built using these posts as reference/guidance.
 name: CI/CD
 
 on:
   push:
     branches: [main, master]
-    # semantic version tags + rc/beta snapshots
+    # semantic version tags + rc/beta/alpha snapshots
     tags:
       - 'v*'
       - 'v*.*.*'
       - 'v*.*.*-rc*'
       - 'v*.*.*-beta*'
+      - 'v*.*.*-alpha*'
       - 'test-*'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, closed]
@@ -35,6 +38,7 @@ on:
           - release-rc
           - release-alpha
           - monthly-maintenance
+          - publish-tag
       release_version_override:
         description: "Optional explicit release version (for example 2.4.0 or 2.4.0-rc.2)"
         required: false
@@ -47,21 +51,17 @@ on:
         type: boolean
   schedule:
     # preferred heavy monthly run (quota reset strategy)
-    - cron: '17 3 1 * *'
+    - cron: '0 19 1 * *'
     # optional nightly lightweight checks
     - cron: '41 2 * * *'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/') }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
-  contents: write
-  discussions: write
-  pull-requests: write
-  checks: write
-  packages: write
-  security-events: write
+  contents: read
+  pull-requests: read
 
 jobs:
   route:
@@ -69,9 +69,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run_code_checks: ${{ steps.route.outputs.run_code_checks }}
-      run_pr_meta_checks: ${{ steps.route.outputs.run_pr_meta_checks }}
-      run_cleanup: ${{ steps.route.outputs.run_cleanup }}
+      run_build: ${{ steps.route.outputs.run_build }}
       run_release: ${{ steps.route.outputs.run_release }}
+      run_cleanup: ${{ steps.route.outputs.run_cleanup }}
+      run_post_release: ${{ steps.route.outputs.run_post_release }}
       is_monthly: ${{ steps.route.outputs.is_monthly }}
       is_nightly: ${{ steps.route.outputs.is_nightly }}
     steps:
@@ -81,61 +82,88 @@ jobs:
           set -euo pipefail
 
           run_code_checks=false
-          run_pr_meta_checks=false
-          run_cleanup=false
+          run_build=false
           run_release=false
+          run_cleanup=false
+          run_post_release=false
           is_monthly=false
           is_nightly=false
 
           case "${{ github.event_name }}" in
             push)
               run_code_checks=true
+              if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+                run_build=true
+                run_release=true
+              fi
               ;;
+
             pull_request)
               if [[ "${{ github.event.action }}" == "closed" ]]; then
-                run_cleanup=true
+                if [[ "${{ github.event.pull_request.merged }}" != "true" ]]; then
+                  run_cleanup=true
+                fi
               else
-                run_pr_meta_checks=true
-                # In practice, also run code checks on PRs so lint/fmt/vet/test
-                # show up directly in the PR UI. Use concurrency to collapse churn.
                 run_code_checks=true
               fi
               ;;
-            release)
-              run_release=true
-              ;;
+
             workflow_dispatch)
-              run_code_checks=true
-              if [[ "${{ inputs.mode }}" == release-* ]]; then
-                run_release=true
-              fi
-              if [[ "${{ inputs.mode }}" == "monthly-maintenance" ]]; then
-                is_monthly=true
-              fi
-              if [[ "${{ inputs.mode }}" == "lint-fix" ]]; then
-                # Manual lint-fix acts as an on-demand nightly-style maintenance pass.
-                is_nightly=true
-              fi
+              case "${{ inputs.mode }}" in
+                lint-fix)
+                  run_code_checks=true
+                  is_nightly=true
+                  ;;
+                build)
+                  run_code_checks=true
+                  run_build=true
+                  ;;
+                release-*)
+                  # A manual release mode explicitly dispatches the publisher.
+                  # It sets up the context, but does NOT trigger the final publisher jobs
+                  # (like goreleaser) in this run. Those run in the publish-tag dispatch.
+                  run_code_checks=true
+                  run_build=true
+                  run_release=true
+                  ;;
+                publish-tag)
+                  # Internal publisher dispatch mode
+                  if [[ "${{ github.ref_type }}" != "tag" || ! "${{ github.ref }}" =~ ^refs/tags/v.* ]]; then
+                    echo "publish-tag mode requires an eligible tag context (e.g. refs/tags/v*)" >&2
+                    exit 1
+                  fi
+                  run_code_checks=true
+                  run_build=true
+                  run_release=true
+                  ;;
+                monthly-maintenance)
+                  run_code_checks=true
+                  is_monthly=true
+                  ;;
+              esac
               ;;
+
+            release)
+              # The release already exists and is published.
+              # Never route this event back into release creation.
+              run_post_release=true
+              ;;
+
             schedule)
               run_code_checks=true
-              if [[ "${{ github.event.schedule }}" == "17 3 1 * *" ]]; then
+              if [[ "${{ github.event.schedule }}" == "0 19 1 * *" ]]; then
                 is_monthly=true
-              fi
-              if [[ "${{ github.event.schedule }}" == "41 2 * * *" ]]; then
+              else
                 is_nightly=true
               fi
               ;;
           esac
 
-          if [[ "${{ github.ref }}" == refs/tags/v* ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.mode }}" == release-* ]]; then
-            run_release=true
-          fi
-
           echo "run_code_checks=$run_code_checks" >> "$GITHUB_OUTPUT"
-          echo "run_pr_meta_checks=$run_pr_meta_checks" >> "$GITHUB_OUTPUT"
-          echo "run_cleanup=$run_cleanup" >> "$GITHUB_OUTPUT"
+          echo "run_build=$run_build" >> "$GITHUB_OUTPUT"
           echo "run_release=$run_release" >> "$GITHUB_OUTPUT"
+          echo "run_cleanup=$run_cleanup" >> "$GITHUB_OUTPUT"
+          echo "run_post_release=$run_post_release" >> "$GITHUB_OUTPUT"
           echo "is_monthly=$is_monthly" >> "$GITHUB_OUTPUT"
           echo "is_nightly=$is_nightly" >> "$GITHUB_OUTPUT"
 
@@ -145,37 +173,41 @@ jobs:
     if: ${{ needs.route.outputs.run_release == 'true' }}
     runs-on: ubuntu-latest
     outputs:
-      release_tag: ${{ steps.tag.outputs.release_tag || steps.passthrough.outputs.release_tag }}
+      release_tag: ${{ steps.tag.outputs.release_tag }}
       next_version: ${{ steps.tag.outputs.next_version }}
     steps:
-      - name: Output tag directly for non-dispatch
-        id: passthrough
-        if: ${{ github.event_name != 'workflow_dispatch' || !startsWith(inputs.mode, 'release-') }}
-        run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          echo "release_tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        if: ${{ github.event_name == 'workflow_dispatch' && startsWith(inputs.mode, 'release-') }}
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup git-tag-inc
-        if: ${{ github.event_name == 'workflow_dispatch' && startsWith(inputs.mode, 'release-') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode != 'publish-tag' }}
         uses: arran4/git-tag-inc-action@v1
         with:
           mode: install
       - id: tag
-        if: ${{ github.event_name == 'workflow_dispatch' && startsWith(inputs.mode, 'release-') }}
         shell: bash
         run: |
           set -euo pipefail
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "release_tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "next_version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           MODE="${{ inputs.mode }}"
           OVERRIDE="${{ inputs.release_version_override }}"
 
+          if [[ "$MODE" == "publish-tag" ]]; then
+            # The publisher run doesn't compute new tags
+            echo "release_tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "next_version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch --tags --force
+
           if [[ -n "$OVERRIDE" ]]; then
-            # Accept "1.2.3" or "v1.2.3" override input.
             OVERRIDE="${OVERRIDE#v}"
             next_tag="v$OVERRIDE"
           else
@@ -186,55 +218,35 @@ jobs:
               release-test)  level="patch"; suffix="test" ;;
               release-rc)    level="patch"; suffix="rc" ;;
               release-alpha) level="patch"; suffix="alpha" ;;
-              *) echo "Unsupported release mode: $MODE"; exit 1 ;;
+              *) echo "Unsupported release mode: $MODE" >&2; exit 1 ;;
             esac
-            if command -v git-tag-inc >/dev/null 2>&1; then
-              level="${level#-}"
-              args=(-print-version-only "$level")
-              [[ -n "$suffix" ]] && args+=("$suffix")
-              next_tag=$(git-tag-inc "${args[@]}")
-            else
-              git fetch --tags --force
-              latest=$(git tag -l 'v*' | sed 's/^v//' | sort -V | tail -n 1)
-              [[ -z "$latest" ]] && latest='0.0.0'
 
-              if command -v npx >/dev/null 2>&1; then
-                case "$level" in
-                  major) bumped=$(npx --yes semver "$latest" -i major) ;;
-                  minor) bumped=$(npx --yes semver "$latest" -i minor) ;;
-                  *) bumped=$(npx --yes semver "$latest" -i patch) ;;
-                esac
-                next_tag="v${bumped}"
-              else
-                base="${latest%%-*}"
-                IFS='.' read -r maj min pat <<< "$base"
-                case "$level" in
-                  major) maj=$((maj+1)); min=0; pat=0 ;;
-                  minor) min=$((min+1)); pat=0 ;;
-                  *) pat=$((pat+1)) ;;
-                esac
-                next_tag="v${maj}.${min}.${pat}"
-              fi
-
-              if [[ -n "$suffix" ]]; then
-                next_tag="${next_tag}-${suffix}.1"
-              fi
-            fi
+            args=(-print-version-only "$level")
+            [[ -n "$suffix" ]] && args+=("$suffix")
+            next_tag=$(git-tag-inc "${args[@]}")
           fi
 
           [[ "$next_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]] || {
-            echo "Invalid tag format: $next_tag" >&2
+            echo "Invalid tag: $next_tag" >&2
             exit 1
           }
-          git fetch --tags --force
+
           if git rev-parse "$next_tag" >/dev/null 2>&1; then
-            echo "Tag already exists: $next_tag" >&2
-            echo "Choose a new mode or set release_version_override." >&2
-            exit 1
+            # Safe recovery semantics: verify existing tag against remote
+            REMOTE_TAG_SHA=$(git ls-remote --tags origin "refs/tags/$next_tag" | awk '{print $1}')
+            if [[ "$REMOTE_TAG_SHA" == "${GITHUB_SHA}" ]]; then
+              echo "Tag $next_tag exists and points to GITHUB_SHA. Safe to retry."
+            else
+              echo "Tag already exists and points to $REMOTE_TAG_SHA (expected ${GITHUB_SHA}): $next_tag" >&2
+              echo "To retry a failed publication for this exact version, ensure release_version_override is used and GITHUB_SHA matches." >&2
+              exit 1
+            fi
           fi
 
           echo "release_tag=$next_tag" >> "$GITHUB_OUTPUT"
-          clean_tag="${next_tag#v}"; clean_tag="${clean_tag%%-*}"
+
+          clean_tag="${next_tag#v}"
+          clean_tag="${clean_tag%%-*}"
           IFS='.' read -r maj min pat <<< "$clean_tag"
           echo "next_version=${maj:-0}.${min:-0}.$(( ${pat:-0} + 1 ))-SNAPSHOT" >> "$GITHUB_OUTPUT"
 
@@ -247,7 +259,7 @@ jobs:
       has_go: ${{ steps.detect.outputs.has_go }}
       has_goreleaser: ${{ steps.detect.outputs.has_goreleaser }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: detect
         shell: bash
@@ -277,10 +289,10 @@ jobs:
     if: ${{ needs.route.outputs.run_cleanup != 'true' && (needs.route.outputs.is_nightly == 'true' || needs.route.outputs.is_monthly == 'true') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -290,8 +302,8 @@ jobs:
     if: ${{ needs.discover.outputs.has_go == 'true' && needs.route.outputs.run_code_checks == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: golangci-lint
@@ -309,8 +321,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -325,24 +337,41 @@ jobs:
     if: ${{ needs.discover.outputs.has_go == 'true' && needs.route.outputs.run_code_checks == 'true' && needs.discover.outputs.profile == 'public' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
       - run: go vet ./...
+
+  release-validation:
+    name: Release Validation Gate
+    needs: [route, discover, golangci, go-test, go-vet]
+    if: |
+      !failure() && !cancelled() &&
+      needs.route.result == 'success' &&
+      needs.discover.result == 'success' &&
+      (needs.discover.outputs.has_go != 'true' || needs.golangci.result == 'success') &&
+      (needs.discover.outputs.has_go != 'true' || needs.go-test.result == 'success') &&
+      (needs.discover.outputs.has_go != 'true' || needs.discover.outputs.profile != 'public' || needs.go-vet.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "All required language checks passed."
 
   autofix:
     name: Auto-format and open PR
     needs: [route, discover]
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'lint-fix' && inputs.allow_prs == true }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Go (if needed)
         if: ${{ needs.discover.outputs.has_go == 'true' }}
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -389,8 +418,11 @@ jobs:
     needs: [route]
     if: ${{ needs.route.outputs.run_cleanup == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PARENT_PR: ${{ github.event.pull_request.number }}
@@ -403,52 +435,19 @@ jobs:
               git push origin --delete "$branch" || true
             done
 
-  goreleaser:
-    name: GoReleaser
-    needs: [route, discover, go-test, prepare-release-tag]
-    if: ${{ needs.discover.outputs.has_go == 'true' && needs.discover.outputs.has_goreleaser == 'true' && (((github.event_name == 'push') && startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && startsWith(inputs.mode, 'release-'))) }}
+  build-release-artifacts:
+    name: Build release artifacts
+    needs: [route, discover]
+    if: ${{ needs.route.outputs.run_build == 'true' || needs.route.outputs.run_release == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-
-      - name: Determine tag details
-        id: tag_info
-        run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-             TAG_NAME="${{ needs.prepare-release-tag.outputs.release_tag }}"
-          fi
-          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          if [[ "$TAG_NAME" == *"-"* ]]; then
-            echo "pre_release=true" >> "$GITHUB_OUTPUT"
-            echo "LATEST_TAG=next" >> "$GITHUB_ENV"
-          else
-            echo "pre_release=false" >> "$GITHUB_OUTPUT"
-            echo "LATEST_TAG=latest" >> "$GITHUB_ENV"
-          fi
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Env setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential
+          cache: true
 
       - name: Build gobookmarks binary for Docker smoke test
         run: go build -o gobookmarks ./cmd/gobookmarks
@@ -464,18 +463,137 @@ jobs:
           rm -f gobookmarks
           docker image rm gobookmarks:test || true
 
-      - name: Tag commit for release (workflow_dispatch)
-        if: ${{ github.event_name == 'workflow_dispatch' && startsWith(inputs.mode, 'release-') }}
-        run: git tag ${{ needs.prepare-release-tag.outputs.release_tag }}
+  release-context:
+    name: Release Context
+    needs: [route, prepare-release-tag, release-validation, build-release-artifacts]
+    if: ${{ !failure() && !cancelled() && needs.route.outputs.run_release == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    outputs:
+      release_tag: ${{ steps.export.outputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Normalize and push tag
+        id: export
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          TAG="${{ needs.prepare-release-tag.outputs.release_tag }}"
+          echo "release_tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            exit 0
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.mode }}" == "publish-tag" ]]; then
+            if [[ "${{ github.ref_type }}" != "tag" ]]; then
+              echo "Error: publish-tag mode invoked on a non-tag ref." >&2
+              exit 1
+            fi
+            echo "Running in internal publisher mode; tag is immutable context."
+            exit 0
+          fi
+
+          git fetch --tags --force
+          REMOTE_TAG_SHA=$(git ls-remote --tags origin "refs/tags/$TAG" | awk '{print $1}')
+
+          if [[ -n "$REMOTE_TAG_SHA" ]]; then
+            if [[ "$REMOTE_TAG_SHA" == "${GITHUB_SHA}" ]]; then
+              echo "Tag $TAG already exists on remote and points to the correct SHA. Continuing safely."
+            else
+              echo "Tag $TAG already exists on remote but points to a different commit ($REMOTE_TAG_SHA). Failing." >&2
+              exit 1
+            fi
+          else
+            git tag "$TAG" "${GITHUB_SHA}"
+            git push origin "$TAG" || (
+              VERIFY_SHA=$(git ls-remote --tags origin "refs/tags/$TAG" | awk '{print $1}')
+              if [[ "$VERIFY_SHA" == "${GITHUB_SHA}" ]]; then
+                echo "Tag successfully verified on remote after push error."
+              else
+                echo "Tag push failed and remote verification failed." >&2
+                exit 1
+              fi
+            )
+          fi
+
+          # Explicitly dispatch the publisher workflow at the new tag ref
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            gh workflow run "ci.yml" --ref "$TAG" -f mode="publish-tag"
+          fi
+
+  goreleaser:
+    name: GoReleaser
+    needs: [route, discover, release-context]
+    if: ${{ !failure() && !cancelled() && needs.route.outputs.run_release == 'true' && needs.discover.outputs.has_goreleaser == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'publish-tag')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Determine tag details
+        id: tag_info
+        run: |
+          TAG_NAME="${{ needs.release-context.outputs.release_tag }}"
+          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+
+          # If it's a test tag, do not publish.
+          if [[ "$TAG_NAME" == *"-test"* ]]; then
+            echo "is_test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_test=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ "$TAG_NAME" == *"-"* ]]; then
+            echo "pre_release=true" >> "$GITHUB_OUTPUT"
+            echo "LATEST_TAG=next" >> "$GITHUB_ENV"
+          else
+            echo "pre_release=false" >> "$GITHUB_OUTPUT"
+            echo "LATEST_TAG=latest" >> "$GITHUB_ENV"
+          fi
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Env setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
           version: latest
           args: >-
             release --clean
-            ${{ (github.event_name == 'workflow_dispatch' && (inputs.mode == 'release-test' || inputs.mode == 'release-rc' || inputs.mode == 'release-alpha')) && '--snapshot' || '' }}
+            ${{ steps.tag_info.outputs.is_test == 'true' && '--snapshot' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GORELEASER_CURRENT_TAG: ${{ needs.prepare-release-tag.outputs.release_tag }}
+          GORELEASER_CURRENT_TAG: ${{ needs.release-context.outputs.release_tag }}
