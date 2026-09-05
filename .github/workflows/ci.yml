@@ -51,7 +51,7 @@ on:
         type: boolean
   schedule:
     # preferred heavy monthly run (quota reset strategy)
-    - cron: '17 3 1 * *'
+    - cron: '0 19 1 * *'
     # optional nightly lightweight checks
     - cron: '41 2 * * *'
 
@@ -552,6 +552,14 @@ jobs:
         run: |
           TAG_NAME="${{ needs.release-context.outputs.release_tag }}"
           echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+
+          # If it's a test tag, do not publish.
+          if [[ "$TAG_NAME" == *"-test"* ]]; then
+            echo "is_test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_test=false" >> "$GITHUB_OUTPUT"
+          fi
+
           if [[ "$TAG_NAME" == *"-"* ]]; then
             echo "pre_release=true" >> "$GITHUB_OUTPUT"
             echo "LATEST_TAG=next" >> "$GITHUB_ENV"
@@ -583,7 +591,9 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: >-
+            release --clean
+            ${{ steps.tag_info.outputs.is_test == 'true' && '--snapshot' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ needs.release-context.outputs.release_tag }}
