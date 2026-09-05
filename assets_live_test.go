@@ -106,3 +106,47 @@ func TestGetAssetRegistryLive(t *testing.T) {
 		t.Fatal("GetAssetProvider returned nil")
 	}
 }
+
+func TestLiveReloadFailurePropagation(t *testing.T) {
+	dir := t.TempDir()
+
+	// Initially all files exist so initialization succeeds
+	err := os.WriteFile(filepath.Join(dir, "main.css"), []byte("css"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write initial css: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(dir, "logo.png"), []byte("png"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write initial png: %v", err)
+	}
+
+	reg, err := NewRegistry(os.DirFS(dir), true)
+	if err != nil {
+		t.Fatalf("NewRegistry failed: %v", err)
+	}
+
+	liveReg := &LiveRegistryWrapper{reg: reg}
+
+	// Now let's remove permissions to cause a read failure
+	err = os.Chmod(filepath.Join(dir, "main.css"), 0000)
+	if err != nil {
+		t.Fatalf("failed to change permissions: %v", err)
+	}
+	// We need to ensure we clean up so temp dir can be deleted
+	defer os.Chmod(filepath.Join(dir, "main.css"), 0644)
+
+	// AssetURL should propagate the reload error
+	_, err = liveReg.AssetURL("main.css")
+	if err == nil {
+		t.Fatalf("AssetURL expected to fail due to unreadable file")
+	}
+
+	// ServeHTTP should return 500
+	req := httptest.NewRequest("GET", "/assets/main.css", nil)
+	rec := httptest.NewRecorder()
+	liveReg.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("ServeHTTP expected to return 500 on reload failure, got %d", rec.Code)
+	}
+}

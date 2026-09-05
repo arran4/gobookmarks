@@ -159,3 +159,15 @@ func TestGlobalAssetRegistry(t *testing.T) {
 		t.Errorf("expected fingerprinted asset URL, got %s", logoURL)
 	}
 }
+
+func TestProductionMissingAssetFails(t *testing.T) {
+	mockFS := fstest.MapFS{
+		"main.css":   &fstest.MapFile{Data: []byte("css")},
+		// Missing logo.png
+	}
+
+	_, err := NewRegistry(mockFS, false)
+	if err == nil {
+		t.Fatalf("expected NewRegistry to fail when an expected public asset is missing in production mode")
+	}
+}

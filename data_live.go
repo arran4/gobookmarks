@@ -36,17 +36,22 @@ type LiveRegistryWrapper struct {
 }
 
 func (l *LiveRegistryWrapper) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	_ = l.reg.Reload()
+	if err := l.reg.Reload(); err != nil {
+		http.Error(w, "Internal Server Error: failed to reload assets", http.StatusInternalServerError)
+		return
+	}
 	l.reg.ServeHTTP(w, req)
 }
 
 func (l *LiveRegistryWrapper) AssetURL(logicalName string) (string, error) {
-	_ = l.reg.Reload()
+	if err := l.reg.Reload(); err != nil {
+		return "", err
+	}
 	return l.reg.AssetURL(logicalName)
 }
 
 func (l *LiveRegistryWrapper) GetAsset(url string) (*Asset, bool) {
-	_ = l.reg.Reload()
+	_ = l.reg.Reload() // GetAsset cannot return error in signature, best effort fallback to old state
 	return l.reg.GetAsset(url)
 }
 

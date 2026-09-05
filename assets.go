@@ -56,8 +56,8 @@ func (r *Registry) Reload() error {
 					// Expected missing file in live mode if not fully populated yet
 					continue
 				}
-				// In production mode, we expect assets to be there. But historically this ignores them
-				continue
+				// In production mode, missing an expected asset is an error.
+				return err
 			}
 			return err
 		}
