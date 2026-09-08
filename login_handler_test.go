@@ -152,7 +152,7 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 	}
 
 	// Read the new session from the response cookies
-	req2 := httptest.NewRequest("GET", "/", nil)
+	req2_check := httptest.NewRequest("GET", "/", nil)
 	cookies := w.Result().Cookies()
 	if len(cookies) == 0 {
 		t.Fatalf("No cookies returned from Oauth2CallbackPage!")
@@ -160,10 +160,10 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 	// Add only the valid cookie (the last one or the one with Max-Age > 0)
 	for _, cookie := range cookies {
 		if cookie.MaxAge > 0 {
-			req2.AddCookie(cookie)
+			req2_check.AddCookie(cookie)
 		}
 	}
-	session2, err2 := SessionStore.Get(req2, Config.GetSessionName())
+	session2, err2 := SessionStore.Get(req2_check, Config.GetSessionName())
 	if err2 != nil {
 		t.Logf("SessionStore.Get error: %v", err2)
 	}
@@ -171,4 +171,6 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 	if session2.Values["Redirect"] != "/tab/2?page=3" {
 		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v (All values: %v)", session2.Values["Redirect"], session2.Values)
 	}
+
+
 }

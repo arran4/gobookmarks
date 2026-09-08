@@ -1,8 +1,7 @@
 package gobookmarks
 
 import (
-	"context"
-	"github.com/gorilla/sessions"
+		"github.com/gorilla/sessions"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -17,7 +16,7 @@ func TestSqlSignupScenarioWithRedirect(t *testing.T) {
 	dbFile := d + "/test.db"
 	f, err := os.Create(dbFile)
 	if err == nil {
-		f.Close()
+		_ = f.Close()
 	}
 
 	Config.DBConnectionProvider = "sqlite3"
@@ -59,20 +58,31 @@ func TestSqlSignupScenarioWithRedirect(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w = httptest.NewRecorder()
 
-	// Create context with session
-	session, _ := SessionStore.Get(req, Config.GetSessionName())
-	// Set version to avoid getSession clearing it!
-	session.Values["version"] = version
-	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
-	req = req.WithContext(ctx)
-
 	if err := SqlLoginAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("login action: %v", err)
 	}
 
-	if session.Values["Redirect"] != "/tab/2?page=3" {
-		t.Fatalf("Expected session redirect to be set to /tab/2?page=3, got: %v", session.Values["Redirect"])
+	// Read the new session from the response cookies
+	req2_check := httptest.NewRequest("GET", "/", nil)
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatalf("No cookies returned from SqlLoginAction!")
 	}
+	for _, cookie := range cookies {
+		if cookie.MaxAge > 0 {
+			req2_check.AddCookie(cookie)
+		}
+	}
+	session2, err2 := SessionStore.Get(req2_check, Config.GetSessionName())
+	if err2 != nil {
+		t.Logf("SessionStore.Get error: %v", err2)
+	}
+
+	if session2.Values["Redirect"] != "/tab/2?page=3" {
+		t.Fatalf("Expected session redirect to be set to /tab/2?page=3, got: %v", session2.Values["Redirect"])
+	}
+
+
 
 	// Login failure
 	form = url.Values{"username": []string{"bob"}, "password": []string{"wrong"}, "redirect": []string{"/tab/2?page=3"}}
