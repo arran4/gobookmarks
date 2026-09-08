@@ -1,8 +1,11 @@
 package gobookmarks
 
 import (
+	"context"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -21,24 +24,7 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 	Config.ExternalURL = "http://example.com/"
 
 	r := mux.NewRouter()
-	r.HandleFunc("/login/{provider
-	// Test the Oauth2CallbackPage to ensure it extracts the redirect properly from the state parameter
-	req = httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3", nil)
-	w = httptest.NewRecorder()
-
-	session, _ := SessionStore.Get(req, Config.GetSessionName())
-	session.Values["version"] = version
-	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
-	req = req.WithContext(ctx)
-
-	// Note: Oauth2CallbackPage actually exchanges the token. Without a real server, it will fail: "exchange error".
-	// But it sets session.Values["Redirect"] BEFORE failing!
-	_ = Oauth2CallbackPage(w, req)
-
-	if session.Values["Redirect"] != "/tab/2?page=3" {
-		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v", session.Values["Redirect"])
-	}
-}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
+	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
 
 	req := httptest.NewRequest("GET", "/login/github", nil)
 	w := httptest.NewRecorder()
@@ -114,6 +100,28 @@ func TestLoginRouteProviderVariableRedirect(t *testing.T) {
 	}
 }
 
+type mockRoundTripper struct{}
+
+func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// If it's a token exchange, return a dummy token
+	if strings.Contains(req.URL.String(), "access_token") {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`{"access_token":"mocktoken","token_type":"bearer"}`)),
+		}, nil
+	}
+	// If it's fetching the user, return a dummy user
+	if strings.Contains(req.URL.String(), "user") {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`{"login":"mockuser"}`)),
+		}, nil
+	}
+	return http.DefaultTransport.RoundTrip(req)
+}
+
 func TestOauth2CallbackRedirect(t *testing.T) {
 	Config.SessionName = "testsess"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
@@ -124,20 +132,43 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 	Config.GitlabSecret = "secret"
 	Config.ExternalURL = "http://example.com/"
 
+	// Set up the mock client
+	client := &http.Client{Transport: &mockRoundTripper{}}
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
+
 	// Test the Oauth2CallbackPage to ensure it extracts the redirect properly from the state parameter
-	req := httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3", nil)
+	req := httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3&code=mockcode", nil)
 	w := httptest.NewRecorder()
 
 	session, _ := SessionStore.Get(req, Config.GetSessionName())
 	session.Values["version"] = version
-	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	ctx = context.WithValue(ctx, ContextValues("session"), session)
 	req = req.WithContext(ctx)
 
-	// Note: Oauth2CallbackPage actually exchanges the token. Without a real server, it will fail: "exchange error".
-	// But it sets session.Values["Redirect"] BEFORE failing!
-	_ = Oauth2CallbackPage(w, req)
+	// Since we mocked the token exchange and user fetching, Oauth2CallbackPage should succeed and return nil
+	err := Oauth2CallbackPage(w, req)
+	if err != nil {
+		t.Fatalf("Oauth2CallbackPage failed: %v", err)
+	}
 
-	if session.Values["Redirect"] != "/tab/2?page=3" {
-		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v", session.Values["Redirect"])
+	// Read the new session from the response cookies
+	req2 := httptest.NewRequest("GET", "/", nil)
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatalf("No cookies returned from Oauth2CallbackPage!")
+	}
+	// Add only the valid cookie (the last one or the one with Max-Age > 0)
+	for _, cookie := range cookies {
+		if cookie.MaxAge > 0 {
+			req2.AddCookie(cookie)
+		}
+	}
+	session2, err2 := SessionStore.Get(req2, Config.GetSessionName())
+	if err2 != nil {
+		t.Logf("SessionStore.Get error: %v", err2)
+	}
+
+	if session2.Values["Redirect"] != "/tab/2?page=3" {
+		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v (All values: %v)", session2.Values["Redirect"], session2.Values)
 	}
 }
