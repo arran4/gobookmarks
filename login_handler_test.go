@@ -21,7 +21,24 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 	Config.ExternalURL = "http://example.com/"
 
 	r := mux.NewRouter()
-	r.HandleFunc("/login/{provider}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
+	r.HandleFunc("/login/{provider
+	// Test the Oauth2CallbackPage to ensure it extracts the redirect properly from the state parameter
+	req = httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3", nil)
+	w = httptest.NewRecorder()
+
+	session, _ := SessionStore.Get(req, Config.GetSessionName())
+	session.Values["version"] = version
+	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	req = req.WithContext(ctx)
+
+	// Note: Oauth2CallbackPage actually exchanges the token. Without a real server, it will fail: "exchange error".
+	// But it sets session.Values["Redirect"] BEFORE failing!
+	_ = Oauth2CallbackPage(w, req)
+
+	if session.Values["Redirect"] != "/tab/2?page=3" {
+		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v", session.Values["Redirect"])
+	}
+}", func(w http.ResponseWriter, r *http.Request) { _ = LoginWithProvider(w, r) }).Methods("GET")
 
 	req := httptest.NewRequest("GET", "/login/github", nil)
 	w := httptest.NewRecorder()
@@ -94,5 +111,33 @@ func TestLoginRouteProviderVariableRedirect(t *testing.T) {
 	}
 	if state := parsed.Query().Get("state"); state != "github:/tab/2?page=3" {
 		t.Fatalf("explicit complex redirect must be included in OAuth state, got %q", state)
+	}
+}
+
+func TestOauth2CallbackRedirect(t *testing.T) {
+	Config.SessionName = "testsess"
+	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	version = "vtest"
+	Config.GithubClientID = "id"
+	Config.GithubSecret = "secret"
+	Config.GitlabClientID = "id"
+	Config.GitlabSecret = "secret"
+	Config.ExternalURL = "http://example.com/"
+
+	// Test the Oauth2CallbackPage to ensure it extracts the redirect properly from the state parameter
+	req := httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3", nil)
+	w := httptest.NewRecorder()
+
+	session, _ := SessionStore.Get(req, Config.GetSessionName())
+	session.Values["version"] = version
+	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	req = req.WithContext(ctx)
+
+	// Note: Oauth2CallbackPage actually exchanges the token. Without a real server, it will fail: "exchange error".
+	// But it sets session.Values["Redirect"] BEFORE failing!
+	_ = Oauth2CallbackPage(w, req)
+
+	if session.Values["Redirect"] != "/tab/2?page=3" {
+		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v", session.Values["Redirect"])
 	}
 }

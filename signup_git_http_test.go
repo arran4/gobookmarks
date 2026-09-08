@@ -189,11 +189,21 @@ func TestGitSignupScenarioWithRedirect(t *testing.T) {
 	req = httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w = httptest.NewRecorder()
+
+	// Create context with session
+	session, _ := SessionStore.Get(req, Config.GetSessionName())
+	// Set version to avoid getSession clearing it!
+	session.Values["version"] = version
+	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	req = req.WithContext(ctx)
+
 	if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("login action: %v", err)
 	}
 
-
+	if session.Values["Redirect"] != "/tab/2?page=3" {
+		t.Fatalf("Expected session redirect to be set to /tab/2?page=3, got: %v", session.Values["Redirect"])
+	}
 
 	// Login failure
 	form = url.Values{"username": []string{"bob"}, "password": []string{"wrong"}, "redirect": []string{"/tab/2?page=3"}}
