@@ -24,7 +24,7 @@ func TestGitSignupScenario(t *testing.T) {
 	req := httptest.NewRequest("POST", "/signup/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
-	if err := GitSignupAction(w, req); err != nil {
+		if err := GitSignupAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("signup action: %v", err)
 	}
 	if _, err := os.Stat(passwordPath("alice")); err != nil {
@@ -47,7 +47,7 @@ func TestGitSignupScenario(t *testing.T) {
 	req = httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w = httptest.NewRecorder()
-	if err := GitLoginAction(w, req); err != nil {
+		if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("login action: %v", err)
 	}
 	cookies := w.Result().Cookies()
@@ -138,7 +138,7 @@ func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: Config.SessionName, Value: "invalid"})
 
 	w := httptest.NewRecorder()
-	if err := GitLoginAction(w, req); err != nil {
+		if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("login action: %v", err)
 	}
 	cookies := w.Result().Cookies()

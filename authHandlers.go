@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"net/url"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
@@ -103,12 +104,12 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	creds := providerCreds(providerName)
 	if creds == nil {
 		http.NotFound(w, r)
-		return nil
+		return ErrHandled
 	}
 	cfg := p.Config(creds.ID, creds.Secret, Config.GetOauthRedirectURL())
 	if cfg == nil {
 		http.NotFound(w, r)
-		return nil
+		return ErrHandled
 	}
 
 	state := providerName
@@ -117,7 +118,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	http.Redirect(w, r, cfg.AuthCodeURL(state), http.StatusTemporaryRedirect)
-	return nil
+	return ErrHandled
 }
 
 func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
@@ -217,13 +218,21 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 		if !okPass {
 			log.Printf("git login failed for %s: invalid password", user)
 		}
-		http.Redirect(w, r, "/login/git?error=invalid", http.StatusSeeOther)
-		return nil
+		redirectURL := "/login/git?error=invalid"
+		if r.FormValue("redirect") != "" {
+			redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
+		}
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return ErrHandled
 	}
 	session.Values["Provider"] = "git"
 	session.Values["GithubUser"] = &User{Login: user}
 	session.Values["Token"] = nil
 	session.Values["version"] = version
+	redirect := r.FormValue("redirect")
+	if redirect != "" && len(redirect) < 2048 {
+		session.Values["Redirect"] = redirect
+	}
 	if err := session.Save(r, w); err != nil {
 		return fmt.Errorf("session save: %w", err)
 	}
@@ -241,8 +250,12 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 	if err := ph.CreateUser(r.Context(), user, pass); err != nil {
 		if errors.Is(err, ErrUserExists) {
 			log.Printf("git signup for %s failed: user exists", user)
-			http.Redirect(w, r, "/login/git?error=exists", http.StatusSeeOther)
-			return nil
+			redirectURL := "/login/git?error=exists"
+			if r.FormValue("redirect") != "" {
+				redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
+			}
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+			return ErrHandled
 		}
 		log.Printf("git signup create user error for %s: %v", user, err)
 		return err
@@ -261,7 +274,12 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("git signup create sample bookmarks error for %s: %v", user, err)
 		return fmt.Errorf("create sample bookmarks: %w", err)
 	}
-	return nil
+	redirectURL := "/login/git"
+	if r.FormValue("redirect") != "" {
+		redirectURL += "?redirect=" + url.QueryEscape(r.FormValue("redirect"))
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+	return ErrHandled
 }
 
 func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
@@ -284,13 +302,21 @@ func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
 		if !okPass {
 			log.Printf("sql login failed for %s: invalid password", user)
 		}
-		http.Redirect(w, r, "/login/sql?error=invalid", http.StatusSeeOther)
-		return nil
+		redirectURL := "/login/sql?error=invalid"
+		if r.FormValue("redirect") != "" {
+			redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
+		}
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return ErrHandled
 	}
 	session.Values["Provider"] = "sql"
 	session.Values["GithubUser"] = &User{Login: user}
 	session.Values["Token"] = nil
 	session.Values["version"] = version
+	redirect := r.FormValue("redirect")
+	if redirect != "" && len(redirect) < 2048 {
+		session.Values["Redirect"] = redirect
+	}
 	if err := session.Save(r, w); err != nil {
 		return fmt.Errorf("session save: %w", err)
 	}
@@ -308,8 +334,12 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 	if err := ph.CreateUser(r.Context(), user, pass); err != nil {
 		if errors.Is(err, ErrUserExists) {
 			log.Printf("sql signup for %s failed: user exists", user)
-			http.Redirect(w, r, "/login/sql?error=exists", http.StatusSeeOther)
-			return nil
+			redirectURL := "/login/sql?error=exists"
+			if r.FormValue("redirect") != "" {
+				redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
+			}
+			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+			return ErrHandled
 		}
 		log.Printf("sql signup create user error for %s: %v", user, err)
 		return err
@@ -328,7 +358,12 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 		log.Printf("sql signup create sample bookmarks error for %s: %v", user, err)
 		return fmt.Errorf("create sample bookmarks: %w", err)
 	}
-	return nil
+	redirectURL := "/login/sql"
+	if r.FormValue("redirect") != "" {
+		redirectURL += "?redirect=" + url.QueryEscape(r.FormValue("redirect"))
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+	return ErrHandled
 }
 
 func UserAdderMiddleware(next http.Handler) http.Handler {
