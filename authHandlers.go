@@ -9,8 +9,8 @@ import (
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
-	"strings"
 	"net/url"
+	"strings"
 )
 
 func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
@@ -230,6 +230,7 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 	session.Values["Token"] = nil
 	session.Values["version"] = version
 	redirect := r.FormValue("redirect")
+	delete(session.Values, "Redirect")
 	if redirect != "" && len(redirect) < 2048 {
 		session.Values["Redirect"] = redirect
 	}
@@ -314,6 +315,7 @@ func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
 	session.Values["Token"] = nil
 	session.Values["version"] = version
 	redirect := r.FormValue("redirect")
+	delete(session.Values, "Redirect")
 	if redirect != "" && len(redirect) < 2048 {
 		session.Values["Redirect"] = redirect
 	}
