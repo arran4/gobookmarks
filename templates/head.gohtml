@@ -2,6 +2,7 @@
 <html>
 	<head>
                 <title>{{$.Title}}{{ $tname := tabName }}{{ if $tname }}: {{ $tname }}{{ end }}</title>
+                <meta name="base-title" content="{{$.Title}}">
 		<style type="text/css">
         <!--
         @import url("{{ asset "main.css" }}");
