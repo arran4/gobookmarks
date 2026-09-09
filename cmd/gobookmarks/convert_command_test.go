@@ -46,11 +46,11 @@ http://example.com`
 		t.Fatalf("conversion from txt to json failed: %v", err)
 	}
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = oldStdout
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r)
 	jsonOutput := buf.Bytes()
 
 	if err := os.WriteFile(jsonFile, jsonOutput, 0644); err != nil {
@@ -76,11 +76,11 @@ http://example.com`
 		t.Fatalf("conversion from json to txt failed: %v", err)
 	}
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = oldStdout
 
 	buf.Reset()
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r)
 	txtOutput := buf.String()
 
 	if !strings.Contains(txtOutput, "Tab: Dashboard") || !strings.Contains(txtOutput, "https://github.com GitHub") {
