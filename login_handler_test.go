@@ -172,4 +172,5 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v (All values: %v)", session2.Values["Redirect"], session2.Values)
 	}
 
+
 }

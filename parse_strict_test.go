@@ -13,7 +13,9 @@ func TestStrictParseBookmarks(t *testing.T) {
 		"Category: X\n/local/path Local Path",
 		"Tab\nPage\n--\nColumn\nCategory: Cat\nhttp://link",
 		"Category: Unnamed\nhttp://link",
-		"http://link", // should fail if no category, but wait. If no category, StrictParse rejects it. Wait, ParseBookmarks silently drops it. StrictParse now rejects it!
+		"Category: Test\nexample.com", // Single token should be parsed as a link (even without scheme)
+		"Category: Test\nftp://test",  // Other schemes
+		"http://link",                 // should fail if no category, but wait. If no category, StrictParse rejects it. Wait, ParseBookmarks silently drops it. StrictParse now rejects it!
 	}
 
 	// Test the final valid one to ensure it fails
@@ -30,16 +32,16 @@ func TestStrictParseBookmarks(t *testing.T) {
 	}
 
 	invalidInputs := []string{
-		"Category: Test\nJustSomeRandomText",
 		"UnknownDirective",
 		"Tab: My Tab\nUnknownDirective",
+		"Tab\tMy Tab", // \t instead of space is invalid here as per strict format matching normal parser's space constraint
 	}
 
 	for _, input := range invalidInputs {
 		_, err := StrictParseBookmarks(input)
 		if err == nil {
 			t.Errorf("Expected invalid input to fail parsing, got success\nInput: %q", input)
-		} else if !strings.Contains(err.Error(), "unrecognized directive") && !strings.Contains(err.Error(), "malformed link") && !strings.Contains(err.Error(), "outside of category") {
+		} else if !strings.Contains(err.Error(), "unrecognized directive") && !strings.Contains(err.Error(), "malformed link") && !strings.Contains(err.Error(), "outside of category") && !strings.Contains(err.Error(), "malformed") {
 			t.Errorf("Expected specific error message, got: %v", err)
 		}
 	}

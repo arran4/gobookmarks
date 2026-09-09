@@ -28,6 +28,11 @@ http://example.com`
 	dir := t.TempDir()
 	txtFile := filepath.Join(dir, "bookmarks.txt")
 	jsonFile := filepath.Join(dir, "bookmarks.json")
+	invalidJsonFile := filepath.Join(dir, "invalid.json")
+
+	if err := os.WriteFile(invalidJsonFile, []byte(`[{"pages": [{"blocks": [null]}]}]`), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := os.WriteFile(txtFile, []byte(validText), 0644); err != nil {
 		t.Fatal(err)
@@ -95,5 +100,11 @@ http://example.com`
 	}
 	if len(list) != 1 || len(list[0].Pages) != 1 || list[0].Name != "Dashboard" {
 		t.Errorf("semantic mismatch in round trip")
+	}
+
+	// 3. Test Invalid Semantic JSON
+	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", invalidJsonFile})
+	if err == nil {
+		t.Fatal("expected invalid semantic json to fail conversion")
 	}
 }

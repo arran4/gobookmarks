@@ -27,12 +27,12 @@ https://google.com Google`
 		t.Fatalf("expected valid file to pass lint, got: %v", err)
 	}
 
-	// Invalid file (malformed directive)
-	invalidText := `Tab: My Tab
+	// Invalid file (malformed directive/out of category)
+	invalidText := `UnknownDirective
+Tab: My Tab
 Page: My Page
 Category: Search
 https://google.com Google
-UnknownDirective
 `
 	invalidFile := filepath.Join(dir, "invalid.txt")
 	if err := os.WriteFile(invalidFile, []byte(invalidText), 0644); err != nil {

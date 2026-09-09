@@ -139,8 +139,9 @@ type JSONPage struct {
 }
 
 type JSONTab struct {
-	Name  string      `json:"name,omitempty"`
-	Pages []*JSONPage `json:"pages,omitempty"`
+	Name        string      `json:"name,omitempty"`
+	ExplicitTab bool        `json:"explicit,omitempty"`
+	Pages       []*JSONPage `json:"pages,omitempty"`
 }
 
 // ToJSON transforms a BookmarkList into a stable JSON struct format.
@@ -148,7 +149,8 @@ func (b BookmarkList) ToJSON() []*JSONTab {
 	var tabs []*JSONTab
 	for _, t := range b {
 		jTab := &JSONTab{
-			Name: t.Name,
+			Name:        t.Name,
+			ExplicitTab: t.ExplicitTab,
 		}
 		for _, p := range t.Pages {
 			jPage := &JSONPage{
@@ -184,28 +186,60 @@ func (b BookmarkList) ToJSON() []*JSONTab {
 }
 
 // BookmarkListFromJSON creates a BookmarkList from the interchange JSON format.
-func BookmarkListFromJSON(tabs []*JSONTab) BookmarkList {
+func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
+	if len(tabs) == 0 {
+		return nil, fmt.Errorf("no tabs found in json data")
+	}
+
 	var list BookmarkList
 	for _, t := range tabs {
+		if t == nil {
+			return nil, fmt.Errorf("invalid json: null tab object")
+		}
 		bt := &BookmarkTab{
 			Name:        t.Name,
-			ExplicitTab: true, // During JSON import, assume explicit if we are maintaining structure
+			ExplicitTab: t.ExplicitTab,
+		}
+		if t.Pages == nil {
+			// Ensure there is at least one page per tab as required by the model.
+			t.Pages = []*JSONPage{{}}
 		}
 		for _, p := range t.Pages {
+			if p == nil {
+				return nil, fmt.Errorf("invalid json: null page object in tab %q", t.Name)
+			}
 			bp := &BookmarkPage{
 				Name: p.Name,
 			}
+			if p.Blocks == nil {
+				p.Blocks = []*JSONBlock{{Columns: []*JSONColumn{{}}}}
+			}
 			for _, blk := range p.Blocks {
+				if blk == nil {
+					return nil, fmt.Errorf("invalid json: null block object in page %q", p.Name)
+				}
 				bb := &BookmarkBlock{
 					HR: blk.HR,
 				}
+				if !blk.HR && len(blk.Columns) == 0 {
+					return nil, fmt.Errorf("invalid json: block without HR must have at least one column")
+				}
 				for _, col := range blk.Columns {
+					if col == nil {
+						return nil, fmt.Errorf("invalid json: null column object")
+					}
 					bc := &BookmarkColumn{}
 					for _, cat := range col.Categories {
+						if cat == nil {
+							return nil, fmt.Errorf("invalid json: null category object")
+						}
 						bcat := &BookmarkCategory{
 							Name: cat.Name,
 						}
 						for _, ent := range cat.Entries {
+							if ent == nil {
+								return nil, fmt.Errorf("invalid json: null entry object in category %q", cat.Name)
+							}
 							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
 								Url:  ent.URL,
 								Name: ent.Name,
@@ -241,7 +275,7 @@ func BookmarkListFromJSON(tabs []*JSONTab) BookmarkList {
 			}
 		}
 	}
-	return list
+	return list, nil
 }
 
 // BookmarkPage contains a number of blocks.
@@ -634,7 +668,14 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			if lowerFirst != "category" && lowerFirst != "category:" {
 				return nil, fmt.Errorf("line %d: malformed category directive: %q", i+1, trimmed)
 			}
-			rest := strings.TrimSpace(trimmed[len("category"):])
+			// Safe trim avoiding panic if it's literally just "category"
+			restIdx := len("category")
+			if len(trimmed) > restIdx {
+				if trimmed[restIdx] != ':' && trimmed[restIdx] != ' ' && trimmed[restIdx] != '\t' {
+					return nil, fmt.Errorf("line %d: malformed category directive: %q", i+1, trimmed)
+				}
+			}
+			rest := strings.TrimSpace(trimmed[restIdx:])
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
 			}
@@ -659,15 +700,9 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			return nil, fmt.Errorf("line %d: link outside of category or unrecognized directive: %q", i+1, trimmed)
 		}
 
-		// Accept as entry. We do minimal URL validation because users might put `search:foo` or `ftp://` or even relative paths.
-		// We restrict it to known schemes or containing a colon or slash to prevent random unrecognized text blocks from silently becoming broken links.
-		urlLower := strings.ToLower(parts[0])
-		if !strings.HasPrefix(urlLower, "http://") && !strings.HasPrefix(urlLower, "https://") && !strings.HasPrefix(urlLower, "search:") && !strings.Contains(urlLower, "/") && !strings.Contains(urlLower, "://") && !strings.Contains(urlLower, "javascript:") {
-			// This heuristic is to ensure it's structurally a URL/URI, not just an unknown directive.
-			// The regular parser ignores malformed lines in categories if they aren't directives, but in strict we should catch them.
-			return nil, fmt.Errorf("line %d: unrecognized directive or malformed link: %q", i+1, trimmed)
-		}
-
+		// Since the permissive parser accepts any string inside a category as a valid URL,
+		// we must not invent a narrower URL grammar here that rejects single-token entries or unlisted schemes.
+		// Strict lint only catches strings outside of categories (handled above) or malformed directives.
 		entry := BookmarkEntry{Url: parts[0], Name: parts[0]}
 		if len(parts) > 1 {
 			entry.Name = strings.Join(parts[1:], " ")

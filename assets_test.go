@@ -162,7 +162,7 @@ func TestGlobalAssetRegistry(t *testing.T) {
 
 func TestProductionMissingAssetFails(t *testing.T) {
 	mockFS := fstest.MapFS{
-		"main.css": &fstest.MapFile{Data: []byte("css")},
+		"main.css":   &fstest.MapFile{Data: []byte("css")},
 		// Missing logo.png
 	}
 

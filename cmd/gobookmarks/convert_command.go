@@ -93,7 +93,10 @@ func (c *ConvertCommand) Execute(args []string) error {
 		if err := json.Unmarshal(data, &tabs); err != nil {
 			return fmt.Errorf("failed to parse json: %w", err)
 		}
-		list = gobookmarks.BookmarkListFromJSON(tabs)
+		list, err = gobookmarks.BookmarkListFromJSON(tabs)
+		if err != nil {
+			return fmt.Errorf("failed to construct bookmarks from json: %w", err)
+		}
 	}
 
 	if c.To == "json" {
