@@ -12,7 +12,7 @@ var (
 	//go:embed all:templates
 	templateFS embed.FS
 	//go:embed "main.css" "logo.png"
-	assetFS embed.FS
+	assetFS           embed.FS
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
 

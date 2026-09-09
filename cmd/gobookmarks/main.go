@@ -41,11 +41,13 @@ type RootCommand struct {
 	ServeCmd       *ServeCommand
 	VersionCmd     *VersionCommand
 	DbCmd          *DbCommand
+	LintCmd        *LintCommand
 	VerifyFileCmd  *VerifyFileCommand
 	VerifyCredsCmd *VerifyCredsCommand
 	ImportCmd      *ImportCommand
 	ExportCmd      *ExportCommand
 	TestCmd        *TestCommand
+	ConvertCmd     *ConvertCommand
 	HelpCmd        *HelpCommand
 }
 
@@ -59,11 +61,13 @@ func NewRootCommand() *RootCommand {
 	rc.ServeCmd, _ = rc.NewServeCommand()
 	rc.VersionCmd, _ = rc.NewVersionCommand()
 	rc.DbCmd, _ = rc.NewDbCommand()
+	rc.LintCmd, _ = rc.NewLintCommand()
 	rc.VerifyFileCmd, _ = rc.NewVerifyFileCommand()
 	rc.VerifyCredsCmd, _ = rc.NewVerifyCredsCommand()
 	rc.ImportCmd, _ = rc.NewImportCommand()
 	rc.ExportCmd, _ = rc.NewExportCommand()
 	rc.TestCmd, _ = rc.NewTestCommand()
+	rc.ConvertCmd, _ = rc.NewConvertCommand()
 	rc.HelpCmd = NewHelpCommand(rc)
 	return rc
 }
@@ -81,7 +85,7 @@ func (c *RootCommand) FlagSet() *flag.FlagSet {
 }
 
 func (c *RootCommand) Subcommands() []Command {
-	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.TestCmd, c.HelpCmd}
+	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.LintCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.TestCmd, c.ConvertCmd, c.HelpCmd}
 }
 
 func (c *RootCommand) Execute(args []string) error {
@@ -104,8 +108,10 @@ func (c *RootCommand) Execute(args []string) error {
 		return c.VersionCmd.Execute(remaining[1:])
 	case c.TestCmd.Name():
 		return c.TestCmd.Execute(remaining[1:])
-	case c.ServeCmd.Name(), c.DbCmd.Name(), c.VerifyFileCmd.Name(), c.VerifyCredsCmd.Name(), c.ImportCmd.Name(), c.ExportCmd.Name():
+	case c.ServeCmd.Name(), c.DbCmd.Name(), c.VerifyCredsCmd.Name(), c.ImportCmd.Name(), c.ExportCmd.Name():
 		loadCfg = true
+	case c.LintCmd.Name(), c.VerifyFileCmd.Name(), c.ConvertCmd.Name():
+		// lint / verify-file / convert do not load configuration
 	default:
 		err := fmt.Errorf("unknown command: %s", remaining[0])
 		printHelp(c, err)
@@ -123,14 +129,19 @@ func (c *RootCommand) Execute(args []string) error {
 		return c.ServeCmd.Execute(remaining[1:])
 	case c.DbCmd.Name():
 		return c.DbCmd.Execute(remaining[1:])
+	case c.LintCmd.Name():
+		return c.LintCmd.Execute(remaining[1:])
 	case c.VerifyFileCmd.Name():
-		return c.VerifyFileCmd.Execute(remaining[1:])
+		// run the exact same logic as lint
+		return c.LintCmd.Execute(remaining[1:])
 	case c.VerifyCredsCmd.Name():
 		return c.VerifyCredsCmd.Execute(remaining[1:])
 	case c.ImportCmd.Name():
 		return c.ImportCmd.Execute(remaining[1:])
 	case c.ExportCmd.Name():
 		return c.ExportCmd.Execute(remaining[1:])
+	case c.ConvertCmd.Name():
+		return c.ConvertCmd.Execute(remaining[1:])
 	}
 	return nil
 }

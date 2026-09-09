@@ -318,6 +318,25 @@ Use `--config <path>` or set `GOBM_CONFIG_FILE` to control which configuration f
 - `--dump-config` prints the final configuration after merging environment variables, the config file, and command line arguments.
 - `--version` prints version information and the list of compiled-in providers.
 
+### Linting and Conversion Tools
+
+The CLI provides strict validation and data conversion tooling, especially useful for CI/CD pipelines:
+
+Check a bookmark file for strict syntax and formatting compliance:
+```bash
+gobookmarks lint bookmarks.txt
+```
+
+Convert a native bookmarks file to JSON (useful for structured downstream processing):
+```bash
+gobookmarks convert --from bookmarks --to json bookmarks.txt
+```
+
+Convert a generated JSON file back to the native bookmarks text format:
+```bash
+gobookmarks convert --from json --to bookmarks bookmarks.json
+```
+
 When no OAuth2 credentials are configured the login buttons are hidden. Visit `/status` to see which providers are available.
 
 ## OAuth2 setup

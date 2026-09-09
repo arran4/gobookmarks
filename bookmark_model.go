@@ -113,6 +113,137 @@ func (b *BookmarkBlock) String() string {
 	return sb.String()
 }
 
+// Interchange formats for conversion
+type JSONEntry struct {
+	URL  string `json:"url"`
+	Name string `json:"name"`
+}
+
+type JSONCategory struct {
+	Name    string       `json:"name"`
+	Entries []*JSONEntry `json:"entries,omitempty"`
+}
+
+type JSONColumn struct {
+	Categories []*JSONCategory `json:"categories,omitempty"`
+}
+
+type JSONBlock struct {
+	HR      bool          `json:"hr"`
+	Columns []*JSONColumn `json:"columns,omitempty"`
+}
+
+type JSONPage struct {
+	Name   string       `json:"name,omitempty"`
+	Blocks []*JSONBlock `json:"blocks,omitempty"`
+}
+
+type JSONTab struct {
+	Name  string      `json:"name,omitempty"`
+	Pages []*JSONPage `json:"pages,omitempty"`
+}
+
+// ToJSON transforms a BookmarkList into a stable JSON struct format.
+func (b BookmarkList) ToJSON() []*JSONTab {
+	var tabs []*JSONTab
+	for _, t := range b {
+		jTab := &JSONTab{
+			Name: t.Name,
+		}
+		for _, p := range t.Pages {
+			jPage := &JSONPage{
+				Name: p.Name,
+			}
+			for _, blk := range p.Blocks {
+				jBlk := &JSONBlock{
+					HR: blk.HR,
+				}
+				for _, col := range blk.Columns {
+					jCol := &JSONColumn{}
+					for _, cat := range col.Categories {
+						jCat := &JSONCategory{
+							Name: cat.Name,
+						}
+						for _, ent := range cat.Entries {
+							jCat.Entries = append(jCat.Entries, &JSONEntry{
+								URL:  ent.Url,
+								Name: ent.Name,
+							})
+						}
+						jCol.Categories = append(jCol.Categories, jCat)
+					}
+					jBlk.Columns = append(jBlk.Columns, jCol)
+				}
+				jPage.Blocks = append(jPage.Blocks, jBlk)
+			}
+			jTab.Pages = append(jTab.Pages, jPage)
+		}
+		tabs = append(tabs, jTab)
+	}
+	return tabs
+}
+
+// BookmarkListFromJSON creates a BookmarkList from the interchange JSON format.
+func BookmarkListFromJSON(tabs []*JSONTab) BookmarkList {
+	var list BookmarkList
+	for _, t := range tabs {
+		bt := &BookmarkTab{
+			Name:        t.Name,
+			ExplicitTab: true, // During JSON import, assume explicit if we are maintaining structure
+		}
+		for _, p := range t.Pages {
+			bp := &BookmarkPage{
+				Name: p.Name,
+			}
+			for _, blk := range p.Blocks {
+				bb := &BookmarkBlock{
+					HR: blk.HR,
+				}
+				for _, col := range blk.Columns {
+					bc := &BookmarkColumn{}
+					for _, cat := range col.Categories {
+						bcat := &BookmarkCategory{
+							Name: cat.Name,
+						}
+						for _, ent := range cat.Entries {
+							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
+								Url:  ent.URL,
+								Name: ent.Name,
+							})
+						}
+						bc.Categories = append(bc.Categories, bcat)
+					}
+					bb.Columns = append(bb.Columns, bc)
+				}
+				bp.Blocks = append(bp.Blocks, bb)
+			}
+			bt.AddPage(bp)
+		}
+		list.AddTab(bt)
+	}
+	// Post-process to fix explicit tab flag on the first tab if it's nameless and unneeded,
+	// though standardizing to explicit is fine too.
+	if len(list) > 0 && list[0].Name == "" {
+		list[0].ExplicitTab = false
+	}
+
+	// Set category indices
+	idx := 0
+	for _, t := range list {
+		for _, p := range t.Pages {
+			for _, blk := range p.Blocks {
+				for _, col := range blk.Columns {
+					for _, cat := range col.Categories {
+						cat.Index = idx
+						idx++
+					}
+				}
+			}
+		}
+	}
+	return list
+}
+
 // BookmarkPage contains a number of blocks.
 type BookmarkPage struct {
 	Blocks []*BookmarkBlock
@@ -401,6 +532,156 @@ func ValidateBookmarks(bookmarks string) (BookmarkList, error) {
 		return parsed, fmt.Errorf("no bookmarks found")
 	}
 	return parsed, nil
+}
+
+// StrictParseBookmarks parses the provided text strictly, rejecting malformed directives and unhandled text.
+func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
+	if strings.TrimSpace(bookmarks) == "" {
+		return nil, fmt.Errorf("no bookmarks found")
+	}
+	lines := strings.Split(bookmarks, "\n")
+	var result BookmarkList
+	var currentTab *BookmarkTab
+	var currentPage *BookmarkPage
+	var currentCategory *BookmarkCategory
+	idx := 0
+
+	ensureTab := func() *BookmarkTab {
+		if currentTab == nil {
+			t := &BookmarkTab{ExplicitTab: false}
+			result.AddTab(t)
+			currentTab = t
+		}
+		return currentTab
+	}
+
+	ensurePage := func() *BookmarkPage {
+		ensureTab()
+		if currentPage == nil {
+			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.AddPage(p)
+			currentPage = p
+		}
+		return currentPage
+	}
+
+	flushCategory := func() {
+		if currentCategory != nil {
+			currentCategory.Index = idx
+			idx++
+			page := ensurePage()
+			lastBlock := page.Blocks[len(page.Blocks)-1]
+			lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
+			lastColumn.AddCategory(currentCategory)
+			currentCategory = nil
+		}
+	}
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue // empty lines are ignored by format definition
+		}
+		lower := strings.ToLower(trimmed)
+
+		// Directives
+		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") {
+			rest := strings.TrimSpace(trimmed[len("tab"):])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
+			flushCategory()
+			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true}
+			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.AddPage(currentPage)
+			result.AddTab(currentTab)
+			continue
+		}
+		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
+			rest := strings.TrimSpace(trimmed[len("page"):])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
+			flushCategory()
+			ensureTab()
+			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 && currentPage.Name == "" && rest != "" {
+				currentPage.Name = rest
+			} else {
+				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+				currentTab.AddPage(currentPage)
+			}
+			continue
+		}
+		if trimmed == "--" {
+			flushCategory()
+			page := ensurePage()
+			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
+			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
+			continue
+		}
+		if strings.EqualFold(trimmed, "column") {
+			flushCategory()
+			page := ensurePage()
+			lastBlock := page.Blocks[len(page.Blocks)-1]
+			lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+			continue
+		}
+
+		parts := strings.Fields(trimmed)
+		lowerFirst := strings.ToLower(parts[0])
+
+		if strings.HasPrefix(lowerFirst, "category") {
+			if lowerFirst != "category" && lowerFirst != "category:" {
+				return nil, fmt.Errorf("line %d: malformed category directive: %q", i+1, trimmed)
+			}
+			rest := strings.TrimSpace(trimmed[len("category"):])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
+			if rest == "" {
+				rest = "Category"
+			}
+			flushCategory()
+			ensurePage()
+			currentCategory = &BookmarkCategory{Name: rest}
+			continue
+		}
+
+		// Not a directive. It must be a valid link.
+		// A valid link must have a URL as parts[0] (starts with http, https, search:, etc.)
+		// But let's check if it's a completely unhandled string. In normal ParseBookmarks,
+		// if currentCategory == nil, it is silently ignored! In Strict mode, it's rejected.
+
+		// Wait, what's a valid link? The app accepts any string as a URL essentially, but requires
+		// a category to put it in. If a category hasn't been started, it's invalid unless it creates a default one?
+		// Normal parser drops it silently. Let's reject it.
+		if currentCategory == nil {
+			return nil, fmt.Errorf("line %d: link outside of category or unrecognized directive: %q", i+1, trimmed)
+		}
+
+		// Accept as entry. We do minimal URL validation because users might put `search:foo` or `ftp://` or even relative paths.
+		// We restrict it to known schemes or containing a colon or slash to prevent random unrecognized text blocks from silently becoming broken links.
+		urlLower := strings.ToLower(parts[0])
+		if !strings.HasPrefix(urlLower, "http://") && !strings.HasPrefix(urlLower, "https://") && !strings.HasPrefix(urlLower, "search:") && !strings.Contains(urlLower, "/") && !strings.Contains(urlLower, "://") && !strings.Contains(urlLower, "javascript:") {
+			// This heuristic is to ensure it's structurally a URL/URI, not just an unknown directive.
+			// The regular parser ignores malformed lines in categories if they aren't directives, but in strict we should catch them.
+			return nil, fmt.Errorf("line %d: unrecognized directive or malformed link: %q", i+1, trimmed)
+		}
+
+		entry := BookmarkEntry{Url: parts[0], Name: parts[0]}
+		if len(parts) > 1 {
+			entry.Name = strings.Join(parts[1:], " ")
+		}
+		currentCategory.Entries = append(currentCategory.Entries, &entry)
+	}
+
+	flushCategory()
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no bookmarks found")
+	}
+
+	return result, nil
 }
 
 // MoveCategory moves the category at fromIndex so it appears before toIndex.
