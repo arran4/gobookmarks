@@ -24,7 +24,7 @@ func TestGitSignupScenario(t *testing.T) {
 	req := httptest.NewRequest("POST", "/signup/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
-	if err := GitSignupAction(w, req); err != nil {
+	if err := GitSignupAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("signup action: %v", err)
 	}
 	if _, err := os.Stat(passwordPath("alice")); err != nil {
@@ -47,7 +47,7 @@ func TestGitSignupScenario(t *testing.T) {
 	req = httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w = httptest.NewRecorder()
-	if err := GitLoginAction(w, req); err != nil {
+	if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("login action: %v", err)
 	}
 	cookies := w.Result().Cookies()
@@ -138,7 +138,7 @@ func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: Config.SessionName, Value: "invalid"})
 
 	w := httptest.NewRecorder()
-	if err := GitLoginAction(w, req); err != nil {
+	if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
 		t.Fatalf("login action: %v", err)
 	}
 	cookies := w.Result().Cookies()
@@ -147,5 +147,75 @@ func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	}
 	if cookies[len(cookies)-1].Value == "invalid" {
 		t.Fatalf("session cookie not replaced")
+	}
+}
+
+func TestGitSignupScenarioWithRedirect(t *testing.T) {
+	d := t.TempDir()
+	Config.LocalGitPath = d
+
+	Config.SessionName = "testsess"
+	SessionStore = sessions.NewCookieStore([]byte("secret"))
+
+	// signup
+	form := url.Values{"username": []string{"bob"}, "password": []string{"secret"}, "redirect": []string{"/tab/2"}}
+	req := httptest.NewRequest("POST", "/signup/git", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	if err := GitSignupAction(w, req); err != nil && err != ErrHandled {
+		t.Fatalf("signup action: %v", err)
+	}
+
+	loc := w.Result().Header.Get("Location")
+	if loc != "/login/git?redirect=%2Ftab%2F2" {
+		t.Fatalf("Expected redirect to login page with preserved redirect, got: %s", loc)
+	}
+
+	// Sign up again to trigger error
+	req = httptest.NewRequest("POST", "/signup/git", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w = httptest.NewRecorder()
+	if err := GitSignupAction(w, req); err != nil && err != ErrHandled {
+		t.Fatalf("signup action error: %v", err)
+	}
+
+	loc = w.Result().Header.Get("Location")
+	if loc != "/login/git?error=exists&redirect=%2Ftab%2F2" {
+		t.Fatalf("Expected redirect to login page with preserved error and redirect, got: %s", loc)
+	}
+
+	// Login successfully
+	form = url.Values{"username": []string{"bob"}, "password": []string{"secret"}, "redirect": []string{"/tab/2?page=3"}}
+	req = httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w = httptest.NewRecorder()
+
+	// Create context with session
+	session, _ := SessionStore.Get(req, Config.GetSessionName())
+	// Set version to avoid getSession clearing it!
+	session.Values["version"] = version
+	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
+	req = req.WithContext(ctx)
+
+	if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
+		t.Fatalf("login action: %v", err)
+	}
+
+	if session.Values["Redirect"] != "/tab/2?page=3" {
+		t.Fatalf("Expected session redirect to be set to /tab/2?page=3, got: %v", session.Values["Redirect"])
+	}
+
+	// Login failure
+	form = url.Values{"username": []string{"bob"}, "password": []string{"wrong"}, "redirect": []string{"/tab/2?page=3"}}
+	req = httptest.NewRequest("POST", "/login/git", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w = httptest.NewRecorder()
+	if err := GitLoginAction(w, req); err != nil && err != ErrHandled {
+		t.Fatalf("login action: %v", err)
+	}
+
+	loc = w.Result().Header.Get("Location")
+	if loc != "/login/git?error=invalid&redirect=%2Ftab%2F2%3Fpage%3D3" {
+		t.Fatalf("Expected redirect to login page with preserved error and redirect, got: %s", loc)
 	}
 }
