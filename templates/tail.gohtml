@@ -247,6 +247,17 @@
                     setTimeout(jumpToHash, 50);
 
                     function setActiveTab(tabIdx) {
+                        var baseTitle = document.querySelector("meta[name=\x27base-title\x27]") ? document.querySelector("meta[name=\x27base-title\x27]").content : "";
+                        var tabName = "";
+                        var activeTabEl = document.querySelector(".tab-panel[data-tab-index=\x27" + tabIdx + "\x27]");
+                        if (activeTabEl) {
+                            tabName = activeTabEl.dataset.tabName || "";
+                        }
+                        if (tabName) {
+                            document.title = baseTitle + ": " + tabName;
+                        } else {
+                            document.title = baseTitle;
+                        }
                         currentTabIndex = tabIdx;
                         searchMode = false;
                         if (!tabContent) return;
