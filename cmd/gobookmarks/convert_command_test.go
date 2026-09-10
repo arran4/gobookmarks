@@ -294,6 +294,10 @@ https://google.com`
 		{"whitespace inside entry url", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": "C", "entries": [{"url": "foo bar", "name": "N"}]}]}]}]}]}]`},
 		{"empty implicit first tab dropping", `[{}, {"explicit":true,"name":"Second Tab"}]`},
 		{"empty unnamed first page dropping", `[{"pages": [{}, {"name":"Named Second Page"}]}]`},
+		{"multiple top-level values", `[{"explicit":true}] [{"explicit":true}]`},
+		{"trailing non-whitespace garbage", `[{"explicit":true}] xyz`},
+		{"leading space in category name", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": " C"}]}]}]}]}]`},
+		{"trailing space in entry url", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": "C", "entries": [{"url": "https://example.com "}]}]}]}]}]}]`},
 	}
 
 	for _, tc := range invalidLossyJsonFiles {

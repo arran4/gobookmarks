@@ -13,9 +13,13 @@ func TestStrictParseBookmarks(t *testing.T) {
 		"Category: X\n/local/path Local Path",
 		"Tab\nPage\n--\nColumn\nCategory: Cat\nhttp://link",
 		"Category: Unnamed\nhttp://link",
-		"Category: Test\nexample.com", // Single token should be parsed as a link (even without scheme)
-		"Category: Test\nftp://test",  // Other schemes
-		"http://link",                 // should fail if no category, but wait. If no category, StrictParse rejects it. Wait, ParseBookmarks silently drops it. StrictParse now rejects it!
+		"Category: Test\nexample.com",       // Single token should be parsed as a link (even without scheme)
+		"Category: Test\nftp://test",        // Other schemes
+		"Category: Valid\npage.example.com", // Entry token starting with directive prefix but valid
+		"Category: Valid\ncolumnist.example",
+		"Category: Valid\ntabby",
+		"Category: Valid\ncategory.example",
+		"http://link", // should fail if no category, but wait. If no category, StrictParse rejects it. Wait, ParseBookmarks silently drops it. StrictParse now rejects it!
 	}
 
 	// Test the final valid one to ensure it fails
@@ -34,7 +38,6 @@ func TestStrictParseBookmarks(t *testing.T) {
 	invalidInputs := []string{
 		"UnknownDirective",
 		"Tab: My Tab\nUnknownDirective",
-		"Tab\tMy Tab",                     // \t instead of space is invalid here as per strict format matching normal parser's space constraint
 		"Category: Valid\nPagge: Missing", // Misspelled directive inside a category
 		"Category: Valid\nCategor: Missing",
 		"Category: Valid\nColum:",

@@ -696,7 +696,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		lower := strings.ToLower(trimmed)
 
 		// Directives
-		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") {
+		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") || (len(trimmed) > 3 && (trimmed[3] == ':' || trimmed[3] == ' ' || trimmed[3] == '\t')) && strings.HasPrefix(lower, "tab") {
 			rest := strings.TrimSpace(trimmed[len("tab"):])
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
@@ -708,7 +708,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			result.AddTab(currentTab)
 			continue
 		}
-		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
+		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") || (len(trimmed) > 4 && (trimmed[4] == ':' || trimmed[4] == ' ' || trimmed[4] == '\t')) && strings.HasPrefix(lower, "page") {
 			rest := strings.TrimSpace(trimmed[len("page"):])
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
@@ -742,27 +742,26 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		lowerFirst := strings.ToLower(parts[0])
 
 		if strings.HasPrefix(lowerFirst, "category") {
-			if lowerFirst != "category" && lowerFirst != "category:" {
-				return nil, fmt.Errorf("line %d: malformed category directive: %q", i+1, trimmed)
-			}
-			// Safe trim avoiding panic if it's literally just "category"
-			restIdx := len("category")
-			if len(trimmed) > restIdx {
-				if trimmed[restIdx] != ':' && trimmed[restIdx] != ' ' && trimmed[restIdx] != '\t' {
-					return nil, fmt.Errorf("line %d: malformed category directive: %q", i+1, trimmed)
+			// To be a valid category directive, it must literally be "category" or "category:..."
+			// Or start with "category " etc. If it is "category.example", the permissive parser falls through to link parsing.
+			if lowerFirst == "category" || lowerFirst == "category:" || (len(trimmed) > 8 && (trimmed[8] == ':' || trimmed[8] == ' ' || trimmed[8] == '\t')) {
+				restIdx := len("category")
+				rest := strings.TrimSpace(trimmed[restIdx:])
+				if strings.HasPrefix(rest, ":") {
+					rest = strings.TrimSpace(rest[1:])
 				}
+				if rest == "" {
+					rest = "Category"
+				}
+				flushCategory()
+				ensurePage()
+				currentCategory = &BookmarkCategory{Name: rest}
+				continue
+			} else if strings.HasSuffix(lowerFirst, ":") {
+				// E.g., Categor: Missing (will be caught by misspelled logic later)
+				// Or CategoryX:
+				// We don't error out here immediately, we let it hit the misspelled check or entry logic
 			}
-			rest := strings.TrimSpace(trimmed[restIdx:])
-			if strings.HasPrefix(rest, ":") {
-				rest = strings.TrimSpace(rest[1:])
-			}
-			if rest == "" {
-				rest = "Category"
-			}
-			flushCategory()
-			ensurePage()
-			currentCategory = &BookmarkCategory{Name: rest}
-			continue
 		}
 
 		// Not a directive. It must be a valid link.
@@ -778,13 +777,15 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		}
 
 		// Ensure it's not a misspelled directive while inside a category.
-		// E.g. `categor: foo`, `pagge: foo`, `colum:`
-		if strings.HasPrefix(lowerFirst, "categor") || strings.HasPrefix(lowerFirst, "tab") || strings.HasPrefix(lowerFirst, "page") || strings.HasPrefix(lowerFirst, "pagge") || strings.HasPrefix(lowerFirst, "column") || strings.HasPrefix(lowerFirst, "colum") {
-			// If it matches exactly one of the valid directives, it would have been caught above.
-			// The only exception is if it has a typo.
-			// Let's check common prefix typos. If it looks like a directive but isn't one, we reject it.
-			if lowerFirst != "tab" && lowerFirst != "tab:" && lowerFirst != "page" && lowerFirst != "page:" && lowerFirst != "column" && lowerFirst != "column:" && lowerFirst != "category" && lowerFirst != "category:" {
-				return nil, fmt.Errorf("line %d: misspelled or malformed directive inside category: %q", i+1, trimmed)
+		// E.g. `categor: foo`, `pagge: foo`, `colum:`. We look for words that start with directive
+		// prefixes and contain a colon (or literally "colum:"). If there's no colon and it's just a word like "page.example.com"
+		// or "tabby", it shouldn't be rejected, as the native parser treats it as an entry URL.
+		if strings.HasSuffix(lowerFirst, ":") {
+			if strings.HasPrefix(lowerFirst, "categor") || strings.HasPrefix(lowerFirst, "tab") || strings.HasPrefix(lowerFirst, "page") || strings.HasPrefix(lowerFirst, "pagge") || strings.HasPrefix(lowerFirst, "column") || strings.HasPrefix(lowerFirst, "colum") {
+				// We already processed exact valid directives. If it reached here, it's a typo.
+				if lowerFirst != "tab:" && lowerFirst != "page:" && lowerFirst != "column:" && lowerFirst != "category:" {
+					return nil, fmt.Errorf("line %d: misspelled or malformed directive inside category: %q", i+1, trimmed)
+				}
 			}
 		}
 
