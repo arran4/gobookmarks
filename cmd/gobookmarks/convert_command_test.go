@@ -273,14 +273,28 @@ https://google.com`
 		t.Fatalf("unnamed page became named: %q", list[0].Pages[1].Name)
 	}
 
-	// 8. Test lossy invalid JSON (HR block with columns)
-	invalidLossyJsonFile := filepath.Join(dir, "invalid_lossy.json")
-	if err := os.WriteFile(invalidLossyJsonFile, []byte(`[{"pages": [{"blocks": [{"hr": true, "columns": [{}]}]}]}]`), 0644); err != nil {
-		t.Fatal(err)
+	// 8. Test lossy invalid JSON
+	invalidLossyJsonFiles := []struct{
+		Name string
+		JSON string
+	}{
+		{"hr block with columns", `[{"pages": [{"blocks": [{"hr": true, "columns": [{}]}]}]}]`},
+		{"empty category name", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": ""}]}]}]}]}]`},
+		{"empty entry url", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": "Test", "entries": [{"url": ""}]}]}]}]}]}]`},
+		{"named but implicit tab", `[{"name": "Named", "explicit": false}]`},
+		{"non-first implicit tab", `[{}, {"explicit": false}]`},
+		{"empty blocks array", `[{"pages": [{"blocks": []}]}]`},
+		{"empty pages array", `[{"pages": []}]`},
 	}
 
-	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", invalidLossyJsonFile})
-	if err == nil {
-		t.Fatal("expected lossy semantic json (hr block with columns) to fail conversion")
+	for _, tc := range invalidLossyJsonFiles {
+		f := filepath.Join(dir, "lossy_" + strings.ReplaceAll(tc.Name, " ", "_") + ".json")
+		if err := os.WriteFile(f, []byte(tc.JSON), 0644); err != nil {
+			t.Fatal(err)
+		}
+		err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", f})
+		if err == nil {
+			t.Fatalf("expected lossy semantic json (%s) to fail conversion", tc.Name)
+		}
 	}
 }

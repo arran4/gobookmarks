@@ -192,18 +192,27 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 	}
 
 	var list BookmarkList
-	for _, t := range tabs {
+	for i, t := range tabs {
 		if t == nil {
 			return nil, fmt.Errorf("invalid json: null tab object")
+		}
+		if t.Name != "" && !t.ExplicitTab {
+			return nil, fmt.Errorf("invalid json: named tab must be explicit (lossy shape)")
+		}
+		if i > 0 && !t.ExplicitTab {
+			return nil, fmt.Errorf("invalid json: non-first tab must be explicit (lossy shape)")
 		}
 		bt := &BookmarkTab{
 			Name:        t.Name,
 			ExplicitTab: t.ExplicitTab,
 		}
 		if t.Pages == nil {
-			// Ensure there is at least one page per tab as required by the model.
+			// A nil page array normalizes safely to the default shape during parsing
 			t.Pages = []*JSONPage{{}}
+		} else if len(t.Pages) == 0 {
+			return nil, fmt.Errorf("invalid json: explicitly empty pages array cannot be represented (lossy shape)")
 		}
+
 		for _, p := range t.Pages {
 			if p == nil {
 				return nil, fmt.Errorf("invalid json: null page object in tab %q", t.Name)
@@ -212,8 +221,12 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 				Name: p.Name,
 			}
 			if p.Blocks == nil {
+				// A nil block array normalizes safely to the default shape
 				p.Blocks = []*JSONBlock{{Columns: []*JSONColumn{{}}}}
+			} else if len(p.Blocks) == 0 {
+				return nil, fmt.Errorf("invalid json: explicitly empty blocks array cannot be represented (lossy shape)")
 			}
+
 			for _, blk := range p.Blocks {
 				if blk == nil {
 					return nil, fmt.Errorf("invalid json: null block object in page %q", p.Name)
@@ -236,15 +249,23 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 						if cat == nil {
 							return nil, fmt.Errorf("invalid json: null category object")
 						}
+						catName := strings.TrimSpace(cat.Name)
+						if catName == "" {
+							return nil, fmt.Errorf("invalid json: category name cannot be empty (lossy shape)")
+						}
 						bcat := &BookmarkCategory{
-							Name: cat.Name,
+							Name: catName,
 						}
 						for _, ent := range cat.Entries {
 							if ent == nil {
 								return nil, fmt.Errorf("invalid json: null entry object in category %q", cat.Name)
 							}
+							entUrl := strings.TrimSpace(ent.URL)
+							if entUrl == "" {
+								return nil, fmt.Errorf("invalid json: entry url cannot be empty (lossy shape)")
+							}
 							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
-								Url:  ent.URL,
+								Url:  entUrl,
 								Name: ent.Name,
 							})
 						}
