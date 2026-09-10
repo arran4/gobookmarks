@@ -282,23 +282,22 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 						if cat == nil {
 							return nil, fmt.Errorf("invalid json: null category object")
 						}
-						catName := strings.TrimSpace(cat.Name)
-						if catName == "" {
-							return nil, fmt.Errorf("invalid json: category name cannot be empty (lossy shape)")
+						// Do not normalize by trimming; use actual values and let the general representability backstop catch lossy whitespace modifications.
+						if cat.Name == "" || strings.TrimSpace(cat.Name) == "" {
+							return nil, fmt.Errorf("invalid json: category name cannot be explicitly empty or only whitespace (lossy shape)")
 						}
 						bcat := &BookmarkCategory{
-							Name: catName,
+							Name: cat.Name,
 						}
 						for _, ent := range cat.Entries {
 							if ent == nil {
 								return nil, fmt.Errorf("invalid json: null entry object in category %q", cat.Name)
 							}
-							entUrl := strings.TrimSpace(ent.URL)
-							if entUrl == "" {
-								return nil, fmt.Errorf("invalid json: entry url cannot be empty (lossy shape)")
+							if ent.URL == "" || strings.TrimSpace(ent.URL) == "" {
+								return nil, fmt.Errorf("invalid json: entry url cannot be explicitly empty or only whitespace (lossy shape)")
 							}
 							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
-								Url:  entUrl,
+								Url:  ent.URL,
 								Name: ent.Name,
 							})
 						}

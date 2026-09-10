@@ -96,6 +96,13 @@ func (c *ConvertCommand) Execute(args []string) error {
 		if err := decoder.Decode(&tabs); err != nil {
 			return fmt.Errorf("failed to parse json (ensure no unknown fields are present): %w", err)
 		}
+
+		// Ensure there is exactly one JSON value and no trailing garbage.
+		var remaining json.RawMessage
+		if err := decoder.Decode(&remaining); err != io.EOF {
+			return fmt.Errorf("failed to parse json: multiple top-level values or trailing non-whitespace data found")
+		}
+
 		list, err = gobookmarks.BookmarkListFromJSON(tabs)
 		if err != nil {
 			return fmt.Errorf("failed to construct bookmarks from json: %w", err)
