@@ -34,14 +34,17 @@ func TestStrictParseBookmarks(t *testing.T) {
 	invalidInputs := []string{
 		"UnknownDirective",
 		"Tab: My Tab\nUnknownDirective",
-		"Tab\tMy Tab", // \t instead of space is invalid here as per strict format matching normal parser's space constraint
+		"Tab\tMy Tab",                     // \t instead of space is invalid here as per strict format matching normal parser's space constraint
+		"Category: Valid\nPagge: Missing", // Misspelled directive inside a category
+		"Category: Valid\nCategor: Missing",
+		"Category: Valid\nColum:",
 	}
 
 	for _, input := range invalidInputs {
 		_, err := StrictParseBookmarks(input)
 		if err == nil {
 			t.Errorf("Expected invalid input to fail parsing, got success\nInput: %q", input)
-		} else if !strings.Contains(err.Error(), "unrecognized directive") && !strings.Contains(err.Error(), "malformed link") && !strings.Contains(err.Error(), "outside of category") && !strings.Contains(err.Error(), "malformed") {
+		} else if !strings.Contains(err.Error(), "unrecognized directive") && !strings.Contains(err.Error(), "malformed link") && !strings.Contains(err.Error(), "outside of category") && !strings.Contains(err.Error(), "malformed") && !strings.Contains(err.Error(), "misspelled") {
 			t.Errorf("Expected specific error message, got: %v", err)
 		}
 	}

@@ -778,6 +778,17 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			return nil, fmt.Errorf("line %d: link outside of category or unrecognized directive: %q", i+1, trimmed)
 		}
 
+		// Ensure it's not a misspelled directive while inside a category.
+		// E.g. `categor: foo`, `pagge: foo`, `colum:`
+		if strings.HasPrefix(lowerFirst, "categor") || strings.HasPrefix(lowerFirst, "tab") || strings.HasPrefix(lowerFirst, "page") || strings.HasPrefix(lowerFirst, "pagge") || strings.HasPrefix(lowerFirst, "column") || strings.HasPrefix(lowerFirst, "colum") {
+			// If it matches exactly one of the valid directives, it would have been caught above.
+			// The only exception is if it has a typo.
+			// Let's check common prefix typos. If it looks like a directive but isn't one, we reject it.
+			if lowerFirst != "tab" && lowerFirst != "tab:" && lowerFirst != "page" && lowerFirst != "page:" && lowerFirst != "column" && lowerFirst != "column:" && lowerFirst != "category" && lowerFirst != "category:" {
+				return nil, fmt.Errorf("line %d: misspelled or malformed directive inside category: %q", i+1, trimmed)
+			}
+		}
+
 		// Since the permissive parser accepts any string inside a category as a valid URL,
 		// we must not invent a narrower URL grammar here that rejects single-token entries or unlisted schemes.
 		// Strict lint only catches strings outside of categories (handled above) or malformed directives.
