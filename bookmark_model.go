@@ -255,11 +255,6 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 		}
 		list.AddTab(bt)
 	}
-	// Post-process to fix explicit tab flag on the first tab if it's nameless and unneeded,
-	// though standardizing to explicit is fine too.
-	if len(list) > 0 && list[0].Name == "" {
-		list[0].ExplicitTab = false
-	}
 
 	// Set category indices
 	idx := 0
