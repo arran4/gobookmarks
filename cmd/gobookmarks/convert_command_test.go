@@ -290,6 +290,10 @@ https://google.com`
 		{"trailing HR block", `[{"explicit":true,"pages":[{"blocks":[{"columns":[{}]},{"hr":true}]}]}]`},
 		{"consecutive HR blocks", `[{"explicit":true,"pages":[{"blocks":[{"columns":[{}]},{"hr":true},{"hr":true},{"columns":[{}]}]}]}]`},
 		{"adjacent non-HR blocks", `[{"explicit":true,"pages":[{"blocks":[{"columns":[{}]},{"columns":[{}]}]}]}]`},
+		{"empty display name", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": "C", "entries": [{"url": "https://example.com", "name": ""}]}]}]}]}]}]`},
+		{"whitespace inside entry url", `[{"pages": [{"blocks": [{"columns": [{"categories": [{"name": "C", "entries": [{"url": "foo bar", "name": "N"}]}]}]}]}]}]`},
+		{"empty implicit first tab dropping", `[{}, {"explicit":true,"name":"Second Tab"}]`},
+		{"empty unnamed first page dropping", `[{"pages": [{}, {"name":"Named Second Page"}]}]`},
 	}
 
 	for _, tc := range invalidLossyJsonFiles {

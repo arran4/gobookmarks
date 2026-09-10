@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -310,6 +311,32 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 			bt.AddPage(bp)
 		}
 		list.AddTab(bt)
+	}
+
+	// General representability invariant check:
+	// If the constructed list serialized to string and parsed back strictly produces
+	// a list with a different ToJSON() structure, it means the input JSON was lossy
+	// and semantically altered by the text representation rules.
+	// E.g. empty names mutating to "Category" or whitespace normalization.
+	serializedList := list.String()
+	reparsedList, err := StrictParseBookmarks(serializedList)
+	if err != nil {
+		return nil, fmt.Errorf("invalid json: semantically unrepresentable list (serialization failed to parse: %w)", err)
+	}
+
+	// Compare JSON round-trip forms since ToJSON drops internal/transient fields
+	// and accurately reflects the stable semantic structure.
+	originalJson, err := json.Marshal(list.ToJSON())
+	if err != nil {
+		return nil, fmt.Errorf("internal error marshaling model: %w", err)
+	}
+	reparsedJson, err := json.Marshal(reparsedList.ToJSON())
+	if err != nil {
+		return nil, fmt.Errorf("internal error marshaling reparsed model: %w", err)
+	}
+
+	if string(originalJson) != string(reparsedJson) {
+		return nil, fmt.Errorf("invalid json: semantically unrepresentable/lossy shape (reparsing serialized text changed semantic structure)")
 	}
 
 	// Set category indices

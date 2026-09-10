@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -90,8 +91,10 @@ func (c *ConvertCommand) Execute(args []string) error {
 		}
 	} else {
 		var tabs []*gobookmarks.JSONTab
-		if err := json.Unmarshal(data, &tabs); err != nil {
-			return fmt.Errorf("failed to parse json: %w", err)
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&tabs); err != nil {
+			return fmt.Errorf("failed to parse json (ensure no unknown fields are present): %w", err)
 		}
 		list, err = gobookmarks.BookmarkListFromJSON(tabs)
 		if err != nil {
