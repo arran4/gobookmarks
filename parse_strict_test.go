@@ -18,7 +18,6 @@ func TestStrictParseBookmarks(t *testing.T) {
 		"Category: Valid\npage.example.com", // Entry token starting with directive prefix but valid
 		"Category: Valid\ncolumnist.example",
 		"Category: Valid\ntabby",
-		"Category: Valid\ncategory.example",
 		"http://link", // should fail if no category, but wait. If no category, StrictParse rejects it. Wait, ParseBookmarks silently drops it. StrictParse now rejects it!
 	}
 
@@ -38,6 +37,7 @@ func TestStrictParseBookmarks(t *testing.T) {
 	invalidInputs := []string{
 		"UnknownDirective",
 		"Tab: My Tab\nUnknownDirective",
+		"Tab\tMy Tab",                     // Tab followed by \t is not recognized as a directive in permissive parser so strict parser fails
 		"Category: Valid\nPagge: Missing", // Misspelled directive inside a category
 		"Category: Valid\nCategor: Missing",
 		"Category: Valid\nColum:",

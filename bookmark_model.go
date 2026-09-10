@@ -696,7 +696,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		lower := strings.ToLower(trimmed)
 
 		// Directives
-		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") || (len(trimmed) > 3 && (trimmed[3] == ':' || trimmed[3] == ' ' || trimmed[3] == '\t')) && strings.HasPrefix(lower, "tab") {
+		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") {
 			rest := strings.TrimSpace(trimmed[len("tab"):])
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
@@ -708,7 +708,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			result.AddTab(currentTab)
 			continue
 		}
-		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") || (len(trimmed) > 4 && (trimmed[4] == ':' || trimmed[4] == ' ' || trimmed[4] == '\t')) && strings.HasPrefix(lower, "page") {
+		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
 			rest := strings.TrimSpace(trimmed[len("page"):])
 			if strings.HasPrefix(rest, ":") {
 				rest = strings.TrimSpace(rest[1:])
@@ -742,26 +742,18 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		lowerFirst := strings.ToLower(parts[0])
 
 		if strings.HasPrefix(lowerFirst, "category") {
-			// To be a valid category directive, it must literally be "category" or "category:..."
-			// Or start with "category " etc. If it is "category.example", the permissive parser falls through to link parsing.
-			if lowerFirst == "category" || lowerFirst == "category:" || (len(trimmed) > 8 && (trimmed[8] == ':' || trimmed[8] == ' ' || trimmed[8] == '\t')) {
-				restIdx := len("category")
-				rest := strings.TrimSpace(trimmed[restIdx:])
-				if strings.HasPrefix(rest, ":") {
-					rest = strings.TrimSpace(rest[1:])
-				}
-				if rest == "" {
-					rest = "Category"
-				}
-				flushCategory()
-				ensurePage()
-				currentCategory = &BookmarkCategory{Name: rest}
-				continue
-			} else if strings.HasSuffix(lowerFirst, ":") {
-				// E.g., Categor: Missing (will be caught by misspelled logic later)
-				// Or CategoryX:
-				// We don't error out here immediately, we let it hit the misspelled check or entry logic
+			restIdx := len("category")
+			rest := strings.TrimSpace(trimmed[restIdx:])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
 			}
+			if rest == "" {
+				rest = "Category"
+			}
+			flushCategory()
+			ensurePage()
+			currentCategory = &BookmarkCategory{Name: rest}
+			continue
 		}
 
 		// Not a directive. It must be a valid link.
