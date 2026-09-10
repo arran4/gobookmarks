@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -111,6 +112,247 @@ func (b *BookmarkBlock) String() string {
 		sb.WriteString(col.String())
 	}
 	return sb.String()
+}
+
+// Interchange formats for conversion
+type JSONEntry struct {
+	URL  string `json:"url"`
+	Name string `json:"name"`
+}
+
+type JSONCategory struct {
+	Name    string       `json:"name"`
+	Entries []*JSONEntry `json:"entries,omitempty"`
+}
+
+type JSONColumn struct {
+	Categories []*JSONCategory `json:"categories,omitempty"`
+}
+
+type JSONBlock struct {
+	HR      bool          `json:"hr"`
+	Columns []*JSONColumn `json:"columns,omitempty"`
+}
+
+type JSONPage struct {
+	Name   string       `json:"name,omitempty"`
+	Blocks []*JSONBlock `json:"blocks,omitempty"`
+}
+
+type JSONTab struct {
+	Name        string      `json:"name,omitempty"`
+	ExplicitTab bool        `json:"explicit,omitempty"`
+	Pages       []*JSONPage `json:"pages,omitempty"`
+}
+
+// ToJSON transforms a BookmarkList into a stable JSON struct format.
+func (b BookmarkList) ToJSON() []*JSONTab {
+	var tabs []*JSONTab
+	for _, t := range b {
+		jTab := &JSONTab{
+			Name:        t.Name,
+			ExplicitTab: t.ExplicitTab,
+		}
+		for _, p := range t.Pages {
+			jPage := &JSONPage{
+				Name: p.Name,
+			}
+			for _, blk := range p.Blocks {
+				jBlk := &JSONBlock{
+					HR: blk.HR,
+				}
+				for _, col := range blk.Columns {
+					jCol := &JSONColumn{}
+					for _, cat := range col.Categories {
+						jCat := &JSONCategory{
+							Name: cat.Name,
+						}
+						for _, ent := range cat.Entries {
+							jCat.Entries = append(jCat.Entries, &JSONEntry{
+								URL:  ent.Url,
+								Name: ent.Name,
+							})
+						}
+						jCol.Categories = append(jCol.Categories, jCat)
+					}
+					jBlk.Columns = append(jBlk.Columns, jCol)
+				}
+				jPage.Blocks = append(jPage.Blocks, jBlk)
+			}
+			jTab.Pages = append(jTab.Pages, jPage)
+		}
+		tabs = append(tabs, jTab)
+	}
+	return tabs
+}
+
+// BookmarkListFromJSON creates a BookmarkList from the interchange JSON format.
+func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
+	if len(tabs) == 0 {
+		return nil, fmt.Errorf("no tabs found in json data")
+	}
+
+	var list BookmarkList
+	for i, t := range tabs {
+		if t == nil {
+			return nil, fmt.Errorf("invalid json: null tab object")
+		}
+		if t.Name != "" && !t.ExplicitTab {
+			return nil, fmt.Errorf("invalid json: named tab must be explicit (lossy shape)")
+		}
+		if i > 0 && !t.ExplicitTab {
+			return nil, fmt.Errorf("invalid json: non-first tab must be explicit (lossy shape)")
+		}
+		bt := &BookmarkTab{
+			Name:        t.Name,
+			ExplicitTab: t.ExplicitTab,
+		}
+		if t.Pages == nil {
+			// A nil page array normalizes safely to the default shape during parsing
+			t.Pages = []*JSONPage{{}}
+		} else if len(t.Pages) == 0 {
+			return nil, fmt.Errorf("invalid json: explicitly empty pages array cannot be represented (lossy shape)")
+		}
+
+		for _, p := range t.Pages {
+			if p == nil {
+				return nil, fmt.Errorf("invalid json: null page object in tab %q", t.Name)
+			}
+			bp := &BookmarkPage{
+				Name: p.Name,
+			}
+			if p.Blocks == nil {
+				// A nil block array normalizes safely to the default shape
+				p.Blocks = []*JSONBlock{{Columns: []*JSONColumn{{}}}}
+			} else if len(p.Blocks) == 0 {
+				return nil, fmt.Errorf("invalid json: explicitly empty blocks array cannot be represented (lossy shape)")
+			}
+
+			// Validate degenerate empty model (implicit unnamed tab, with one implicit unnamed page, with one empty block).
+			// If it has NO columns, it parses back as an empty text document which strict parser will reject.
+			// Native parsing always guarantees at least one column structure, even if empty.
+			if len(tabs) == 1 && !t.ExplicitTab && t.Name == "" && len(t.Pages) == 1 && p.Name == "" && len(p.Blocks) == 1 && p.Blocks[0] != nil && !p.Blocks[0].HR {
+				if len(p.Blocks[0].Columns) == 0 {
+					return nil, fmt.Errorf("invalid json: degenerate empty block in implicit model (lossy shape)")
+				}
+				isEmpty := true
+				for _, col := range p.Blocks[0].Columns {
+					if col != nil && len(col.Categories) > 0 {
+						isEmpty = false
+					}
+				}
+				if isEmpty {
+					return nil, fmt.Errorf("invalid json: degenerate completely empty implicit model cannot be serialized natively")
+				}
+			}
+
+			for j, blk := range p.Blocks {
+				if blk == nil {
+					return nil, fmt.Errorf("invalid json: null block object in page %q", p.Name)
+				}
+				// Verify HR block sequence constraints to avoid lossy block shapes
+				if j%2 == 0 {
+					if blk.HR {
+						return nil, fmt.Errorf("invalid json: even-indexed block must not be HR (lossy shape)")
+					}
+				} else {
+					if !blk.HR {
+						return nil, fmt.Errorf("invalid json: odd-indexed block must be HR (lossy shape)")
+					}
+				}
+				if j == len(p.Blocks)-1 && blk.HR {
+					return nil, fmt.Errorf("invalid json: final block must not be HR (lossy shape)")
+				}
+
+				if blk.HR && len(blk.Columns) > 0 {
+					return nil, fmt.Errorf("invalid json: hr block cannot contain columns (lossy semantic shape)")
+				}
+				bb := &BookmarkBlock{
+					HR: blk.HR,
+				}
+				if !blk.HR && len(blk.Columns) == 0 {
+					return nil, fmt.Errorf("invalid json: block without HR must have at least one column")
+				}
+				for _, col := range blk.Columns {
+					if col == nil {
+						return nil, fmt.Errorf("invalid json: null column object")
+					}
+					bc := &BookmarkColumn{}
+					for _, cat := range col.Categories {
+						if cat == nil {
+							return nil, fmt.Errorf("invalid json: null category object")
+						}
+						// Do not normalize by trimming; use actual values and let the general representability backstop catch lossy whitespace modifications.
+						if cat.Name == "" || strings.TrimSpace(cat.Name) == "" {
+							return nil, fmt.Errorf("invalid json: category name cannot be explicitly empty or only whitespace (lossy shape)")
+						}
+						bcat := &BookmarkCategory{
+							Name: cat.Name,
+						}
+						for _, ent := range cat.Entries {
+							if ent == nil {
+								return nil, fmt.Errorf("invalid json: null entry object in category %q", cat.Name)
+							}
+							if ent.URL == "" || strings.TrimSpace(ent.URL) == "" {
+								return nil, fmt.Errorf("invalid json: entry url cannot be explicitly empty or only whitespace (lossy shape)")
+							}
+							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
+								Url:  ent.URL,
+								Name: ent.Name,
+							})
+						}
+						bc.Categories = append(bc.Categories, bcat)
+					}
+					bb.Columns = append(bb.Columns, bc)
+				}
+				bp.Blocks = append(bp.Blocks, bb)
+			}
+			bt.AddPage(bp)
+		}
+		list.AddTab(bt)
+	}
+
+	// General representability invariant check:
+	// If the constructed list serialized to string and parsed back strictly produces
+	// a list with a different ToJSON() structure, it means the input JSON was lossy
+	// and semantically altered by the text representation rules.
+	// E.g. empty names mutating to "Category" or whitespace normalization.
+	serializedList := list.String()
+	reparsedList, err := StrictParseBookmarks(serializedList)
+	if err != nil {
+		return nil, fmt.Errorf("invalid json: semantically unrepresentable list (serialization failed to parse: %w)", err)
+	}
+
+	// Compare JSON round-trip forms since ToJSON drops internal/transient fields
+	// and accurately reflects the stable semantic structure.
+	originalJson, err := json.Marshal(list.ToJSON())
+	if err != nil {
+		return nil, fmt.Errorf("internal error marshaling model: %w", err)
+	}
+	reparsedJson, err := json.Marshal(reparsedList.ToJSON())
+	if err != nil {
+		return nil, fmt.Errorf("internal error marshaling reparsed model: %w", err)
+	}
+
+	if string(originalJson) != string(reparsedJson) {
+		return nil, fmt.Errorf("invalid json: semantically unrepresentable/lossy shape (reparsing serialized text changed semantic structure)")
+	}
+
+	// Set category indices
+	idx := 0
+	for _, t := range list {
+		for _, p := range t.Pages {
+			for _, blk := range p.Blocks {
+				for _, col := range blk.Columns {
+					for _, cat := range col.Categories {
+						cat.Index = idx
+						idx++
+					}
+				}
+			}
+		}
+	}
+	return list, nil
 }
 
 // BookmarkPage contains a number of blocks.
@@ -401,6 +643,161 @@ func ValidateBookmarks(bookmarks string) (BookmarkList, error) {
 		return parsed, fmt.Errorf("no bookmarks found")
 	}
 	return parsed, nil
+}
+
+// StrictParseBookmarks parses the provided text strictly, rejecting malformed directives and unhandled text.
+func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
+	if strings.TrimSpace(bookmarks) == "" {
+		return nil, fmt.Errorf("no bookmarks found")
+	}
+	lines := strings.Split(bookmarks, "\n")
+	var result BookmarkList
+	var currentTab *BookmarkTab
+	var currentPage *BookmarkPage
+	var currentCategory *BookmarkCategory
+	idx := 0
+
+	ensureTab := func() *BookmarkTab {
+		if currentTab == nil {
+			t := &BookmarkTab{ExplicitTab: false}
+			result.AddTab(t)
+			currentTab = t
+		}
+		return currentTab
+	}
+
+	ensurePage := func() *BookmarkPage {
+		ensureTab()
+		if currentPage == nil {
+			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.AddPage(p)
+			currentPage = p
+		}
+		return currentPage
+	}
+
+	flushCategory := func() {
+		if currentCategory != nil {
+			currentCategory.Index = idx
+			idx++
+			page := ensurePage()
+			lastBlock := page.Blocks[len(page.Blocks)-1]
+			lastColumn := lastBlock.Columns[len(lastBlock.Columns)-1]
+			lastColumn.AddCategory(currentCategory)
+			currentCategory = nil
+		}
+	}
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue // empty lines are ignored by format definition
+		}
+		lower := strings.ToLower(trimmed)
+
+		// Directives
+		if lower == "tab" || strings.HasPrefix(lower, "tab ") || strings.HasPrefix(lower, "tab:") {
+			rest := strings.TrimSpace(trimmed[len("tab"):])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
+			flushCategory()
+			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true}
+			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			currentTab.AddPage(currentPage)
+			result.AddTab(currentTab)
+			continue
+		}
+		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
+			rest := strings.TrimSpace(trimmed[len("page"):])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
+			flushCategory()
+			ensureTab()
+			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 && currentPage.Name == "" && rest != "" {
+				currentPage.Name = rest
+			} else {
+				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+				currentTab.AddPage(currentPage)
+			}
+			continue
+		}
+		if trimmed == "--" {
+			flushCategory()
+			page := ensurePage()
+			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
+			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
+			continue
+		}
+		if strings.EqualFold(trimmed, "column") {
+			flushCategory()
+			page := ensurePage()
+			lastBlock := page.Blocks[len(page.Blocks)-1]
+			lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+			continue
+		}
+
+		parts := strings.Fields(trimmed)
+		lowerFirst := strings.ToLower(parts[0])
+
+		if strings.HasPrefix(lowerFirst, "category") {
+			restIdx := len("category")
+			rest := strings.TrimSpace(trimmed[restIdx:])
+			if strings.HasPrefix(rest, ":") {
+				rest = strings.TrimSpace(rest[1:])
+			}
+			if rest == "" {
+				rest = "Category"
+			}
+			flushCategory()
+			ensurePage()
+			currentCategory = &BookmarkCategory{Name: rest}
+			continue
+		}
+
+		// Not a directive. It must be a valid link.
+		// A valid link must have a URL as parts[0] (starts with http, https, search:, etc.)
+		// But let's check if it's a completely unhandled string. In normal ParseBookmarks,
+		// if currentCategory == nil, it is silently ignored! In Strict mode, it's rejected.
+
+		// Wait, what's a valid link? The app accepts any string as a URL essentially, but requires
+		// a category to put it in. If a category hasn't been started, it's invalid unless it creates a default one?
+		// Normal parser drops it silently. Let's reject it.
+		if currentCategory == nil {
+			return nil, fmt.Errorf("line %d: link outside of category or unrecognized directive: %q", i+1, trimmed)
+		}
+
+		// Ensure it's not a misspelled directive while inside a category.
+		// E.g. `categor: foo`, `pagge: foo`, `colum:`. We look for words that start with directive
+		// prefixes and contain a colon (or literally "colum:"). If there's no colon and it's just a word like "page.example.com"
+		// or "tabby", it shouldn't be rejected, as the native parser treats it as an entry URL.
+		if strings.HasSuffix(lowerFirst, ":") {
+			if strings.HasPrefix(lowerFirst, "categor") || strings.HasPrefix(lowerFirst, "tab") || strings.HasPrefix(lowerFirst, "page") || strings.HasPrefix(lowerFirst, "pagge") || strings.HasPrefix(lowerFirst, "column") || strings.HasPrefix(lowerFirst, "colum") {
+				// We already processed exact valid directives. If it reached here, it's a typo.
+				if lowerFirst != "tab:" && lowerFirst != "page:" && lowerFirst != "column:" && lowerFirst != "category:" {
+					return nil, fmt.Errorf("line %d: misspelled or malformed directive inside category: %q", i+1, trimmed)
+				}
+			}
+		}
+
+		// Since the permissive parser accepts any string inside a category as a valid URL,
+		// we must not invent a narrower URL grammar here that rejects single-token entries or unlisted schemes.
+		// Strict lint only catches strings outside of categories (handled above) or malformed directives.
+		entry := BookmarkEntry{Url: parts[0], Name: parts[0]}
+		if len(parts) > 1 {
+			entry.Name = strings.Join(parts[1:], " ")
+		}
+		currentCategory.Entries = append(currentCategory.Entries, &entry)
+	}
+
+	flushCategory()
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no bookmarks found")
+	}
+
+	return result, nil
 }
 
 // MoveCategory moves the category at fromIndex so it appears before toIndex.
