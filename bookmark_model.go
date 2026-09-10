@@ -227,10 +227,42 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 				return nil, fmt.Errorf("invalid json: explicitly empty blocks array cannot be represented (lossy shape)")
 			}
 
-			for _, blk := range p.Blocks {
+			// Validate degenerate empty model (implicit unnamed tab, with one implicit unnamed page, with one empty block).
+			// If it has NO columns, it parses back as an empty text document which strict parser will reject.
+			// Native parsing always guarantees at least one column structure, even if empty.
+			if len(tabs) == 1 && !t.ExplicitTab && t.Name == "" && len(t.Pages) == 1 && p.Name == "" && len(p.Blocks) == 1 && p.Blocks[0] != nil && !p.Blocks[0].HR {
+				if len(p.Blocks[0].Columns) == 0 {
+					return nil, fmt.Errorf("invalid json: degenerate empty block in implicit model (lossy shape)")
+				}
+				isEmpty := true
+				for _, col := range p.Blocks[0].Columns {
+					if col != nil && len(col.Categories) > 0 {
+						isEmpty = false
+					}
+				}
+				if isEmpty {
+					return nil, fmt.Errorf("invalid json: degenerate completely empty implicit model cannot be serialized natively")
+				}
+			}
+
+			for j, blk := range p.Blocks {
 				if blk == nil {
 					return nil, fmt.Errorf("invalid json: null block object in page %q", p.Name)
 				}
+				// Verify HR block sequence constraints to avoid lossy block shapes
+				if j%2 == 0 {
+					if blk.HR {
+						return nil, fmt.Errorf("invalid json: even-indexed block must not be HR (lossy shape)")
+					}
+				} else {
+					if !blk.HR {
+						return nil, fmt.Errorf("invalid json: odd-indexed block must be HR (lossy shape)")
+					}
+				}
+				if j == len(p.Blocks)-1 && blk.HR {
+					return nil, fmt.Errorf("invalid json: final block must not be HR (lossy shape)")
+				}
+
 				if blk.HR && len(blk.Columns) > 0 {
 					return nil, fmt.Errorf("invalid json: hr block cannot contain columns (lossy semantic shape)")
 				}

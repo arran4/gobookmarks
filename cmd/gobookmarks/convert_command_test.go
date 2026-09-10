@@ -274,7 +274,7 @@ https://google.com`
 	}
 
 	// 8. Test lossy invalid JSON
-	invalidLossyJsonFiles := []struct{
+	invalidLossyJsonFiles := []struct {
 		Name string
 		JSON string
 	}{
@@ -285,10 +285,15 @@ https://google.com`
 		{"non-first implicit tab", `[{}, {"explicit": false}]`},
 		{"empty blocks array", `[{"pages": [{"blocks": []}]}]`},
 		{"empty pages array", `[{"pages": []}]`},
+		{"degenerate implicit empty model", `[{}]`},
+		{"leading HR block", `[{"explicit":true,"pages":[{"blocks":[{"hr":true},{"columns":[{}]}]}]}]`},
+		{"trailing HR block", `[{"explicit":true,"pages":[{"blocks":[{"columns":[{}]},{"hr":true}]}]}]`},
+		{"consecutive HR blocks", `[{"explicit":true,"pages":[{"blocks":[{"columns":[{}]},{"hr":true},{"hr":true},{"columns":[{}]}]}]}]`},
+		{"adjacent non-HR blocks", `[{"explicit":true,"pages":[{"blocks":[{"columns":[{}]},{"columns":[{}]}]}]}]`},
 	}
 
 	for _, tc := range invalidLossyJsonFiles {
-		f := filepath.Join(dir, "lossy_" + strings.ReplaceAll(tc.Name, " ", "_") + ".json")
+		f := filepath.Join(dir, "lossy_"+strings.ReplaceAll(tc.Name, " ", "_")+".json")
 		if err := os.WriteFile(f, []byte(tc.JSON), 0644); err != nil {
 			t.Fatal(err)
 		}
