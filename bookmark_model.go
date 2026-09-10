@@ -218,6 +218,9 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 				if blk == nil {
 					return nil, fmt.Errorf("invalid json: null block object in page %q", p.Name)
 				}
+				if blk.HR && len(blk.Columns) > 0 {
+					return nil, fmt.Errorf("invalid json: hr block cannot contain columns (lossy semantic shape)")
+				}
 				bb := &BookmarkBlock{
 					HR: blk.HR,
 				}

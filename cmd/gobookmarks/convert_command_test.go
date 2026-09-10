@@ -195,49 +195,63 @@ https://www.google.com Google Search`
 	}
 
 	// 6. Test config-independence under a deliberately unusable setup
-	os.Setenv("DB_CONNECTION_PROVIDER", "invalid_provider_that_would_crash_if_loaded")
-	os.Setenv("LOCAL_GIT_PATH", "/dev/null/invalid_git_path")
-	defer os.Unsetenv("DB_CONNECTION_PROVIDER")
-	defer os.Unsetenv("LOCAL_GIT_PATH")
+	// GOBM_CONFIG_FILE will force loadConfig to crash if it tries to load an invalid file
+	t.Setenv("GOBM_CONFIG_FILE", "/dev/null/invalid_config_that_does_not_exist_xyz.json")
 
 	// Create a new RootCommand to pick up the env changes just in case, though convert should skip loadConfig
 	cmdNoConfig := NewRootCommand()
-	r, w, _ = os.Pipe()
-	os.Stdout = w
+	_, wNoConfig, _ := os.Pipe() // output not needed for success verification
+	os.Stdout = wNoConfig
 	err = cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
 	if err != nil {
 		t.Fatalf("conversion should succeed without loading application config: %v", err)
 	}
-	_ = w.Close()
+	_ = wNoConfig.Close()
 	os.Stdout = oldStdout
 
 	// Test lint config independence
-	r, w, _ = os.Pipe()
-	os.Stdout = w
+	_, wNoConfig2, _ := os.Pipe() // output not needed for success verification
+	os.Stdout = wNoConfig2
 	err = cmdNoConfig.Execute([]string{"lint", txtFile})
 	if err != nil {
 		t.Fatalf("lint should succeed without loading application config: %v", err)
 	}
-	_ = w.Close()
+	_ = wNoConfig2.Close()
 	os.Stdout = oldStdout
 
 	// 7. Test Unnamed pages vs named pages round trip (in explicitUnnamedTxtOutput test)
 	// explicitUnnamedText has "Page: Main" which is named.
-	// let's test unnamed page
+	// let's test unnamed page through JSON interchange
 	unnamedPageText := `Tab: Dashboard
 Page
 Category: Search
 https://google.com`
 	unnamedPageTxtFile := filepath.Join(dir, "unnamed_page.txt")
+	unnamedPageJsonFile := filepath.Join(dir, "unnamed_page.json")
 	if err := os.WriteFile(unnamedPageTxtFile, []byte(unnamedPageText), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	r, w, _ = os.Pipe()
 	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "bookmarks", "--to", "bookmarks", unnamedPageTxtFile})
+	err = cmd.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", unnamedPageTxtFile})
 	if err != nil {
-		t.Fatalf("conversion of unnamed page txt to bookmarks failed: %v", err)
+		t.Fatalf("conversion of unnamed page txt to json failed: %v", err)
+	}
+	_ = w.Close()
+	os.Stdout = oldStdout
+
+	var unnamedJsonBuf bytes.Buffer
+	_, _ = io.Copy(&unnamedJsonBuf, r)
+	if err := os.WriteFile(unnamedPageJsonFile, unnamedJsonBuf.Bytes(), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	r, w, _ = os.Pipe()
+	os.Stdout = w
+	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", unnamedPageJsonFile})
+	if err != nil {
+		t.Fatalf("conversion of unnamed page json to bookmarks failed: %v", err)
 	}
 	_ = w.Close()
 	os.Stdout = oldStdout
@@ -246,8 +260,27 @@ https://google.com`
 	_, _ = io.Copy(unnamedPageTxtOutputBuf, r)
 	unnamedPageTxtOutput := unnamedPageTxtOutputBuf.String()
 
-	// It should retain "Page"
-	if !strings.Contains(unnamedPageTxtOutput, "Page\n") {
-		t.Fatalf("round-tripped text lost unnamed Page directive:\n%s", unnamedPageTxtOutput)
+	// Strict parse the result and assert page semantics
+	// Since Tab implicitly creates an empty page, `Page` creates a second one. Both should be unnamed.
+	list, err = gobookmarks.StrictParseBookmarks(unnamedPageTxtOutput)
+	if err != nil {
+		t.Fatalf("round-tripped unnamed page text failed strict parse: %v", err)
+	}
+	if len(list) != 1 || len(list[0].Pages) != 2 {
+		t.Fatalf("semantic mismatch in unnamed page round trip length: got %d pages", len(list[0].Pages))
+	}
+	if list[0].Pages[0].Name != "" || list[0].Pages[1].Name != "" {
+		t.Fatalf("unnamed page became named: %q", list[0].Pages[1].Name)
+	}
+
+	// 8. Test lossy invalid JSON (HR block with columns)
+	invalidLossyJsonFile := filepath.Join(dir, "invalid_lossy.json")
+	if err := os.WriteFile(invalidLossyJsonFile, []byte(`[{"pages": [{"blocks": [{"hr": true, "columns": [{}]}]}]}]`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", invalidLossyJsonFile})
+	if err == nil {
+		t.Fatal("expected lossy semantic json (hr block with columns) to fail conversion")
 	}
 }
