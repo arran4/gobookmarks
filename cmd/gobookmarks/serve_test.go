@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/arran4/gobookmarks"
-	"github.com/gorilla/sessions"
+
 	"golang.org/x/oauth2"
 	"io"
 	"net/http"
@@ -35,11 +35,11 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 func TestRedirectToHandlerIntegration(t *testing.T) {
 	// Initialize minimal configuration
 	gobookmarks.Config.SessionName = "testsess"
-	gobookmarks.SessionStore = sessions.NewCookieStore([]byte("secret"))
+	gobookmarks.SessionStore = gobookmarks.InitSessionStore([]byte("secret"))
 
 	// 1. Simulate setting up a successful session with Redirect set
 	req := httptest.NewRequest("GET", "/login", nil)
-	session, _ := gobookmarks.SessionStore.Get(req, gobookmarks.Config.GetSessionName())
+	session := gobookmarks.GetSession(nil, req)
 	session.Values["Redirect"] = "/tab/2?page=3"
 
 	w := httptest.NewRecorder()
@@ -68,7 +68,7 @@ func TestRedirectToHandlerIntegration(t *testing.T) {
 
 func TestFullLoginChainIntegration(t *testing.T) {
 	gobookmarks.Config.SessionName = "testsess"
-	gobookmarks.SessionStore = sessions.NewCookieStore([]byte("secret"))
+	gobookmarks.SessionStore = gobookmarks.InitSessionStore([]byte("secret"))
 
 	d := t.TempDir()
 	gobookmarks.Config.LocalGitPath = d
@@ -82,7 +82,7 @@ func TestFullLoginChainIntegration(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 
-	session, _ := gobookmarks.SessionStore.Get(req, gobookmarks.Config.GetSessionName())
+	session := gobookmarks.GetSession(nil, req)
 	gobookmarks.SetVersion("vtest", "c", "d")
 	session.Values["version"] = "vtest"
 	ctx := context.WithValue(req.Context(), gobookmarks.ContextValues("session"), session)
@@ -106,7 +106,7 @@ func TestFullLoginChainIntegration(t *testing.T) {
 			req2.AddCookie(cookie)
 		}
 	}
-	session2, _ := gobookmarks.SessionStore.Get(req2, gobookmarks.Config.GetSessionName())
+	session2 := gobookmarks.GetSession(nil, req2)
 	session2.Values["version"] = "vtest"
 	ctx2 := context.WithValue(req2.Context(), gobookmarks.ContextValues("session"), session2)
 	req2 = req2.WithContext(ctx2)
@@ -124,7 +124,7 @@ func TestFullLoginChainIntegration(t *testing.T) {
 	req3.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w3 := httptest.NewRecorder()
 
-	session3, _ := gobookmarks.SessionStore.Get(req3, gobookmarks.Config.GetSessionName())
+	session3 := gobookmarks.GetSession(nil, req3)
 	session3.Values["version"] = "vtest"
 	ctx3 := context.WithValue(req3.Context(), gobookmarks.ContextValues("session"), session3)
 	req3 = req3.WithContext(ctx3)
@@ -147,7 +147,7 @@ func TestFullLoginChainIntegration(t *testing.T) {
 			req4.AddCookie(cookie)
 		}
 	}
-	session4, _ := gobookmarks.SessionStore.Get(req4, gobookmarks.Config.GetSessionName())
+	session4 := gobookmarks.GetSession(nil, req4)
 	session4.Values["version"] = "vtest"
 	ctx4 := context.WithValue(req4.Context(), gobookmarks.ContextValues("session"), session4)
 	req4 = req4.WithContext(ctx4)
@@ -161,11 +161,12 @@ func TestFullLoginChainIntegration(t *testing.T) {
 	}
 
 	// 5. Simulate Oauth callback success via chain
-	req5 := httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3&code=mockcode", nil)
+	req5 := httptest.NewRequest("GET", "/oauth2Callback?state=github:mocknonce:/tab/2?page=3&code=mockcode", nil)
 	w5 := httptest.NewRecorder()
 
-	session5, _ := gobookmarks.SessionStore.Get(req5, gobookmarks.Config.GetSessionName())
+	session5 := gobookmarks.GetSession(nil, req5)
 	session5.Values["version"] = "vtest"
+	session5.Values["OauthState"] = "mocknonce"
 
 	client := &http.Client{Transport: &mockRoundTripper{}}
 	ctx5 := context.WithValue(req5.Context(), oauth2.HTTPClient, client)

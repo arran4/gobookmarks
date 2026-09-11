@@ -3,7 +3,7 @@ package gobookmarks
 import (
 	"context"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
+
 	"golang.org/x/oauth2"
 	"io"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 
 func TestLoginRouteProviderVariable(t *testing.T) {
 	Config.SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 	version = "vtest"
 	Config.GithubClientID = "id"
 	Config.GithubSecret = "secret"
@@ -41,7 +41,7 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse OAuth redirect: %v", err)
 	}
-	if state := parsed.Query().Get("state"); state != "github" {
+	if state := parsed.Query().Get("state"); !strings.HasPrefix(state, "github:") || len(strings.Split(state, ":")) != 2 {
 		t.Fatalf("default redirect must not be included in OAuth state, got %q", state)
 	}
 
@@ -52,7 +52,7 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse OAuth redirect with default return URL: %v", err)
 	}
-	if state := parsed.Query().Get("state"); state != "github" {
+	if state := parsed.Query().Get("state"); !strings.HasPrefix(state, "github:") || len(strings.Split(state, ":")) != 2 {
 		t.Fatalf("default redirect must not be included in OAuth state, got %q", state)
 	}
 
@@ -66,7 +66,7 @@ func TestLoginRouteProviderVariable(t *testing.T) {
 
 func TestLoginRouteProviderVariableRedirect(t *testing.T) {
 	Config.SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 	version = "vtest"
 	Config.GithubClientID = "id"
 	Config.GithubSecret = "secret"
@@ -84,7 +84,7 @@ func TestLoginRouteProviderVariableRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse OAuth redirect with explicit return URL: %v", err)
 	}
-	if state := parsed.Query().Get("state"); state != "github:/tab/2" {
+	if state := parsed.Query().Get("state"); !strings.HasPrefix(state, "github:") || !strings.HasSuffix(state, ":/tab/2") || len(strings.Split(state, ":")) != 3 {
 		t.Fatalf("explicit redirect must be included in OAuth state, got %q", state)
 	}
 
@@ -95,7 +95,7 @@ func TestLoginRouteProviderVariableRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse OAuth redirect with explicit complex return URL: %v", err)
 	}
-	if state := parsed.Query().Get("state"); state != "github:/tab/2?page=3" {
+	if state := parsed.Query().Get("state"); !strings.HasPrefix(state, "github:") || !strings.HasSuffix(state, ":/tab/2?page=3") || len(strings.SplitN(state, ":", 3)) != 3 {
 		t.Fatalf("explicit complex redirect must be included in OAuth state, got %q", state)
 	}
 }
@@ -124,7 +124,7 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 
 func TestOauth2CallbackRedirect(t *testing.T) {
 	Config.SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 	version = "vtest"
 	Config.GithubClientID = "id"
 	Config.GithubSecret = "secret"
@@ -137,10 +137,11 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
 
 	// Test the Oauth2CallbackPage to ensure it extracts the redirect properly from the state parameter
-	req := httptest.NewRequest("GET", "/oauth2Callback?state=github:/tab/2?page=3&code=mockcode", nil)
+	req := httptest.NewRequest("GET", "/oauth2Callback?state=github:mocknonce:/tab/2?page=3&code=mockcode", nil)
 	w := httptest.NewRecorder()
 
 	session, _ := SessionStore.Get(req, Config.GetSessionName())
+	session.Values["OauthState"] = "mocknonce"
 	session.Values["version"] = version
 	ctx = context.WithValue(ctx, ContextValues("session"), session)
 	req = req.WithContext(ctx)
@@ -171,6 +172,5 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 	if session2.Values["Redirect"] != "/tab/2?page=3" {
 		t.Fatalf("Expected Oauth2CallbackPage to set session Redirect to /tab/2?page=3, got: %v (All values: %v)", session2.Values["Redirect"], session2.Values)
 	}
-
 
 }

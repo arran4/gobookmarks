@@ -628,7 +628,7 @@ func runTemplate(tmpl string) func(http.ResponseWriter, *http.Request) {
 func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		redirect := r.FormValue("redirect")
-		if session, err := gobookmarks.SessionStore.Get(r, gobookmarks.Config.GetSessionName()); err == nil {
+		if session := gobookmarks.GetSession(w, r); session != nil {
 			if rURL, ok := session.Values["Redirect"].(string); ok && rURL != "" {
 				if redirect == "" {
 					redirect = rURL
@@ -694,11 +694,7 @@ func RequiresAnAccount() mux.MatcherFunc {
 		var session *sessions.Session
 		sessioni := request.Context().Value(gobookmarks.ContextValues("session"))
 		if sessioni == nil {
-			var err error
-			session, err = gobookmarks.SessionStore.Get(request, gobookmarks.Config.GetSessionName())
-			if err != nil {
-				return false
-			}
+			session = gobookmarks.GetSession(nil, request)
 		} else {
 			var ok bool
 			session, ok = sessioni.(*sessions.Session)

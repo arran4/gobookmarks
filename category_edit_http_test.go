@@ -22,9 +22,9 @@ func setupCategoryEditTest(t *testing.T) (GitProvider, string, *sessions.Session
 	Config.SessionName = "testsession"
 	SessionStore = sessions.NewCookieStore([]byte("secret"))
 	sessReq := httptest.NewRequest("GET", "/", nil)
-	sess, err := getSession(httptest.NewRecorder(), sessReq)
-	if err != nil {
-		t.Fatalf("getSession: %v", err)
+	sess := GetSession(httptest.NewRecorder(), sessReq)
+	if sess == nil {
+		t.Fatalf("GetSession failed")
 	}
 	sess.Values["GithubUser"] = &User{Login: user}
 	sess.Values["Token"] = &oauth2.Token{}
