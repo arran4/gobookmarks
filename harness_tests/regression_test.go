@@ -3,7 +3,7 @@ package harness_tests
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -31,7 +31,7 @@ func (m *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 
 	return &http.Response{
 		StatusCode: 200,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(body)),
+		Body:       io.NopCloser(bytes.NewBufferString(body)),
 		Header:     header,
 	}, nil
 }
@@ -68,10 +68,10 @@ func TestSessionLifecycleRegression(t *testing.T) {
 		user, _ := session.Values["GithubUser"].(*gobookmarks.User)
 		if user != nil {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Authenticated as " + user.Login))
+			_, _ = w.Write([]byte("Authenticated as " + user.Login))
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Anonymous"))
+			_, _ = w.Write([]byte("Anonymous"))
 		}
 	}).Methods("GET")
 

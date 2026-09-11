@@ -37,10 +37,10 @@ func TestLegacySessionWithoutVersion(t *testing.T) {
 		user, _ := session.Values["GithubUser"].(*gobookmarks.User)
 		if user != nil {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Authenticated as " + user.Login))
+			_, _ = w.Write([]byte("Authenticated as " + user.Login))
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Anonymous"))
+			_, _ = w.Write([]byte("Anonymous"))
 		}
 	}).Methods("GET")
 
@@ -59,7 +59,7 @@ func TestLegacySessionWithoutVersion(t *testing.T) {
 	legacySession, _ := gobookmarks.SessionStore.New(mockReq, gobookmarks.Config.GetSessionName())
 	legacySession.Values["GithubUser"] = &gobookmarks.User{Login: "mockuser"}
 	// deliberately omit "version" to simulate legacy session
-	legacySession.Save(mockReq, mockRec)
+	_ = legacySession.Save(mockReq, mockRec)
 
 	// Add the generated cookie to the browser jar
 	cookies := mockRec.Result().Cookies()
@@ -121,7 +121,7 @@ func TestOldAuthenticatedSessionIsInvalidated(t *testing.T) {
 	oldSession, _ := gobookmarks.SessionStore.New(mockReq, gobookmarks.Config.GetSessionName())
 	oldSession.Values["GithubUser"] = &gobookmarks.User{Login: "mockuser"}
 	oldSession.Values["version"] = "old-version"
-	oldSession.Save(mockReq, mockRec)
+	_ = oldSession.Save(mockReq, mockRec)
 
 	browser.Jar.SetCookies(targetURL, mockRec.Result().Cookies())
 
@@ -254,7 +254,7 @@ func TestRepeatLogin(t *testing.T) {
 	}
 
 	// Logout
-	browser.Do("GET", "/logout", nil)
+	_, _ = browser.Do("GET", "/logout", nil)
 
 	resp4, _ := browser.Do("GET", "/tab/2", nil)
 	if resp4.Response.StatusCode != http.StatusUnauthorized {
