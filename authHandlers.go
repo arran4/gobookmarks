@@ -158,7 +158,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 
 	expectedNonce, _ := session.Values["OauthState"].(string)
 	if stateNonce == "" || expectedNonce == "" || subtle.ConstantTimeCompare([]byte(stateNonce), []byte(expectedNonce)) != 1 {
-		return fmt.Errorf("invalid oauth state parameter. got stateNonce=%s, expectedNonce=%s", stateNonce, expectedNonce)
+		return fmt.Errorf("invalid oauth state parameter")
 	}
 
 	// Consume the nonce and prepare the session for authenticated state
