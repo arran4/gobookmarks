@@ -8,8 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/gorilla/sessions"
 )
 
 func TestGitSignupScenario(t *testing.T) {
@@ -17,7 +15,7 @@ func TestGitSignupScenario(t *testing.T) {
 	Config.LocalGitPath = tmp
 
 	Config.SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 
 	// signup
 	form := url.Values{"username": {"alice"}, "password": {"secret"}}
@@ -58,9 +56,9 @@ func TestGitSignupScenario(t *testing.T) {
 	sessReq := httptest.NewRequest("GET", "/", nil)
 	sessReq.AddCookie(cookies[len(cookies)-1])
 	sessW := httptest.NewRecorder()
-	session, err := getSession(sessW, sessReq)
-	if err != nil {
-		t.Fatalf("getSession: %v", err)
+	session := GetSession(sessW, sessReq)
+	if session == nil {
+		t.Fatalf("GetSession failed")
 	}
 	ctx := context.WithValue(sessReq.Context(), ContextValues("session"), session)
 	ctx = context.WithValue(ctx, ContextValues("provider"), "git")
@@ -122,7 +120,7 @@ func TestGitLoginIgnoresInvalidSession(t *testing.T) {
 	tmp := t.TempDir()
 	Config.LocalGitPath = tmp
 	Config.SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 	version = "vtest"
 
 	// create user
@@ -155,7 +153,7 @@ func TestGitSignupScenarioWithRedirect(t *testing.T) {
 	Config.LocalGitPath = d
 
 	Config.SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 
 	// signup
 	form := url.Values{"username": []string{"bob"}, "password": []string{"secret"}, "redirect": []string{"/tab/2"}}
@@ -192,8 +190,6 @@ func TestGitSignupScenarioWithRedirect(t *testing.T) {
 
 	// Create context with session
 	session, _ := SessionStore.Get(req, Config.GetSessionName())
-	// Set version to avoid getSession clearing it!
-	session.Values["version"] = version
 	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
 	req = req.WithContext(ctx)
 

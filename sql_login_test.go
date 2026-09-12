@@ -1,7 +1,6 @@
 package gobookmarks
 
 import (
-		"github.com/gorilla/sessions"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -23,7 +22,7 @@ func TestSqlSignupScenarioWithRedirect(t *testing.T) {
 	Config.DBConnectionString = dbFile
 
 	Config.SessionName = "testsess"
-	SessionStore = sessions.NewCookieStore([]byte("secret"))
+	SessionStore = InitSessionStore([]byte("secret"))
 
 	// signup
 	form := url.Values{"username": []string{"bob"}, "password": []string{"secret"}, "redirect": []string{"/tab/2"}}
@@ -81,8 +80,6 @@ func TestSqlSignupScenarioWithRedirect(t *testing.T) {
 	if session2.Values["Redirect"] != "/tab/2?page=3" {
 		t.Fatalf("Expected session redirect to be set to /tab/2?page=3, got: %v", session2.Values["Redirect"])
 	}
-
-
 
 	// Login failure
 	form = url.Values{"username": []string{"bob"}, "password": []string{"wrong"}, "redirect": []string{"/tab/2?page=3"}}

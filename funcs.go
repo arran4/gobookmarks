@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
@@ -43,6 +44,9 @@ func SetVersion(pVersion, pCommit, pDate string) {
 }
 
 func NewFuncs(r *http.Request) template.FuncMap {
+	if r == nil {
+		r = httptest.NewRequest("GET", "/", nil)
+	}
 	return map[string]any{
 		"now": func() time.Time { return time.Now() },
 		"asset": func(p string) (string, error) {
@@ -344,13 +348,21 @@ func NewFuncs(r *http.Request) template.FuncMap {
 			return tabs, nil
 		},
 		"tabName": func() string {
-			session := r.Context().Value(ContextValues("session")).(*sessions.Session)
-			githubUser, _ := session.Values["GithubUser"].(*User)
-			token, _ := session.Values["Token"].(*oauth2.Token)
+			var githubUser *User
+			var token *oauth2.Token
+			if sessioni := r.Context().Value(ContextValues("session")); sessioni != nil {
+				if session, ok := sessioni.(*sessions.Session); ok && session != nil && session.Values != nil {
+					githubUser, _ = session.Values["GithubUser"].(*User)
+					token, _ = session.Values["Token"].(*oauth2.Token)
+				}
+			}
 
 			login := ""
 			if githubUser != nil {
 				login = githubUser.Login
+			}
+			if login == "" {
+				return ""
 			}
 
 			bookmarks, _, err := GetBookmarks(r.Context(), login, r.URL.Query().Get("ref"), token)
@@ -365,9 +377,15 @@ func NewFuncs(r *http.Request) template.FuncMap {
 				bookmark = bookmarks
 			}
 			tabs := ParseBookmarks(bookmark)
+			if len(tabs) == 0 {
+				return "Main"
+			}
 			idx := TabFromRequest(r)
 			if idx < 0 || idx >= len(tabs) {
 				idx = 0
+			}
+			if tabs[idx] == nil {
+				return "Main"
 			}
 			name := tabs[idx].DisplayName()
 			if name == "" && idx == 0 {

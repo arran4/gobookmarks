@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	gb "github.com/arran4/gobookmarks"
-	"github.com/gorilla/sessions"
+
 	"golang.org/x/oauth2"
 )
 
@@ -45,7 +45,7 @@ func (m *MockFileReader) Stat(name string) (os.FileInfo, error) {
 
 func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 	gb.Config.SessionName = "testsess"
-	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
+	gb.SessionStore = gb.InitSessionStore([]byte("secret"))
 
 	req := httptest.NewRequest("GET", "/submit", nil)
 	req.Header.Set("Referer", "/form")
@@ -70,7 +70,7 @@ func TestRunHandlerChain_UserErrorRedirect(t *testing.T) {
 
 func TestRunTemplate_BufferedError(t *testing.T) {
 	gb.Config.SessionName = "testsess"
-	gb.SessionStore = sessions.NewCookieStore([]byte("secret"))
+	gb.SessionStore = gb.InitSessionStore([]byte("secret"))
 	gb.Config.DBConnectionProvider = ""
 
 	req := httptest.NewRequest("GET", "/", nil)

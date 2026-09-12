@@ -1,15 +1,14 @@
 package gobookmarks
 
 import (
-	"github.com/gorilla/sessions"
 	"net/http/httptest"
 	"testing"
 )
 
-// Test that getSession clears outdated sessions and returns a fresh one.
-func Test_getSessionClearsOldVersion(t *testing.T) {
+// Test that GetSession clears outdated sessions and returns a fresh one.
+func Test_GetSessionClearsOldVersion(t *testing.T) {
 	Config.SessionName = "testsession"
-	SessionStore = sessions.NewCookieStore([]byte("secret-key"))
+	SessionStore = InitSessionStore([]byte("secret-key"))
 	version = "current"
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -26,9 +25,9 @@ func Test_getSessionClearsOldVersion(t *testing.T) {
 	req.AddCookie(cookie)
 
 	w = httptest.NewRecorder()
-	newSession, err := getSession(w, req)
-	if err != nil {
-		t.Fatalf("getSession: %v", err)
+	newSession := GetSession(w, req)
+	if newSession == nil {
+		t.Fatalf("GetSession failed")
 	}
 	if len(newSession.Values) != 0 {
 		t.Fatalf("expected empty session, got %#v", newSession.Values)
