@@ -257,8 +257,7 @@ func (c *ServeCommand) Execute(args []string) error {
 		return errors.New("no providers compiled")
 	}
 	if len(gobookmarks.ConfiguredProviderNames()) == 0 {
-		// Mock out provider registration when running tests instead of erroring here
-		// return errors.New("no providers available")
+		return errors.New("no providers available")
 	}
 
 	r := setupRouter()
@@ -282,11 +281,13 @@ func (c *ServeCommand) Execute(args []string) error {
 	// Create an HTTP server with a handler
 	httpServer := &http.Server{
 		Addr: ":8080",
+		Handler: r, // Use the configured mux directly
 	}
 
 	// Create an HTTPS server with a handler
 	httpsServer := &http.Server{
 		Addr: ":8443",
+		Handler: r, // Use the configured mux directly
 	}
 
 	var sigCh chan os.Signal
@@ -772,9 +773,6 @@ func registerRoutes(r *mux.Router) {
 
 	r.HandleFunc("/proxy/favicon", gobookmarks.FaviconProxyHandler).Methods("GET")
 
-	// Only register global handler if not already registered (to allow multiple test instantiations)
-	if http.DefaultServeMux != nil {
-		// Go 1.22+ panic if re-registered.
-		// Use a custom router or just omit from test
-	}
+	// The user requested we wire the actual router into the http.Server directly
+	// instead of using DefaultServeMux.
 }
