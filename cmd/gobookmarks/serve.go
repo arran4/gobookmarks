@@ -280,13 +280,13 @@ func (c *ServeCommand) Execute(args []string) error {
 
 	// Create an HTTP server with a handler
 	httpServer := &http.Server{
-		Addr: ":8080",
+		Addr:    ":8080",
 		Handler: r, // Use the configured mux directly
 	}
 
 	// Create an HTTPS server with a handler
 	httpsServer := &http.Server{
-		Addr: ":8443",
+		Addr:    ":8443",
 		Handler: r, // Use the configured mux directly
 	}
 
@@ -558,8 +558,8 @@ func redirectToHandler(toURL string) func(http.ResponseWriter, *http.Request) {
 			}
 		}
 
-		if redirect != "" {
-			if u, err := url.Parse(redirect); err == nil && u.Scheme == "" && u.Host == "" && strings.HasPrefix(u.Path, "/") && !strings.HasPrefix(u.Path, "//") && !strings.Contains(redirect, "\\") {
+		if redirect != "" && gobookmarks.IsSafeRedirect(redirect) {
+			if u, err := url.Parse(redirect); err == nil {
 				if u.Path == "/logout" || u.Path == "/login" || strings.HasPrefix(u.Path, "/login/") {
 					redirect = "/"
 				}

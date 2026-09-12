@@ -84,7 +84,6 @@ func TestFullLoginChainIntegration(t *testing.T) {
 
 	session := gobookmarks.GetSession(nil, req)
 	gobookmarks.SetVersion("vtest", "c", "d")
-	session.Values["version"] = "vtest"
 	ctx := context.WithValue(req.Context(), gobookmarks.ContextValues("session"), session)
 	req = req.WithContext(ctx)
 

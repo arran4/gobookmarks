@@ -190,8 +190,6 @@ func TestGitSignupScenarioWithRedirect(t *testing.T) {
 
 	// Create context with session
 	session, _ := SessionStore.Get(req, Config.GetSessionName())
-	// Set version to avoid GetSession clearing it!
-	session.Values["version"] = version
 	ctx := context.WithValue(req.Context(), ContextValues("session"), session)
 	req = req.WithContext(ctx)
 

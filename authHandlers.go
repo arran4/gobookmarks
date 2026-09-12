@@ -25,10 +25,16 @@ func UserLogoutAction(w http.ResponseWriter, r *http.Request) error {
 		CoreData: r.Context().Value(ContextValues("coreData")).(*CoreData),
 	}
 
-	session := r.Context().Value(ContextValues("session")).(*sessions.Session)
+	session := GetSession(w, r)
+	if session == nil {
+		return fmt.Errorf("session error")
+	}
 	delete(session.Values, "GithubUser")
 	delete(session.Values, "Token")
 	delete(session.Values, "Provider")
+	delete(session.Values, "version")
+	session.Options.MaxAge = -1
+	session.Values = make(map[interface{}]interface{})
 
 	if err := session.Save(r, w); err != nil {
 		return fmt.Errorf("session.Save Error: %w", err)
@@ -91,13 +97,13 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	redirect := r.URL.Query().Get("redirect")
-	if redirect == "/" {
+	if redirect == "/" || !IsSafeRedirect(redirect) {
 		redirect = ""
 	}
 
 	session.Values["Provider"] = providerName
 	delete(session.Values, "Redirect")
-	if redirect != "" && len(redirect) < 2048 {
+	if redirect != "" {
 		session.Values["Redirect"] = redirect
 	}
 	if err := session.Save(r, w); err != nil {
@@ -126,7 +132,7 @@ func LoginWithProvider(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	state := providerName + ":" + stateNonce
-	if redirect != "" && len(redirect) < 2048 {
+	if redirect != "" {
 		state = providerName + ":" + stateNonce + ":" + redirect
 	}
 
@@ -149,7 +155,7 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		if len(parts) > 1 {
 			stateNonce = parts[1]
 		}
-		if len(parts) > 2 && parts[2] != "" && len(parts[2]) < 2048 {
+		if len(parts) > 2 && parts[2] != "" && IsSafeRedirect(parts[2]) {
 			redirectUrl = parts[2]
 		}
 	} else {
@@ -247,7 +253,7 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 			log.Printf("git login failed for %s: invalid password", user)
 		}
 		redirectURL := "/login/git?error=invalid"
-		if r.FormValue("redirect") != "" {
+		if r.FormValue("redirect") != "" && IsSafeRedirect(r.FormValue("redirect")) {
 			redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
 		}
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -259,7 +265,7 @@ func GitLoginAction(w http.ResponseWriter, r *http.Request) error {
 	session.Values["version"] = version
 	redirect := r.FormValue("redirect")
 	delete(session.Values, "Redirect")
-	if redirect != "" && len(redirect) < 2048 {
+	if redirect != "" && IsSafeRedirect(redirect) {
 		session.Values["Redirect"] = redirect
 	}
 	if err := session.Save(r, w); err != nil {
@@ -280,7 +286,7 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 		if errors.Is(err, ErrUserExists) {
 			log.Printf("git signup for %s failed: user exists", user)
 			redirectURL := "/login/git?error=exists"
-			if r.FormValue("redirect") != "" {
+			if r.FormValue("redirect") != "" && IsSafeRedirect(r.FormValue("redirect")) {
 				redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
 			}
 			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -304,7 +310,7 @@ func GitSignupAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("create sample bookmarks: %w", err)
 	}
 	redirectURL := "/login/git"
-	if r.FormValue("redirect") != "" {
+	if r.FormValue("redirect") != "" && IsSafeRedirect(r.FormValue("redirect")) {
 		redirectURL += "?redirect=" + url.QueryEscape(r.FormValue("redirect"))
 	}
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -332,7 +338,7 @@ func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
 			log.Printf("sql login failed for %s: invalid password", user)
 		}
 		redirectURL := "/login/sql?error=invalid"
-		if r.FormValue("redirect") != "" {
+		if r.FormValue("redirect") != "" && IsSafeRedirect(r.FormValue("redirect")) {
 			redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
 		}
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -344,7 +350,7 @@ func SqlLoginAction(w http.ResponseWriter, r *http.Request) error {
 	session.Values["version"] = version
 	redirect := r.FormValue("redirect")
 	delete(session.Values, "Redirect")
-	if redirect != "" && len(redirect) < 2048 {
+	if redirect != "" && IsSafeRedirect(redirect) {
 		session.Values["Redirect"] = redirect
 	}
 	if err := session.Save(r, w); err != nil {
@@ -365,7 +371,7 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 		if errors.Is(err, ErrUserExists) {
 			log.Printf("sql signup for %s failed: user exists", user)
 			redirectURL := "/login/sql?error=exists"
-			if r.FormValue("redirect") != "" {
+			if r.FormValue("redirect") != "" && IsSafeRedirect(r.FormValue("redirect")) {
 				redirectURL += "&redirect=" + url.QueryEscape(r.FormValue("redirect"))
 			}
 			http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -389,7 +395,7 @@ func SqlSignupAction(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("create sample bookmarks: %w", err)
 	}
 	redirectURL := "/login/sql"
-	if r.FormValue("redirect") != "" {
+	if r.FormValue("redirect") != "" && IsSafeRedirect(r.FormValue("redirect")) {
 		redirectURL += "?redirect=" + url.QueryEscape(r.FormValue("redirect"))
 	}
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -419,11 +425,13 @@ func GetSession(w http.ResponseWriter, r *http.Request) *sessions.Session {
 
 	session, err := SessionStore.Get(r, Config.GetSessionName())
 
-	if r != nil && (r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https") {
-		session.Options.Secure = true
-	} else {
-		session.Options.Secure = false
+	isHTTPS := false
+	if r != nil {
+		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" || (r.URL != nil && r.URL.Scheme == "https") {
+			isHTTPS = true
+		}
 	}
+	session.Options.Secure = isHTTPS
 
 	session, err = sanitizeSession(w, r, session, err)
 	if err != nil {
@@ -443,11 +451,7 @@ func GetSession(w http.ResponseWriter, r *http.Request) *sessions.Session {
 
 			// Create a brand new session object in-place for subsequent uses
 			session, _ = SessionStore.New(r, Config.GetSessionName())
-			if r != nil && (r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https") {
-				session.Options.Secure = true
-			} else {
-				session.Options.Secure = false
-			}
+			session.Options.Secure = isHTTPS
 			session.Values = make(map[interface{}]interface{})
 			session.IsNew = true
 		}

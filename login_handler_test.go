@@ -142,7 +142,6 @@ func TestOauth2CallbackRedirect(t *testing.T) {
 
 	session, _ := SessionStore.Get(req, Config.GetSessionName())
 	session.Values["OauthState"] = "mocknonce"
-	session.Values["version"] = version
 	ctx = context.WithValue(ctx, ContextValues("session"), session)
 	req = req.WithContext(ctx)
 
