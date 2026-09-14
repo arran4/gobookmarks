@@ -19,12 +19,25 @@ func TestSearchJSOrder(t *testing.T) {
 		t.Fatalf("failed to read tail.gohtml: %v", err)
 	}
 
-	jsScript := string(htmlContent)
-	startIdx := strings.Index(jsScript, "<script>")
-	endIdx := strings.LastIndex(jsScript, "</script>")
-	if startIdx != -1 && endIdx != -1 {
-		jsScript = jsScript[startIdx+8 : endIdx]
+	rawHTML := string(htmlContent)
+	var jsScript string
+	for {
+		startIdx := strings.Index(rawHTML, "<script>")
+		if startIdx == -1 {
+			break
+		}
+		endIdx := strings.Index(rawHTML[startIdx:], "</script>")
+		if endIdx == -1 {
+			break
+		}
+		block := rawHTML[startIdx+8 : startIdx+endIdx]
+		if strings.Contains(block, "function updateSearch()") {
+			jsScript = block
+			break
+		}
+		rawHTML = rawHTML[startIdx+endIdx+9:]
 	}
+
 	jsScript = strings.Replace(jsScript, "var searchResults = [];", "global.searchResults = [];", 1)
 	jsScript = strings.ReplaceAll(jsScript, "searchResults = [];", "global.searchResults = [];")
 	jsScript = strings.ReplaceAll(jsScript, "searchResults.push", "global.searchResults.push")
@@ -35,7 +48,9 @@ func TestSearchJSOrder(t *testing.T) {
 global.document = {
     querySelectorAll: function(sel) {
         if (sel === 'meta[name=\'base-title\']') return null;
-        if (sel === '.search-hidden') return [];
+        if (sel === '.search-hidden') {
+            return global.mockItems.filter(i => i.isHidden);
+        }
         if (sel === '.search-selected') return [];
         if (sel === '.tab-panel') return global.mockTabPanels;
         if (sel === '#tab-list li, #page-list li') return [];
@@ -169,16 +184,24 @@ global.mockOriginalLists = [
 ];
 
 let items = [
-    createLI('Apple', 'https://example.com/fruit'),
-    createLI('Banana', 'https://github.com/banana'),
-    createLI('Some docs', 'https://github.com/issues'),
-    createLI('GitHub', 'https://github.com'),
+    createLI('Apple', 'https://example.com/fruit', false),
+    createLI('Banana docs', 'https://github.com/banana', false),
+    createLI('Some docs', 'https://github.com/issues', false),
+    createLI('GitHub', 'https://github.com', false),
+    createLI('Extra github', 'https://github.com/extra', false), // title+URL match
+    createLI('Docs repo', 'https://github.com/docs', false),
 ];
 
+// List 1
 global.mockOriginalLists[0].appendChild(items[0]);
 global.mockOriginalLists[0].appendChild(items[1]);
 global.mockOriginalLists[0].appendChild(items[2]);
+// List 2
 global.mockOriginalLists[1].appendChild(items[3]);
+global.mockOriginalLists[1].appendChild(items[4]);
+global.mockOriginalLists[1].appendChild(items[5]);
+
+global.mockItems = items;
 
 var searchMode = false;
 var currentTabIndex = 0;
@@ -200,7 +223,7 @@ global.mockSearchBox.addEventListener = function(event, callback) {
 
 global.initAppCallbacks.forEach(cb => cb());
 
-function testCycle(query, expectedLength, expectedFirst, expectedSecond) {
+function testCycle(query, expectedTitlesInOrder) {
     global.mockSearchBox.value = query;
     global.mockSearchBox._listeners.forEach(cb => cb());
 
@@ -211,21 +234,35 @@ function testCycle(query, expectedLength, expectedFirst, expectedSecond) {
             process.exit(1);
         }
 
-        if (global.mockOriginalLists[0].children.length !== 3 || global.mockOriginalLists[1].children.length !== 1) {
+        if (global.mockOriginalLists[0].children.length !== 3 || global.mockOriginalLists[1].children.length !== 3) {
             console.error("Expected lists to be fully restored. List 1: " + global.mockOriginalLists[0].children.length + ", List 2: " + global.mockOriginalLists[1].children.length);
             process.exit(1);
         }
 
-        var title0 = global.mockOriginalLists[0].children[0].querySelector('a[target="_blank"]').textContent;
-        var title2 = global.mockOriginalLists[0].children[2].querySelector('a[target="_blank"]').textContent;
-        if (title0 !== 'Apple' || title2 !== 'Some docs') {
-            console.error("Order incorrect after restore: " + title0 + " ... " + title2);
-            process.exit(1);
+        var titles = [
+            global.mockOriginalLists[0].children[0].querySelector('a[target="_blank"]').textContent,
+            global.mockOriginalLists[0].children[1].querySelector('a[target="_blank"]').textContent,
+            global.mockOriginalLists[0].children[2].querySelector('a[target="_blank"]').textContent,
+            global.mockOriginalLists[1].children[0].querySelector('a[target="_blank"]').textContent,
+            global.mockOriginalLists[1].children[1].querySelector('a[target="_blank"]').textContent,
+            global.mockOriginalLists[1].children[2].querySelector('a[target="_blank"]').textContent,
+        ];
+
+        var expectedTitles = ['Apple', 'Banana docs', 'Some docs', 'GitHub', 'Extra github', 'Docs repo'];
+        for (let i = 0; i < titles.length; i++) {
+            if (titles[i] !== expectedTitles[i]) {
+                console.error("Order incorrect after restore at index " + i + ": " + titles[i] + " != " + expectedTitles[i]);
+                process.exit(1);
+            }
         }
 
         [...global.mockOriginalLists[0].children, ...global.mockOriginalLists[1].children].forEach(li => {
             if (li._searchPlaceholder) {
                 console.error("Placeholder remained after clear for: " + li.querySelector('a[target="_blank"]').textContent);
+                process.exit(1);
+            }
+            if (li.isHidden) {
+                console.error("Item remained hidden after clear for: " + li.querySelector('a[target="_blank"]').textContent);
                 process.exit(1);
             }
         });
@@ -238,23 +275,15 @@ function testCycle(query, expectedLength, expectedFirst, expectedSecond) {
         process.exit(1);
     }
 
-    if (globalList.children.length !== expectedLength) {
-        console.error("Expected " + expectedLength + " children in global list, got " + globalList.children.length);
+    if (globalList.children.length !== expectedTitlesInOrder.length) {
+        console.error("Expected " + expectedTitlesInOrder.length + " children in global list, got " + globalList.children.length);
         process.exit(1);
     }
 
-    if (expectedFirst) {
-        var firstResult = globalList.children[0].querySelector('a[target="_blank"]').textContent;
-        if (firstResult !== expectedFirst) {
-            console.error("Expected '" + expectedFirst + "' to be first, got '" + firstResult + "'");
-            process.exit(1);
-        }
-    }
-
-    if (expectedSecond) {
-        var secondResult = globalList.children[1].querySelector('a[target="_blank"]').textContent;
-        if (secondResult !== expectedSecond) {
-            console.error("Expected '" + expectedSecond + "' to be second, got '" + secondResult + "'");
+    for (let i = 0; i < expectedTitlesInOrder.length; i++) {
+        var res = globalList.children[i].querySelector('a[target="_blank"]').textContent;
+        if (res !== expectedTitlesInOrder[i]) {
+            console.error("Expected '" + expectedTitlesInOrder[i] + "' at index " + i + ", got '" + res + "'");
             process.exit(1);
         }
     }
@@ -274,18 +303,44 @@ function testCycle(query, expectedLength, expectedFirst, expectedSecond) {
     });
 
     [...global.mockOriginalLists[0].children, ...global.mockOriginalLists[1].children].forEach(li => {
-        if (li._searchPlaceholder) {
-            console.error("Unmatched item unexpectedly has placeholder: " + li.querySelector('a[target="_blank"]').textContent);
-            process.exit(1);
+        if (li && li.querySelector) {
+            if (li._searchPlaceholder) {
+                console.error("Unmatched item unexpectedly has placeholder: " + li.querySelector('a[target="_blank"]').textContent);
+                process.exit(1);
+            }
+            if (!li.isHidden) {
+                console.error("Unmatched item is not hidden: " + li.querySelector('a[target="_blank"]').textContent);
+                process.exit(1);
+            }
         }
     });
 }
 
-testCycle('github', 3, 'GitHub', 'Banana');
-testCycle('docs', 1, 'Some docs');
-testCycle('', 0);
-testCycle('apple', 1, 'Apple');
-testCycle('', 0);
+// 1. Query 'github':
+// Title matches: 'GitHub' (List 2), 'Extra github' (List 2)
+// URL matches: 'Banana docs' (List 1), 'Some docs' (List 1), 'Docs repo' (List 2)
+// Should sort: Title matches (original order), URL matches (original order)
+// Result: 'GitHub', 'Extra github', 'Banana docs', 'Some docs', 'Docs repo'
+testCycle('github', ['GitHub', 'Extra github', 'Banana docs', 'Some docs', 'Docs repo']);
+
+// 2. Query 'docs':
+// Title matches: 'Banana docs' (List 1), 'Some docs' (List 1), 'Docs repo' (List 2)
+// URL matches: none
+testCycle('docs', ['Banana docs', 'Some docs', 'Docs repo']);
+
+// 3. Clear
+testCycle('', []);
+
+// 4. Query 'apple'
+testCycle('apple', ['Apple']);
+
+// 5. Query 'issues'
+// Title matches: none
+// URL matches: 'Some docs' (List 1)
+testCycle('issues', ['Some docs']);
+
+// 6. Clear again
+testCycle('', []);
 
 console.log("Success");
 `
@@ -293,12 +348,12 @@ console.log("Success");
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	if _, err := tmpFile.Write([]byte(testScript)); err != nil {
 		t.Fatalf("failed to write test script: %v", err)
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	cmd := exec.Command("node", tmpFile.Name())
 	var out bytes.Buffer
