@@ -504,11 +504,6 @@
 
                         var items = document.querySelectorAll('.bookmark-entries:not(#global-search-results) li');
                         items.forEach(function(li) {
-                            if (!li._searchPlaceholder) {
-                                var placeholder = document.createComment('search-placeholder');
-                                li.parentNode.insertBefore(placeholder, li);
-                                li._searchPlaceholder = placeholder;
-                            }
                             var a = li.querySelector('a[target="_blank"]');
                             var input = li.querySelector('input.search-widget');
                             var text = '';
@@ -532,15 +527,18 @@
                             }
                         });
 
-                        titleMatches.forEach(function(li) {
+                        function moveMatchToGlobal(li) {
+                            if (!li._searchPlaceholder) {
+                                var placeholder = document.createComment('search-placeholder');
+                                li.parentNode.insertBefore(placeholder, li);
+                                li._searchPlaceholder = placeholder;
+                            }
                             globalList.appendChild(li);
                             searchResults.push(li);
-                        });
+                        }
 
-                        urlMatches.forEach(function(li) {
-                            globalList.appendChild(li);
-                            searchResults.push(li);
-                        });
+                        titleMatches.forEach(moveMatchToGlobal);
+                        urlMatches.forEach(moveMatchToGlobal);
 
                         var navItems = document.querySelectorAll('#tab-list li, #page-list li');
                         navItems.forEach(function(li) {

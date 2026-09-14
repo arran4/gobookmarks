@@ -32,4 +32,4 @@ dist/
 /.idea/
 /*.patch
 /*.py
-/*.logvenv/
+/*.log

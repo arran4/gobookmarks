@@ -25,6 +25,11 @@ func TestSearchJSOrder(t *testing.T) {
 	if startIdx != -1 && endIdx != -1 {
 		jsScript = jsScript[startIdx+8 : endIdx]
 	}
+	jsScript = strings.Replace(jsScript, "var searchResults = [];", "global.searchResults = [];", 1)
+	jsScript = strings.ReplaceAll(jsScript, "searchResults = [];", "global.searchResults = [];")
+	jsScript = strings.ReplaceAll(jsScript, "searchResults.push", "global.searchResults.push")
+	jsScript = strings.ReplaceAll(jsScript, "searchResults[", "global.searchResults[")
+	jsScript = strings.ReplaceAll(jsScript, "searchResults.length", "global.searchResults.length")
 
 	testScript := `
 global.document = {
@@ -35,7 +40,14 @@ global.document = {
         if (sel === '.tab-panel') return global.mockTabPanels;
         if (sel === '#tab-list li, #page-list li') return [];
         if (sel === '.bookmark-entries:not(#global-search-results) li' || sel === '.bookmark-entries li') {
-            return global.mockItems;
+            var results = [];
+            global.mockOriginalLists.forEach(ul => {
+                results = results.concat(ul.children);
+            });
+            if (sel.indexOf(':not') === -1 && global.mockTabContent.firstChild) {
+                results = results.concat(global.mockTabContent.firstChild.children);
+            }
+            return results;
         }
         return [];
     },
@@ -45,13 +57,29 @@ global.document = {
             style: {},
             children: [],
             appendChild: function(child) {
+                if (child.parentNode) {
+                    child.parentNode.removeChild(child);
+                }
                 this.children.push(child);
                 child.parentNode = this;
             },
             removeChild: function(child) {
                 this.children = this.children.filter(c => c !== child);
+                child.parentNode = null;
             },
-            classList: { add: function(){} }
+            insertBefore: function(newNode, refNode) {
+                if (newNode.parentNode) {
+                    newNode.parentNode.removeChild(newNode);
+                }
+                const idx = this.children.indexOf(refNode);
+                if (idx !== -1) {
+                    this.children.splice(idx, 0, newNode);
+                } else {
+                    this.children.push(newNode);
+                }
+                newNode.parentNode = this;
+            },
+            classList: { add: function(){}, remove: function(){} }
         };
     },
     createComment: function(text) {
@@ -67,16 +95,18 @@ global.document = {
     },
     addEventListener: function(event, callback) {
         if (event === 'DOMContentLoaded') {
-            global.initApp = callback;
+            global.initAppCallbacks.push(callback);
         }
     },
     dispatchEvent: function() {},
     body: { addEventListener: function(){}, dataset: {tab: '0'} },
-    activeElement: null
+    activeElement: null,
+    documentElement: { getAttribute: function(){ return null; }, setAttribute: function(){}, removeAttribute: function(){} }
 };
 
+global.initAppCallbacks = [];
 global.window = { location: { hash: '', search: '' }, addEventListener: function() {}, open: function(){} };
-global.localStorage = { getItem: function() { return null; }, setItem: function() {} };
+global.localStorage = { getItem: function() { return null; }, setItem: function() {}, removeItem: function() {} };
 global.location = global.window.location;
 global.Event = class { constructor() {} };
 
@@ -86,15 +116,18 @@ global.mockTabContent = {
     dataset: {},
     children: [],
     insertBefore: function(node, ref) {
+        if (node.parentNode) node.parentNode.removeChild(node);
         this.firstChild = node;
         node.parentNode = this;
     },
     appendChild: function(node) {
+        if (node.parentNode) node.parentNode.removeChild(node);
         this.firstChild = node;
         node.parentNode = this;
     },
     removeChild: function(node) {
         if (this.firstChild === node) this.firstChild = null;
+        node.parentNode = null;
     },
     firstChild: null,
     querySelectorAll: function() { return global.mockTabPanels; }
@@ -104,9 +137,13 @@ global.mockTabPanels = [
     { style: {}, dataset: { tabIndex: '0' }, classList: { toggle: function(){} }, querySelectorAll: function(){ return []; } }
 ];
 
-function createLI(title, url) {
+function createLI(title, url, hiddenClass) {
     let li = {
-        classList: { add: function(){}, remove: function(){} },
+        classList: {
+            add: function(c){ if(c==='search-hidden') li.isHidden = true; },
+            remove: function(c){ if(c==='search-hidden') li.isHidden = false; }
+        },
+        isHidden: hiddenClass,
         querySelector: function(sel) {
             if (sel === 'a[target="_blank"]') {
                 return {
@@ -120,24 +157,28 @@ function createLI(title, url) {
         closest: function() { return null; },
         scrollIntoView: function() {}
     };
-
-    // Minimal mock for parentNode
-    li.parentNode = {
-        insertBefore: function(newNode, refNode) {
-            newNode.parentNode = this;
-        },
-        removeChild: function(child) {
-            child.parentNode = null;
-        }
-    };
+    li.parentNode = null;
     li.nextSibling = null;
+    li._searchPlaceholder = undefined;
     return li;
 }
 
-global.mockItems = [
+global.mockOriginalLists = [
+    global.document.createElement('ul'),
+    global.document.createElement('ul')
+];
+
+let items = [
+    createLI('Apple', 'https://example.com/fruit'),
+    createLI('Banana', 'https://github.com/banana'),
     createLI('Some docs', 'https://github.com/issues'),
     createLI('GitHub', 'https://github.com'),
 ];
+
+global.mockOriginalLists[0].appendChild(items[0]);
+global.mockOriginalLists[0].appendChild(items[1]);
+global.mockOriginalLists[0].appendChild(items[2]);
+global.mockOriginalLists[1].appendChild(items[3]);
 
 var searchMode = false;
 var currentTabIndex = 0;
@@ -145,10 +186,11 @@ function showAllTabsForSearch() {}
 function currentPage() { return 1; }
 function restoreInitial() {}
 function setActiveTab() {}
+function updateVisibility() {}
+function updatePageList() {}
 
 ` + jsScript + `
 
-// Intercept addEventListener on searchBox
 global.mockSearchBox._listeners = [];
 global.mockSearchBox.addEventListener = function(event, callback) {
     if (event === 'input') {
@@ -156,10 +198,9 @@ global.mockSearchBox.addEventListener = function(event, callback) {
     }
 };
 
-// Execute the DOMContentLoaded callback
-global.initApp();
+global.initAppCallbacks.forEach(cb => cb());
 
-function testCycle(query, expectedLength, expectedFirst) {
+function testCycle(query, expectedLength, expectedFirst, expectedSecond) {
     global.mockSearchBox.value = query;
     global.mockSearchBox._listeners.forEach(cb => cb());
 
@@ -169,6 +210,26 @@ function testCycle(query, expectedLength, expectedFirst) {
             console.error("Expected global search results to be removed on empty query");
             process.exit(1);
         }
+
+        if (global.mockOriginalLists[0].children.length !== 3 || global.mockOriginalLists[1].children.length !== 1) {
+            console.error("Expected lists to be fully restored. List 1: " + global.mockOriginalLists[0].children.length + ", List 2: " + global.mockOriginalLists[1].children.length);
+            process.exit(1);
+        }
+
+        var title0 = global.mockOriginalLists[0].children[0].querySelector('a[target="_blank"]').textContent;
+        var title2 = global.mockOriginalLists[0].children[2].querySelector('a[target="_blank"]').textContent;
+        if (title0 !== 'Apple' || title2 !== 'Some docs') {
+            console.error("Order incorrect after restore: " + title0 + " ... " + title2);
+            process.exit(1);
+        }
+
+        [...global.mockOriginalLists[0].children, ...global.mockOriginalLists[1].children].forEach(li => {
+            if (li._searchPlaceholder) {
+                console.error("Placeholder remained after clear for: " + li.querySelector('a[target="_blank"]').textContent);
+                process.exit(1);
+            }
+        });
+
         return;
     }
 
@@ -182,40 +243,49 @@ function testCycle(query, expectedLength, expectedFirst) {
         process.exit(1);
     }
 
-    var firstResult = globalList.children[0].querySelector('a[target="_blank"]').textContent;
-    if (firstResult !== expectedFirst) {
-        console.error("Expected '" + expectedFirst + "' to be first, got '" + firstResult + "'");
-        process.exit(1);
+    if (expectedFirst) {
+        var firstResult = globalList.children[0].querySelector('a[target="_blank"]').textContent;
+        if (firstResult !== expectedFirst) {
+            console.error("Expected '" + expectedFirst + "' to be first, got '" + firstResult + "'");
+            process.exit(1);
+        }
     }
 
-    // Ensure all items have placeholders
+    if (expectedSecond) {
+        var secondResult = globalList.children[1].querySelector('a[target="_blank"]').textContent;
+        if (secondResult !== expectedSecond) {
+            console.error("Expected '" + expectedSecond + "' to be second, got '" + secondResult + "'");
+            process.exit(1);
+        }
+    }
+
+    for (let i = 0; i < global.searchResults.length; i++) {
+        if (global.searchResults[i] !== globalList.children[i]) {
+            console.error("Keyboard order does not match visual order at index " + i);
+            process.exit(1);
+        }
+    }
+
     globalList.children.forEach(li => {
         if (!li._searchPlaceholder) {
-            console.error("Item missing search placeholder");
+            console.error("Item missing search placeholder: " + li.querySelector('a[target="_blank"]').textContent);
+            process.exit(1);
+        }
+    });
+
+    [...global.mockOriginalLists[0].children, ...global.mockOriginalLists[1].children].forEach(li => {
+        if (li._searchPlaceholder) {
+            console.error("Unmatched item unexpectedly has placeholder: " + li.querySelector('a[target="_blank"]').textContent);
             process.exit(1);
         }
     });
 }
 
-// 1. Search for 'github'
-testCycle('github', 2, 'GitHub');
-
-// 2. Search for 'docs' (changes matches)
+testCycle('github', 3, 'GitHub', 'Banana');
 testCycle('docs', 1, 'Some docs');
-
-// 3. Search for 'github' again
-testCycle('github', 2, 'GitHub');
-
-// 4. Clear search
-testCycle('', 0, '');
-
-// Verify items were restored (placeholders removed)
-global.mockItems.forEach(li => {
-    if (li._searchPlaceholder !== null) {
-        console.error("Search placeholder not cleaned up");
-        process.exit(1);
-    }
-});
+testCycle('', 0);
+testCycle('apple', 1, 'Apple');
+testCycle('', 0);
 
 console.log("Success");
 `
