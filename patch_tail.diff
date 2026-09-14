@@ -1,0 +1,133 @@
+<<<<<<< SEARCH
+                    function resetResults() {
+                        document.querySelectorAll('.search-hidden').forEach(function(el){
+                            el.classList.remove('search-hidden');
+                        });
+                        document.querySelectorAll('.search-selected').forEach(function(el){
+                            el.classList.remove('search-selected');
+                        });
+                        searchResults = [];
+                        selectedIndex = 0;
+                    }
+=======
+                    function resetResults() {
+                        var globalList = document.getElementById('global-search-results');
+                        if (globalList) {
+                            var items = Array.prototype.slice.call(globalList.children);
+                            items.forEach(function(li) {
+                                if (li._searchPlaceholder && li._searchPlaceholder.parentNode) {
+                                    li._searchPlaceholder.parentNode.insertBefore(li, li._searchPlaceholder);
+                                    li._searchPlaceholder.parentNode.removeChild(li._searchPlaceholder);
+                                    li._searchPlaceholder = null;
+                                }
+                            });
+                            globalList.parentNode.removeChild(globalList);
+                        }
+
+                        document.querySelectorAll('.tab-panel').forEach(function(el) {
+                            el.style.display = '';
+                        });
+
+                        document.querySelectorAll('.search-hidden').forEach(function(el){
+                            el.classList.remove('search-hidden');
+                        });
+                        document.querySelectorAll('.search-selected').forEach(function(el){
+                            el.classList.remove('search-selected');
+                        });
+                        searchResults = [];
+                        selectedIndex = 0;
+                    }
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                        if (initialHash === '') {
+                            initialHash = location.hash;
+                            initialPage = currentPage();
+                        }
+                        var items = document.querySelectorAll('.bookmark-entries li');
+                        items.forEach(function(li) {
+                            var a = li.querySelector('a[target="_blank"]');
+                            var input = li.querySelector('input.search-widget');
+                            var text = '';
+                            var url = '';
+                            if (a) {
+                                text = a.textContent.toLowerCase();
+                                url = a.getAttribute('href').toLowerCase();
+                            } else if (input) {
+                                text = input.getAttribute('placeholder').toLowerCase();
+                                url = (input.dataset.searchUrl || '').toLowerCase();
+                            } else {
+                                return;
+                            }
+                            if (text.indexOf(q) !== -1 || url.indexOf(q) !== -1) {
+                                searchResults.push(li);
+                            } else {
+                                li.classList.add('search-hidden');
+                            }
+                        });
+
+                        var navItems = document.querySelectorAll('#tab-list li, #page-list li');
+=======
+                        if (initialHash === '') {
+                            initialHash = location.hash;
+                            initialPage = currentPage();
+                        }
+
+                        var globalList = document.createElement('ul');
+                        globalList.id = 'global-search-results';
+                        globalList.className = 'bookmark-entries';
+                        globalList.style.listStyleType = 'none';
+                        if (tabContent.firstChild) {
+                            tabContent.insertBefore(globalList, tabContent.firstChild);
+                        } else {
+                            tabContent.appendChild(globalList);
+                        }
+
+                        document.querySelectorAll('.tab-panel').forEach(function(el) {
+                            el.style.display = 'none';
+                        });
+
+                        var titleMatches = [];
+                        var urlMatches = [];
+
+                        var items = document.querySelectorAll('.bookmark-entries:not(#global-search-results) li');
+                        items.forEach(function(li) {
+                            if (!li._searchPlaceholder) {
+                                var placeholder = document.createComment('search-placeholder');
+                                li.parentNode.insertBefore(placeholder, li);
+                                li._searchPlaceholder = placeholder;
+                            }
+                            var a = li.querySelector('a[target="_blank"]');
+                            var input = li.querySelector('input.search-widget');
+                            var text = '';
+                            var url = '';
+                            if (a) {
+                                text = a.textContent.toLowerCase();
+                                url = a.getAttribute('href').toLowerCase();
+                            } else if (input) {
+                                text = input.getAttribute('placeholder').toLowerCase();
+                                url = (input.dataset.searchUrl || '').toLowerCase();
+                            } else {
+                                return;
+                            }
+
+                            if (text.indexOf(q) !== -1) {
+                                titleMatches.push(li);
+                            } else if (url.indexOf(q) !== -1) {
+                                urlMatches.push(li);
+                            } else {
+                                li.classList.add('search-hidden');
+                            }
+                        });
+
+                        titleMatches.forEach(function(li) {
+                            globalList.appendChild(li);
+                            searchResults.push(li);
+                        });
+
+                        urlMatches.forEach(function(li) {
+                            globalList.appendChild(li);
+                            searchResults.push(li);
+                        });
+
+                        var navItems = document.querySelectorAll('#tab-list li, #page-list li');
+>>>>>>> REPLACE
