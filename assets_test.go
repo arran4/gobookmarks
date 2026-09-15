@@ -14,8 +14,9 @@ func TestAssetRegistry(t *testing.T) {
 	pngContent := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 
 	mockFS := fstest.MapFS{
-		"main.css": &fstest.MapFile{Data: cssContent},
-		"logo.png": &fstest.MapFile{Data: pngContent},
+		"main.css":    &fstest.MapFile{Data: cssContent},
+		"logo.png":    &fstest.MapFile{Data: pngContent},
+		"web/app.mjs": &fstest.MapFile{Data: []byte("console.log('app');")},
 	}
 
 	reg, err := NewRegistry(mockFS, false)
@@ -102,10 +103,11 @@ func TestAssetRegistry(t *testing.T) {
 
 func TestNonPublicAssets(t *testing.T) {
 	mockFS := fstest.MapFS{
-		"main.css":   &fstest.MapFile{Data: []byte("css")},
-		"logo.png":   &fstest.MapFile{Data: []byte("png")},
-		"secret.txt": &fstest.MapFile{Data: []byte("secret")},
-		"README.md":  &fstest.MapFile{Data: []byte("readme")},
+		"main.css":    &fstest.MapFile{Data: []byte("css")},
+		"logo.png":    &fstest.MapFile{Data: []byte("png")},
+		"web/app.mjs": &fstest.MapFile{Data: []byte("console.log('app');")},
+		"secret.txt":  &fstest.MapFile{Data: []byte("secret")},
+		"README.md":   &fstest.MapFile{Data: []byte("readme")},
 	}
 
 	reg, err := NewRegistry(mockFS, false)

@@ -167,6 +167,8 @@ func testFuncMap() template.FuncMap {
 			return TaskSaveAndDone
 		},
 		"taskSaveAndStopEditing": func() string { return TaskSaveAndStopEditing },
+		"jsMode":                 func() string { return "" },
+		"appJs":                  func() template.JS { return "" },
 		"useCssColumns":          func() bool { return false },
 	}
 }

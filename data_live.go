@@ -106,6 +106,21 @@ func GetMainCSSData() []byte {
 	return b
 }
 
+func GetAppJSData() []byte {
+	fsPath := "web/app.mjs"
+	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
+		fsPath = "../../web/app.mjs"
+	}
+	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
+		fsPath = "../web/app.mjs"
+	}
+	b, err := os.ReadFile(fsPath)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
 func GetFavicon() []byte {
 	fsPath := "logo.png"
 	if _, err := os.Stat(fsPath); os.IsNotExist(err) {
