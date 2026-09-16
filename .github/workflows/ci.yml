@@ -331,6 +331,25 @@ jobs:
       - name: Test (Live)
         run: go test -tags=live ./... -v
 
+
+  node-test:
+    name: Node JS test (${{ matrix.os }})
+    needs: [route, discover]
+    if: ${{ needs.route.outputs.run_code_checks == 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Node tests
+        run: node --test web/app.test.mjs
+
   go-vet:
     name: Go vet
     needs: [route, discover]
@@ -346,14 +365,15 @@ jobs:
 
   release-validation:
     name: Release Validation Gate
-    needs: [route, discover, golangci, go-test, go-vet]
+    needs: [route, discover, golangci, go-test, go-vet, node-test]
     if: |
       !failure() && !cancelled() &&
       needs.route.result == 'success' &&
       needs.discover.result == 'success' &&
       (needs.discover.outputs.has_go != 'true' || needs.golangci.result == 'success') &&
       (needs.discover.outputs.has_go != 'true' || needs.go-test.result == 'success') &&
-      (needs.discover.outputs.has_go != 'true' || needs.discover.outputs.profile != 'public' || needs.go-vet.result == 'success')
+      (needs.discover.outputs.has_go != 'true' || needs.discover.outputs.profile != 'public' || needs.go-vet.result == 'success') &&
+      (needs.node-test.result == 'success' || needs.node-test.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - run: echo "All required language checks passed."

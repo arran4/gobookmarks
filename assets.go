@@ -46,7 +46,7 @@ func (r *Registry) Reload() error {
 	logicalToURL := make(map[string]string)
 	urlToAsset := make(map[string]*Asset)
 
-	publicAssets := []string{"main.css", "logo.png"}
+	publicAssets := []string{"main.css", "logo.png", "web/app.mjs"}
 
 	for _, p := range publicAssets {
 		b, err := fs.ReadFile(r.fsys, p)
@@ -131,6 +131,9 @@ func (r *Registry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Since these are embedded assets, we might not have a real ModTime.
 	// We pass time.Time{} and let ETag handle validation.
+	if strings.HasSuffix(req.URL.Path, ".mjs") {
+		w.Header().Set("Content-Type", "application/javascript")
+	}
 	http.ServeContent(w, req, req.URL.Path, time.Time{}, bytes.NewReader(asset.Bytes))
 }
 

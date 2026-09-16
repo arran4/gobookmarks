@@ -11,7 +11,7 @@ import (
 var (
 	//go:embed all:templates
 	templateFS embed.FS
-	//go:embed "main.css" "logo.png"
+	//go:embed "main.css" "logo.png" "web/app.mjs"
 	assetFS           embed.FS
 	compiledTemplates *template.Template
 	compileOnce       sync.Once
@@ -55,6 +55,14 @@ func GetCompiledTemplates(funcs template.FuncMap) *template.Template {
 
 func GetMainCSSData() []byte {
 	b, err := assetFS.ReadFile("main.css")
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func GetAppJSData() []byte {
+	b, err := assetFS.ReadFile("web/app.mjs")
 	if err != nil {
 		panic(err)
 	}

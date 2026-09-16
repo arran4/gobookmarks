@@ -41,3 +41,13 @@ func TestGetCompiledTemplates_FuncOverride(t *testing.T) {
 		t.Errorf("expected output to contain 'OVERRIDDEN_VERSION', but got:\n%s", output)
 	}
 }
+
+func TestAppJSEmbed(t *testing.T) {
+	b := GetAppJSData()
+	if len(b) == 0 {
+		t.Fatalf("expected web/app.mjs to be embedded, got empty")
+	}
+	if !strings.Contains(string(b), "performSearch") {
+		t.Errorf("GetAppJSData does not contain expected function")
+	}
+}

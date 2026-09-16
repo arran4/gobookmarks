@@ -48,7 +48,9 @@ func NewFuncs(r *http.Request) template.FuncMap {
 		r = httptest.NewRequest("GET", "/", nil)
 	}
 	return map[string]any{
-		"now": func() time.Time { return time.Now() },
+		"now":    func() time.Time { return time.Now() },
+		"jsMode": func() string { return r.URL.Query().Get("js") },
+		"appJs":  func() template.JS { return template.JS(GetAppJSData()) },
 		"asset": func(p string) (string, error) {
 			return AssetURL(p)
 		},
