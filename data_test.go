@@ -1,6 +1,7 @@
 package gobookmarks
 
 import (
+	"bytes"
 	"html/template"
 	"io"
 	"net/http/httptest"
@@ -244,28 +245,82 @@ func TestExecuteTemplates(t *testing.T) {
 	}
 }
 
+
+
+
+
+
 func TestAppJSRenderModes(t *testing.T) {
-	// 1. Inline default
-	req := httptest.NewRequest("GET", "/", nil)
-	funcs := NewFuncs(req)
-	mode := funcs["jsMode"].(func() string)()
-	if mode != "" {
-		t.Errorf("expected empty string for missing js parameter")
+	// Only parse tail.gohtml to avoid full func map requirements
+	tpl := template.New("tail")
+	b, _ := os.ReadFile("templates/tail.gohtml")
+
+	// Add required dummy functions used specifically in tail.gohtml
+	funcs := testFuncMap()
+	funcs["asset"] = func(s string) (string, error) { return "/assets/" + s, nil }
+	funcs["jsMode"] = func() string { return "" }
+	funcs["appJs"] = func() template.JS { return "" }
+	funcs["branchOrEditBranch"] = func() string { return "" }
+	funcs["ref"] = func() string { return "" }
+	funcs["bookmarksSHA"] = func() string { return "" }
+	funcs["taskSaveAndStopEditing"] = func() string { return "" }
+
+	tpl, err := tpl.Funcs(funcs).Parse(string(b))
+	if err != nil {
+		t.Fatalf("template parse error: %v", err)
 	}
 
-	// 2. Inline explicit
-	req = httptest.NewRequest("GET", "/?js=inline", nil)
-	funcs = NewFuncs(req)
-	mode = funcs["jsMode"].(func() string)()
-	if mode != "inline" {
-		t.Errorf("expected inline, got %s", mode)
+	appJsData := GetAppJSData()
+
+	runTest := func(name, jsQuery string, expectedInline bool) {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/?js="+jsQuery, nil)
+
+			clone, _ := tpl.Clone()
+
+			// Override specific funcs for this run
+			runFuncs := template.FuncMap{
+				"jsMode": func() string { return req.URL.Query().Get("js") },
+				"appJs": func() template.JS { return template.JS(appJsData) },
+			}
+			clone = clone.Funcs(runFuncs)
+
+			var buf bytes.Buffer
+			err := clone.Execute(&buf, map[string]any{
+				"loggedIn": true,
+			})
+			if err != nil {
+				t.Fatalf("execute error: %v", err)
+			}
+
+			out := buf.String()
+
+			if expectedInline {
+				if !strings.Contains(out, "<script type=\"module\">") {
+					t.Errorf("expected inline script tag")
+				}
+				if !strings.Contains(out, string(appJsData)) {
+					t.Errorf("expected inline source code")
+				}
+				if strings.Contains(out, "src=\"/assets/web/app") {
+					t.Errorf("did not expect asset src link")
+				}
+			} else {
+				if !strings.Contains(out, "import { initApp }") {
+					t.Errorf("expected module import block")
+				}
+				if !strings.Contains(out, "import { initApp } from ") || !strings.Contains(out, "assets") || !strings.Contains(out, "app.mjs") {
+					t.Errorf("expected fingerprinted URL usage\nGot:\n%s", out)
+				}
+				if strings.Contains(out, string(appJsData)) {
+					t.Errorf("did not expect full inline source code")
+				}
+			}
+		})
 	}
 
-	// 3. Asset
-	req = httptest.NewRequest("GET", "/?js=asset", nil)
-	funcs = NewFuncs(req)
-	mode = funcs["jsMode"].(func() string)()
-	if mode != "asset" {
-		t.Errorf("expected asset, got %s", mode)
-	}
+	runTest("default inline", "", true)
+	runTest("explicit inline", "inline", true)
+	runTest("asset mode", "asset", false)
+	runTest("unknown fallback to inline", "unknown", true)
 }
