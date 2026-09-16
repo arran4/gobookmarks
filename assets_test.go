@@ -173,3 +173,35 @@ func TestProductionMissingAssetFails(t *testing.T) {
 		t.Fatalf("expected NewRegistry to fail when an expected public asset is missing in production mode")
 	}
 }
+
+func TestAppJsAsset(t *testing.T) {
+	mockFS := fstest.MapFS{
+		"main.css":    &fstest.MapFile{Data: []byte("css")},
+		"logo.png":    &fstest.MapFile{Data: []byte("png")},
+		"web/app.mjs": &fstest.MapFile{Data: []byte("console.log('app');")},
+	}
+
+	reg, err := NewRegistry(mockFS, false)
+	if err != nil {
+		t.Fatalf("NewRegistry failed: %v", err)
+	}
+	assetRegistry = reg
+
+	jsURL, err := AssetURL("web/app.mjs")
+	if err != nil {
+		t.Fatalf("AssetURL(web/app.mjs) failed: %v", err)
+	}
+	if jsURL == "" || jsURL == "/web/app.mjs" {
+		t.Errorf("expected fingerprinted asset URL, got %s", jsURL)
+	}
+
+	// Verify MIME type is served for .mjs
+	req := httptest.NewRequest("GET", jsURL, nil)
+	w := httptest.NewRecorder()
+	reg.ServeHTTP(w, req)
+	resp := w.Result()
+
+	if resp.Header.Get("Content-Type") != "application/javascript" {
+		t.Errorf("expected application/javascript MIME type, got %s", resp.Header.Get("Content-Type"))
+	}
+}

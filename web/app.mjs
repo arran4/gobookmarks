@@ -49,7 +49,6 @@ function performSearch(items, q) {
 }
 
 function initApp() {
-document.addEventListener('DOMContentLoaded', function () {
                     var editModal = document.getElementById('edit-modal');
                     var editModalContent = document.getElementById('edit-modal-content');
                     var closeModalBtn = document.getElementById('close-modal');
@@ -495,11 +494,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             el.style.display = 'none';
                         });
 
-                        var titleMatches = [];
-                        var urlMatches = [];
-
-                        var items = document.querySelectorAll('.bookmark-entries:not(#global-search-results) li');
-                        items.forEach(function(li) {
+                        var domItems = document.querySelectorAll('.bookmark-entries:not(#global-search-results) li');
+                        var searchCandidates = [];
+                        domItems.forEach(function(li) {
                             var a = li.querySelector('a[target="_blank"]');
                             var input = li.querySelector('input.search-widget');
                             var text = '';
@@ -513,12 +510,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             } else {
                                 return;
                             }
+                            searchCandidates.push({ title: text, url: url, originalItem: li });
+                        });
 
-                            if (text.indexOf(q) !== -1) {
-                                titleMatches.push(li);
-                            } else if (url.indexOf(q) !== -1) {
-                                urlMatches.push(li);
-                            } else {
+                        var matchResults = performSearch(searchCandidates, q);
+                        var titleMatches = matchResults.titleMatches;
+                        var urlMatches = matchResults.urlMatches;
+
+                        domItems.forEach(function(li) {
+                            if (titleMatches.indexOf(li) === -1 && urlMatches.indexOf(li) === -1) {
                                 li.classList.add('search-hidden');
                             }
                         });
@@ -858,5 +858,4 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                     });
-                });
 }
