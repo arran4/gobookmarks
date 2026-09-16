@@ -3,6 +3,7 @@ package gobookmarks
 import (
 	"html/template"
 	"io"
+	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
@@ -240,5 +241,31 @@ func TestExecuteTemplates(t *testing.T) {
 				t.Errorf("execute %s: %v", tt.tmpl, err)
 			}
 		})
+	}
+}
+
+func TestAppJSRenderModes(t *testing.T) {
+	// 1. Inline default
+	req := httptest.NewRequest("GET", "/", nil)
+	funcs := NewFuncs(req)
+	mode := funcs["jsMode"].(func() string)()
+	if mode != "" {
+		t.Errorf("expected empty string for missing js parameter")
+	}
+
+	// 2. Inline explicit
+	req = httptest.NewRequest("GET", "/?js=inline", nil)
+	funcs = NewFuncs(req)
+	mode = funcs["jsMode"].(func() string)()
+	if mode != "inline" {
+		t.Errorf("expected inline, got %s", mode)
+	}
+
+	// 3. Asset
+	req = httptest.NewRequest("GET", "/?js=asset", nil)
+	funcs = NewFuncs(req)
+	mode = funcs["jsMode"].(func() string)()
+	if mode != "asset" {
+		t.Errorf("expected asset, got %s", mode)
 	}
 }

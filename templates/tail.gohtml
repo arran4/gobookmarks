@@ -50,7 +50,6 @@
                 });
                                 {{ if eq jsMode "asset" }}
                 </script>
-                <script type="module" src="{{ asset "web/app.mjs" }}"></script>
                 <script type="module">
                     import { initApp } from '{{ asset "web/app.mjs" }}';
                     document.addEventListener('DOMContentLoaded', initApp);

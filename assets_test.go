@@ -185,9 +185,8 @@ func TestAppJsAsset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRegistry failed: %v", err)
 	}
-	assetRegistry = reg
 
-	jsURL, err := AssetURL("web/app.mjs")
+	jsURL, err := reg.AssetURL("web/app.mjs")
 	if err != nil {
 		t.Fatalf("AssetURL(web/app.mjs) failed: %v", err)
 	}
