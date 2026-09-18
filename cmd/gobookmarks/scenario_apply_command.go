@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type ScenarioApplyCommand struct {
@@ -64,7 +66,22 @@ func (c *ScenarioApplyCommand) Execute(args []string) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// This assumes config loading has happened if this command requires the real DB
+	// Config loading isn't triggered by main.go for scenario commands.
+	// If the user wants to apply to a real DB, they can load config. For now,
+	// we will initialize the disposable temp scenario backend if no connection is set.
+	rc := c.parent.Parent().(*RootCommand)
+	if rc.cfg.DBConnectionProvider == "" {
+		if err := setupScenarioBackend(); err != nil {
+			return err
+		}
+	} else {
+		// Just sync global config and session store to act like normal execution
+		gobookmarks.Config = rc.cfg
+		if gobookmarks.Config.SessionKey != "" {
+			gobookmarks.SessionStore = gobookmarks.InitSessionStore([]byte(gobookmarks.Config.SessionKey))
+		}
+	}
+
 	if err := ApplyScenario(context.Background(), scenario); err != nil {
 		return fmt.Errorf("failed to apply scenario: %w", err)
 	}

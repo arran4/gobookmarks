@@ -24,6 +24,22 @@ var operations = map[string]Operation{
 	"bookmark.create": &BookmarkCreateOp{},
 }
 
+func getScenarioProvider(e *Event) (gobookmarks.Provider, error) {
+	providerName := e.Props["Provider"]
+	if providerName == "" {
+		providerName = "sql"
+	}
+	p := gobookmarks.GetProvider(providerName)
+	if p == nil {
+		return nil, fmt.Errorf("provider not found: %s", providerName)
+	}
+	return p, nil
+}
+
+type userCreator interface {
+	CreateUser(ctx context.Context, user, password string) error
+}
+
 type UserCreateOp struct{}
 
 func (o *UserCreateOp) Validate(e *Event) error {
@@ -34,15 +50,18 @@ func (o *UserCreateOp) Validate(e *Event) error {
 }
 
 func (o *UserCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *Event) error {
-	p := gobookmarks.GetProvider("sql")
-	sqlP, ok := p.(*gobookmarks.SQLProvider)
+	p, err := getScenarioProvider(e)
+	if err != nil {
+		return err
+	}
+
+	uc, ok := p.(userCreator)
 	if !ok {
-		return fmt.Errorf("provider is not SQLProvider")
+		return fmt.Errorf("provider %s does not support user creation", p.Name())
 	}
 
 	username := e.Props["Username"]
-	// Use a default password for tests/scenarios
-	if err := sqlP.CreateUser(ctx, username, "password"); err != nil {
+	if err := uc.CreateUser(ctx, username, "password"); err != nil {
 		if err != gobookmarks.ErrUserExists {
 			return err
 		}
@@ -68,22 +87,25 @@ func (o *RepoCreateOp) Validate(e *Event) error {
 }
 
 func (o *RepoCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *Event) error {
-	p := gobookmarks.GetProvider("sql")
-	sqlP, ok := p.(*gobookmarks.SQLProvider)
-	if !ok {
-		return fmt.Errorf("provider is not SQLProvider")
+	p, err := getScenarioProvider(e)
+	if err != nil {
+		return err
 	}
 
 	userRef := e.Props["User"]
-	username := sCtx.Refs[userRef]
-	if username == "" {
-		username = userRef // fallback if not a ref
+	username, ok := sCtx.Refs[userRef]
+	if !ok {
+		return fmt.Errorf("unknown user ref: %s", userRef)
 	}
 
 	name := e.Props["Name"]
 
-	if err := sqlP.CreateRepo(ctx, username, nil, name); err != nil {
+	if err := p.CreateRepo(ctx, username, nil, name); err != nil {
 		return err
+	}
+
+	if e.Ref != "" {
+		sCtx.Refs[e.Ref] = name
 	}
 
 	return nil
@@ -99,16 +121,15 @@ func (o *BookmarkCreateOp) Validate(e *Event) error {
 }
 
 func (o *BookmarkCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *Event) error {
-	p := gobookmarks.GetProvider("sql")
-	sqlP, ok := p.(*gobookmarks.SQLProvider)
-	if !ok {
-		return fmt.Errorf("provider is not SQLProvider")
+	p, err := getScenarioProvider(e)
+	if err != nil {
+		return err
 	}
 
 	userRef := e.Props["User"]
-	username := sCtx.Refs[userRef]
-	if username == "" {
-		username = userRef
+	username, ok := sCtx.Refs[userRef]
+	if !ok {
+		return fmt.Errorf("unknown user ref: %s", userRef)
 	}
 
 	branch := e.Props["Branch"]
@@ -117,10 +138,15 @@ func (o *BookmarkCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *
 	}
 
 	body := strings.TrimSpace(e.Body)
+	if e.Props["Asset"] != "" {
+		assetBody, ok := sCtx.Files[e.Props["Asset"]]
+		if !ok {
+			return fmt.Errorf("missing asset: %s", e.Props["Asset"])
+		}
+		body = strings.TrimSpace(assetBody)
+	}
 
-	// In the real application, UpdateBookmarks requires the original ref and sourceRef logic.
-	// But CreateBookmarks acts like an upsert for sqlite.
-	if err := sqlP.CreateBookmarks(ctx, username, nil, branch, body); err != nil {
+	if err := p.CreateBookmarks(ctx, username, nil, branch, body); err != nil {
 		return err
 	}
 

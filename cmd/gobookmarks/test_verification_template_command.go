@@ -1,8 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
+	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type TemplateCommand struct {
@@ -61,29 +69,265 @@ func (c *TemplateCommand) Execute(args []string) error {
 		return c.HelpCmd.Execute(remaining[1:])
 	}
 
-	fmt.Printf("DEPRECATION WARNING: `test verification template` is deprecated.\n" +
-		"Please use `scenario serve` for executable application state scenarios.\n" +
-		"Migrating to `scenario serve` under the hood...\n")
+	coreData := &gobookmarks.CoreData{
+		Title:   "Test Verification",
+		UserRef: "testuser",
+		Tab:     0,
+	}
 
-	scenarioFile := ""
+	var bookmarksStr string
+	templateName := "mainPage.gohtml"
 	switch subcommandRange {
+	case "default":
+		bookmarksStr = `
+Tab: Default Tab
+Page: Default Page
+Category: Default Category
+https://example.com Example Link
+`
 	case "complex":
-		scenarioFile = "scenarios/complex-bookmarks.txtar"
+		bookmarksStr = `
+Tab: Tab 1
+Page: Page 1
+Category: Search Engines
+https://google.com Google
+https://bing.com Bing
+Column
+Category: Social Media
+https://twitter.com Twitter
+https://facebook.com Facebook
+--
+Category: News
+https://news.ycombinator.com Hacker News
+https://reddit.com Reddit
+
+Tab: Tab 2
+Page: Page 2
+Category: Coding
+https://github.com GitHub
+https://stackoverflow.com Stack Overflow
+`
+	case "edit":
+		templateName = "edit.gohtml"
+		bookmarksStr = `
+Tab: Default Tab
+Page: Default Page
+Category: Default Category
+https://example.com Example Link
+`
 	default:
-		// Default to complex as it covers most UI elements
-		scenarioFile = "scenarios/complex-bookmarks.txtar"
+		// If unknown range, maybe treat it as empty or minimal
+		bookmarksStr = "Tab: Empty\n"
 	}
 
-	rc := c.parent.Parent().(*RootCommand)
-	serveCmd, err := rc.ScenarioCmd.NewScenarioServeCommand()
-	if err != nil {
-		return fmt.Errorf("failed to instantiate scenario serve command: %w", err)
+	if c.DataFromJSONFile.set {
+		// Load data from JSON file
+		data, err := os.ReadFile(c.DataFromJSONFile.value)
+		if err != nil {
+			return fmt.Errorf("failed to read data file: %w", err)
+		}
+
+		type JSONInput struct {
+			Title     string `json:"title"`
+			UserRef   string `json:"user_ref"`
+			Bookmarks string `json:"bookmarks"`
+		}
+		var input JSONInput
+		if err := json.Unmarshal(data, &input); err != nil {
+			return fmt.Errorf("failed to parse json data: %w", err)
+		}
+		if input.Title != "" {
+			coreData.Title = input.Title
+		}
+		if input.UserRef != "" {
+			coreData.UserRef = input.UserRef
+		}
+		if input.Bookmarks != "" {
+			bookmarksStr = input.Bookmarks
+		}
 	}
 
-	serveArgs := []string{scenarioFile}
+	// Create a dummy request to build the context
+	req, _ := http.NewRequest("GET", "/", nil)
+	// We need to pass coreData so that middleware-like access works,
+	// but NewFuncs uses r.Context().Value(ContextValues("coreData")) potentially?
+	// Actually NewFuncs doesn't seem to use coreData directly, but templates do via {{ $.Title }}
+	// The templates receive `data` which has `CoreData`.
+
+	// However, some funcs might need session or other context values.
+
+	ctx := context.WithValue(req.Context(), gobookmarks.ContextValues("coreData"), coreData)
+	req = req.WithContext(ctx)
+
+	// Create funcs that override the default behavior to return our static data
+	funcs := gobookmarks.NewFuncs(req)
+
+	// Override specific functions to use our local bookmarks string
+	funcs["bookmarks"] = func() (string, error) {
+		return bookmarksStr, nil
+	}
+	funcs["bookmarksExist"] = func() (bool, error) {
+		return bookmarksStr != "", nil
+	}
+	funcs["bookmarkPages"] = func() ([]*gobookmarks.BookmarkPage, error) {
+		tabs := gobookmarks.ParseBookmarks(bookmarksStr)
+		idx := gobookmarks.TabFromRequest(req)
+		if idx < 0 || idx >= len(tabs) {
+			idx = 0
+		}
+		if len(tabs) == 0 {
+			return nil, nil
+		}
+		return tabs[idx].Pages, nil
+	}
+	funcs["bookmarkTabs"] = func() ([]gobookmarks.TabInfo, error) {
+		tabsData := gobookmarks.ParseBookmarks(bookmarksStr)
+		var tabs []gobookmarks.TabInfo
+		for i, t := range tabsData {
+			indexName := t.DisplayName()
+			if indexName == "" && i == 0 {
+				indexName = "Main"
+			}
+			if indexName != "" {
+				href := gobookmarks.TabPath(i) // Use TabPath instead of TabHref as it's defined in tab_utils.go
+				lastSha := ""                  // No SHA in static mode
+				if len(t.Pages) > 0 {
+					lastSha = t.Pages[len(t.Pages)-1].Sha()
+				}
+				tabs = append(tabs, gobookmarks.TabInfo{
+					Index:       i,
+					Name:        t.Name,
+					IndexName:   indexName,
+					Href:        href,
+					LastPageSha: lastSha,
+				})
+			}
+		}
+		return tabs, nil
+	}
+	funcs["bookmarkTabsWithPages"] = func() ([]gobookmarks.TabWithPages, error) {
+		tabsData := gobookmarks.ParseBookmarks(bookmarksStr)
+		var tabs []gobookmarks.TabWithPages
+		for i, t := range tabsData {
+			indexName := t.DisplayName()
+			if indexName == "" && i == 0 {
+				indexName = "Main"
+			}
+			if indexName != "" {
+				href := gobookmarks.TabPath(i)
+				lastSha := ""
+				if len(t.Pages) > 0 {
+					lastSha = t.Pages[len(t.Pages)-1].Sha()
+				}
+				tabs = append(tabs, gobookmarks.TabWithPages{
+					TabInfo: gobookmarks.TabInfo{
+						Index:       i,
+						Name:        t.Name,
+						IndexName:   indexName,
+						Href:        href,
+						LastPageSha: lastSha,
+					},
+					Pages: t.Pages,
+				})
+			}
+		}
+		return tabs, nil
+	}
+	funcs["tabName"] = func() string {
+		tabs := gobookmarks.ParseBookmarks(bookmarksStr)
+		idx := gobookmarks.TabFromRequest(req)
+		if idx < 0 || idx >= len(tabs) {
+			idx = 0
+		}
+		if len(tabs) == 0 {
+			return ""
+		}
+		name := tabs[idx].DisplayName()
+		if name == "" && idx == 0 {
+			name = "Main"
+		}
+		return name
+	}
+	// Override other funcs that might call DB/Git
+	funcs["loggedIn"] = func() (bool, error) { return true, nil }
+	funcs["showPages"] = func() bool { return true }
+
+	// Override additional functions for edit pages
+	funcs["bookmarksOrEditBookmarks"] = func() (string, error) {
+		return bookmarksStr, nil
+	}
+	funcs["branchOrEditBranch"] = func() string { return "main" }
+	funcs["ref"] = func() string { return "sha123" }
+	funcs["bookmarksSHA"] = func() string { return "sha123" }
+
+	// Compile templates with our modified funcs
+	tmpl := gobookmarks.GetCompiledTemplates(funcs)
+
+	type Data struct {
+		*gobookmarks.CoreData
+		Error string
+	}
+	data := Data{
+		CoreData: coreData,
+		Error:    "",
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.ExecuteTemplate(&buf, templateName, data); err != nil {
+		return fmt.Errorf("failed to render template %s: %w", templateName, err)
+	}
+
+	output := buf.Bytes()
+
+	if c.Out.set {
+		if err := os.WriteFile(c.Out.value, output, 0644); err != nil {
+			return fmt.Errorf("failed to write output file: %w", err)
+		}
+		log.Printf("Output written to %s", c.Out.value)
+	}
+
 	if c.Serve.set {
-		serveArgs = append(serveArgs, "--port", c.Serve.value)
+		log.Printf("Serving template on %s", c.Serve.value)
+
+		// For serving, we need to handle main.css and favicon too, otherwise the page looks broken
+		mux := http.NewServeMux()
+		mux.Handle("/assets/", gobookmarks.GetAssetProvider())
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write(output)
+		})
+		mux.HandleFunc("/main.css", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-cache")
+			if url, err := gobookmarks.AssetURL("main.css"); err == nil {
+				http.Redirect(w, r, url, http.StatusFound)
+				return
+			}
+			w.Header().Set("Content-Type", "text/css")
+			_, _ = w.Write(
+				gobookmarks.GetMainCSSData())
+		})
+		mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-cache")
+			if url, err := gobookmarks.AssetURL("logo.png"); err == nil {
+				http.Redirect(w, r, url, http.StatusFound)
+				return
+			}
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = w.Write(
+				gobookmarks.GetFavicon())
+		})
+		// Also proxy/favicon if possible, but that might require internet or network
+		mux.HandleFunc("/proxy/favicon", func(w http.ResponseWriter, r *http.Request) {
+			// Mock or minimal implementation
+			w.WriteHeader(http.StatusNotFound)
+		})
+
+		return http.ListenAndServe(c.Serve.value, mux)
 	}
 
-	return serveCmd.Execute(serveArgs)
+	// If neither out nor serve is set, write to stdout?
+	if !c.Out.set && !c.Serve.set {
+		fmt.Println(string(output))
+	}
+
+	return nil
 }

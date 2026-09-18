@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	gobookmarks "github.com/arran4/gobookmarks"
+	"golang.org/x/oauth2"
 )
 
 type ScenarioServeCommand struct {
@@ -73,10 +73,7 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Make sure the provider order has sql
-	gobookmarks.Config.ProviderOrder = []string{"sql"}
-
-	if err := setupTempSQLiteBackend(); err != nil {
+	if err := setupScenarioBackend(); err != nil {
 		return err
 	}
 
@@ -85,6 +82,21 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 	}
 
 	r := setupRouter()
+	registerRoutes(r)
+
+	// Create mock transport using same methodology as regression tests
+	mockTransport := &mockOAuthRoundTripper{
+		fakeToken: "fake-scenario-token",
+		userLogin: "charlie", // Fallback, would ideally be extracted dynamically
+	}
+	mockClient := &http.Client{Transport: mockTransport}
+
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Use the scenario's provider isolation via context
+		// This uses golang.org/x/oauth2 HTTPClient key
+		ctx := context.WithValue(req.Context(), oauth2.HTTPClient, mockClient)
+		r.ServeHTTP(w, req.WithContext(ctx))
+	})
 
 	port := ":8080"
 	if c.Port.set {
@@ -96,7 +108,7 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 
 	httpServer := &http.Server{
 		Addr:    port,
-		Handler: r,
+		Handler: testHandler,
 	}
 
 	var sigCh chan os.Signal
