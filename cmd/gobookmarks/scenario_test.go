@@ -123,16 +123,22 @@ Name: main
 }
 
 func TestTempSQLiteBackend(t *testing.T) {
-	err := setupScenarioBackend()
+	cleanup, err := setupScenarioBackend()
 	if err != nil {
 		t.Fatalf("setupScenarioBackend failed: %v", err)
+	}
+	if cleanup != nil {
+		defer cleanup()
 	}
 }
 
 func TestHistoryScenario(t *testing.T) {
-	err := setupScenarioBackend()
+	cleanup, err := setupScenarioBackend()
 	if err != nil {
 		t.Fatalf("setupScenarioBackend failed: %v", err)
+	}
+	if cleanup != nil {
+		defer cleanup()
 	}
 
 	scenarioPath := "scenarios/history.txtar"

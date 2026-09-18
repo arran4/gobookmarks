@@ -73,16 +73,13 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	if err := setupScenarioBackend(); err != nil {
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
 		return err
 	}
-
-	if err := ApplyScenario(context.Background(), scenario); err != nil {
-		return fmt.Errorf("failed to apply scenario: %w", err)
+	if cleanup != nil {
+		defer cleanup()
 	}
-
-	r := setupRouter()
-	registerRoutes(r)
 
 	// Create mock transport using same methodology as regression tests
 	mockTransport := &mockOAuthRoundTripper{
@@ -90,6 +87,15 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		userLogin: "charlie", // Fallback, would ideally be extracted dynamically
 	}
 	mockClient := &http.Client{Transport: mockTransport}
+
+	// Apply scenario with isolated OAuth client context
+	applyCtx := context.WithValue(context.Background(), oauth2.HTTPClient, mockClient)
+	if err := ApplyScenario(applyCtx, scenario); err != nil {
+		return fmt.Errorf("failed to apply scenario: %w", err)
+	}
+
+	r := setupRouter()
+	registerRoutes(r)
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// Use the scenario's provider isolation via context

@@ -71,8 +71,12 @@ func (c *ScenarioApplyCommand) Execute(args []string) error {
 	// we will initialize the disposable temp scenario backend if no connection is set.
 	rc := c.parent.Parent().(*RootCommand)
 	if rc.cfg.DBConnectionProvider == "" {
-		if err := setupScenarioBackend(); err != nil {
+		cleanup, err := setupScenarioBackend()
+		if err != nil {
 			return err
+		}
+		if cleanup != nil {
+			defer cleanup()
 		}
 	} else {
 		// Just sync global config and session store to act like normal execution

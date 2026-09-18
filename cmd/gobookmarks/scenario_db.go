@@ -3,15 +3,22 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"os"
 
 	gobookmarks "github.com/arran4/gobookmarks"
 )
 
-func setupScenarioBackend() error {
+func setupScenarioBackend() (func(), error) {
 	id := make([]byte, 16)
 	_, _ = rand.Read(id)
 	uuid := fmt.Sprintf("%x", id)
 
+	tmpGitDir, err := os.MkdirTemp("", "scenario-git-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp git dir: %w", err)
+	}
+
+	gobookmarks.Config.LocalGitPath = tmpGitDir
 	gobookmarks.Config.DBConnectionProvider = "sqlite3"
 	gobookmarks.Config.DBConnectionString = "file:scenario-" + uuid + "?mode=memory&cache=shared"
 
@@ -39,9 +46,14 @@ func setupScenarioBackend() error {
 	// OpenDB will ping and call ensureSQLSchema to create tables
 	db, err := gobookmarks.OpenDB()
 	if err != nil {
-		return fmt.Errorf("failed to initialize temp scenario db: %w", err)
+		os.RemoveAll(tmpGitDir)
+		return nil, fmt.Errorf("failed to initialize temp scenario db: %w", err)
 	}
 	defer func() { _ = db.Close() }()
 
-	return nil
+	cleanup := func() {
+		os.RemoveAll(tmpGitDir)
+	}
+
+	return cleanup, nil
 }
