@@ -71,20 +71,9 @@ Asset: missing.txt
 	if err != nil {
 		t.Fatalf("ParseScenario failed: %v", err)
 	}
-	err = ValidateScenario(s) // Validation passes, failure happens during Apply due to dynamic Context
-	if err != nil {
-		t.Fatalf("expected validation success: %v", err)
-	}
-
-	sCtx := &ScenarioContext{
-		Refs:  map[string]string{"user": "resolvedUser"},
-		Files: s.Files,
-	}
-
-	op := operations["bookmark.create"]
-	err = op.Apply(context.Background(), sCtx, s.Events[0])
+	err = ValidateScenario(s)
 	if err == nil {
-		t.Errorf("expected missing asset error")
+		t.Errorf("expected validation failure due to missing asset")
 	}
 	if !strings.Contains(err.Error(), "missing asset: missing.txt") {
 		t.Errorf("unexpected error: %v", err)
@@ -176,5 +165,35 @@ func TestHistoryScenario(t *testing.T) {
 	// We expect 3 commits from the history scenario
 	if len(commits) != 3 {
 		t.Errorf("Expected 3 commits, got %d", len(commits))
+	}
+
+	// Verify history via the actual router logic
+	r := setupRouter()
+	registerRoutes(r)
+
+	// Issue a request to history as the authenticated user 'bob'
+	// We'll mimic the harness logic to do a direct HTTP GET simulating logged in user
+	// The harness uses httptest and browser
+	browser, err := NewBrowser(r, "http://localhost")
+	if err != nil {
+		t.Fatalf("Failed to create browser: %v", err)
+	}
+
+	// Force login cookie for 'bob' onto browser (this might require interacting with /login/sql first)
+	_, err = browser.DoForm("/login/sql", map[string][]string{
+		"user":     {"bob"},
+		"password": {"password"}, // UserCreateOp currently defaults to "password"
+	})
+	if err != nil {
+		t.Fatalf("Failed to execute login post: %v", err)
+	}
+
+	resp, err := browser.Do("GET", "/history", nil)
+	if err != nil {
+		t.Fatalf("GET /history failed: %v", err)
+	}
+
+	if resp.Response.StatusCode != 200 {
+		t.Errorf("Expected 200 OK for /history, got %v", resp.Response.StatusCode)
 	}
 }

@@ -162,6 +162,13 @@ func ValidateScenario(s *Scenario) error {
 		if err := op.Validate(e); err != nil {
 			return fmt.Errorf("event %s: %w", e.Name, err)
 		}
+
+		// Ensure asset exists in context files during validation if provided
+		if e.Props["Asset"] != "" {
+			if _, ok := s.Files[e.Props["Asset"]]; !ok {
+				return fmt.Errorf("event %s: missing asset: %s", e.Name, e.Props["Asset"])
+			}
+		}
 	}
 	return nil
 }
