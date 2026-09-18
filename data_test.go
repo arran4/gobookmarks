@@ -245,11 +245,6 @@ func TestExecuteTemplates(t *testing.T) {
 	}
 }
 
-
-
-
-
-
 func TestAppJSRenderModes(t *testing.T) {
 	// Only parse tail.gohtml to avoid full func map requirements
 	tpl := template.New("tail")
@@ -281,7 +276,7 @@ func TestAppJSRenderModes(t *testing.T) {
 			// Override specific funcs for this run
 			runFuncs := template.FuncMap{
 				"jsMode": func() string { return req.URL.Query().Get("js") },
-				"appJs": func() template.JS { return template.JS(appJsData) },
+				"appJs":  func() template.JS { return template.JS(appJsData) },
 			}
 			clone = clone.Funcs(runFuncs)
 
