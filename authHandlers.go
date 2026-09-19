@@ -212,7 +212,15 @@ func Oauth2CallbackPage(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("user lookup error: %w", err)
 	}
 
-	if err := ensureRepo(r.Context(), p, user.Login, token); err != nil {
+	storageProvider := p
+	storageToken := token
+	if name, ok := r.Context().Value(ContextValues("scenarioStorageProvider")).(string); ok && name != "" {
+		if configuredStorageProvider := GetProvider(name); configuredStorageProvider != nil {
+			storageProvider = configuredStorageProvider
+			storageToken = nil
+		}
+	}
+	if err := ensureRepo(r.Context(), storageProvider, user.Login, storageToken); err != nil {
 		// expire the session from the login step
 		session.Options.MaxAge = -1
 		_ = session.Save(r, w)

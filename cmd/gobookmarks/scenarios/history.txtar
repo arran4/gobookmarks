@@ -1,0 +1,52 @@
+History scenario.
+
+Who: Bob
+What: Multiple revisions of a bookmark list
+
+-- scenario.meta --
+Format: example-scenario/v1
+Name: history
+
+-- 010-bob.event --
+Op: user.create
+Ref: bob
+Username: bob
+
+-- 020-repo.event --
+Op: repo.create
+Ref: repo
+User: bob
+Name: main
+
+-- 100-bookmarks-v1.event --
+Op: bookmark.create
+User: bob
+Branch: main
+
+Tab: Main
+Page: First
+Category: Links
+https://example.com Version 1
+
+-- 110-bookmarks-v2.event --
+Op: bookmark.create
+User: bob
+Branch: main
+
+Tab: Main
+Page: First
+Category: Links
+https://example.com Version 2
+https://golang.org Go
+
+-- 120-bookmarks-v3.event --
+Op: bookmark.create
+User: bob
+Branch: main
+
+Tab: Main
+Page: First
+Category: Links
+https://example.com Version 3
+https://golang.org Go
+https://github.com GitHub

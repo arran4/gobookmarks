@@ -1,0 +1,46 @@
+Complex scenario.
+
+Who: Alice
+What: A complex list of bookmarks with multiple tabs and columns.
+
+-- scenario.meta --
+Format: example-scenario/v1
+Name: complex-bookmarks
+
+-- 010-alice.event --
+Op: user.create
+Ref: testuser
+Username: testuser
+
+-- 020-repo.event --
+Op: repo.create
+Ref: repo
+User: testuser
+Name: main
+
+-- 100-bookmarks.event --
+Op: bookmark.create
+User: testuser
+Branch: main
+Asset: bookmarks/testuser/bookmarks.txt
+
+-- bookmarks/testuser/bookmarks.txt --
+Tab: Tab 1
+Page: Page 1
+Category: Search Engines
+https://google.com Google
+https://bing.com Bing
+Column
+Category: Social Media
+https://twitter.com Twitter
+https://facebook.com Facebook
+--
+Category: News
+https://news.ycombinator.com Hacker News
+https://reddit.com Reddit
+
+Tab: Tab 2
+Page: Page 2
+Category: Coding
+https://github.com GitHub
+https://stackoverflow.com Stack Overflow

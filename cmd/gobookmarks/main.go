@@ -48,6 +48,7 @@ type RootCommand struct {
 	ExportCmd      *ExportCommand
 	TestCmd        *TestCommand
 	ConvertCmd     *ConvertCommand
+	ScenarioCmd    *ScenarioCommand
 	HelpCmd        *HelpCommand
 }
 
@@ -68,6 +69,7 @@ func NewRootCommand() *RootCommand {
 	rc.ExportCmd, _ = rc.NewExportCommand()
 	rc.TestCmd, _ = rc.NewTestCommand()
 	rc.ConvertCmd, _ = rc.NewConvertCommand()
+	rc.ScenarioCmd, _ = rc.NewScenarioCommand()
 	rc.HelpCmd = NewHelpCommand(rc)
 	return rc
 }
@@ -85,7 +87,7 @@ func (c *RootCommand) FlagSet() *flag.FlagSet {
 }
 
 func (c *RootCommand) Subcommands() []Command {
-	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.LintCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.TestCmd, c.ConvertCmd, c.HelpCmd}
+	return []Command{c.ServeCmd, c.VersionCmd, c.DbCmd, c.LintCmd, c.VerifyFileCmd, c.VerifyCredsCmd, c.ImportCmd, c.ExportCmd, c.TestCmd, c.ConvertCmd, c.ScenarioCmd, c.HelpCmd}
 }
 
 func (c *RootCommand) Execute(args []string) error {
@@ -108,6 +110,8 @@ func (c *RootCommand) Execute(args []string) error {
 		return c.VersionCmd.Execute(remaining[1:])
 	case c.TestCmd.Name():
 		return c.TestCmd.Execute(remaining[1:])
+	case c.ScenarioCmd.Name():
+		// scenario commands handle configuration themselves or intentionally don't load it
 	case c.ServeCmd.Name(), c.DbCmd.Name(), c.VerifyCredsCmd.Name(), c.ImportCmd.Name(), c.ExportCmd.Name():
 		loadCfg = true
 	case c.LintCmd.Name(), c.VerifyFileCmd.Name(), c.ConvertCmd.Name():
@@ -142,6 +146,8 @@ func (c *RootCommand) Execute(args []string) error {
 		return c.ExportCmd.Execute(remaining[1:])
 	case c.ConvertCmd.Name():
 		return c.ConvertCmd.Execute(remaining[1:])
+	case c.ScenarioCmd.Name():
+		return c.ScenarioCmd.Execute(remaining[1:])
 	}
 	return nil
 }

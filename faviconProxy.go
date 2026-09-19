@@ -2,6 +2,7 @@ package gobookmarks
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -23,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 // fetchUserAgent is used when fetching pages and icons so sites return
@@ -212,7 +215,7 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch the root page content
-	rootPageContent, err := fetchURL(urlParam)
+	rootPageContent, err := fetchURL(r.Context(), urlParam)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error fetching root page: %s", err), http.StatusInternalServerError)
 		return
@@ -229,7 +232,7 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 		fileType = "image/x-icon"
 	}
 	// Proxy the favicon request
-	faviconContent, hdr, err := downloadURL(faviconURL)
+	faviconContent, hdr, err := downloadURL(r.Context(), faviconURL)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error proxying favicon: %s", err), http.StatusInternalServerError)
 		return
@@ -272,13 +275,13 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(icon.Data)
 }
 
-func fetchURL(urlParam string) ([]byte, error) {
+func fetchURL(ctx context.Context, urlParam string) ([]byte, error) {
 	req, err := http.NewRequest("GET", urlParam, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", fetchUserAgent)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClientFromContext(ctx).Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -319,13 +322,13 @@ func findFaviconURL(pageContent []byte, baseURL *url.URL) (string, string, error
 	return p.String(), fileType, nil
 }
 
-func downloadURL(url string) ([]byte, http.Header, error) {
+func downloadURL(ctx context.Context, url string) ([]byte, http.Header, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	req.Header.Set("User-Agent", fetchUserAgent)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClientFromContext(ctx).Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -335,6 +338,16 @@ func downloadURL(url string) ([]byte, http.Header, error) {
 
 	b, err := io.ReadAll(resp.Body)
 	return b, resp.Header, err
+}
+
+// Scenario handlers carry a controlled client in their request context. This
+// also makes an unexpected favicon request fail at the same fixture boundary
+// as provider requests instead of escaping to the network.
+func httpClientFromContext(ctx context.Context) *http.Client {
+	if client, ok := ctx.Value(oauth2.HTTPClient).(*http.Client); ok && client != nil {
+		return client
+	}
+	return http.DefaultClient
 }
 
 func cacheFavicon(urlParam string, content []byte, contentType string) {

@@ -1,0 +1,32 @@
+Provider login scenario.
+
+Who: Charlie
+What: A mock user with fake provider login data using github provider
+
+-- scenario.meta --
+Format: example-scenario/v1
+Name: provider-login
+StorageProvider: git
+AuthProvider: github
+AuthUser: charlie
+
+-- 010-charlie.event --
+Op: user.create
+Ref: charlie
+Username: charlie
+
+-- 020-repo.event --
+Op: repo.create
+Ref: repo
+User: charlie
+Name: charlie
+
+-- 100-bookmarks.event --
+Op: bookmark.create
+User: charlie
+Branch: main
+
+Tab: Charlie's Tab
+Page: Charlie's Page
+Category: Charlie's Links
+https://example.com Charlie's Example
