@@ -9,8 +9,9 @@ import (
 )
 
 type ScenarioContext struct {
-	Refs  map[string]string
-	Files map[string]string
+	Refs            map[string]string
+	Files           map[string]string
+	StorageProvider string
 }
 
 type Operation interface {
@@ -24,10 +25,10 @@ var operations = map[string]Operation{
 	"bookmark.create": &BookmarkCreateOp{},
 }
 
-func getScenarioProvider(e *Event) (gobookmarks.Provider, error) {
-	providerName := e.Props["Provider"]
-	if providerName == "" {
-		providerName = "sql"
+func getScenarioProvider(sCtx *ScenarioContext, e *Event) (gobookmarks.Provider, error) {
+	providerName := sCtx.StorageProvider
+	if eventProvider := e.Props["Provider"]; eventProvider != "" && eventProvider != providerName {
+		return nil, fmt.Errorf("event provider %q conflicts with scenario StorageProvider %q", eventProvider, providerName)
 	}
 	p := gobookmarks.GetProvider(providerName)
 	if p == nil {
@@ -50,7 +51,7 @@ func (o *UserCreateOp) Validate(e *Event) error {
 }
 
 func (o *UserCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *Event) error {
-	p, err := getScenarioProvider(e)
+	p, err := getScenarioProvider(sCtx, e)
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func (o *RepoCreateOp) Validate(e *Event) error {
 }
 
 func (o *RepoCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *Event) error {
-	p, err := getScenarioProvider(e)
+	p, err := getScenarioProvider(sCtx, e)
 	if err != nil {
 		return err
 	}
@@ -121,7 +122,7 @@ func (o *BookmarkCreateOp) Validate(e *Event) error {
 }
 
 func (o *BookmarkCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *Event) error {
-	p, err := getScenarioProvider(e)
+	_, err := getScenarioProvider(sCtx, e)
 	if err != nil {
 		return err
 	}
@@ -146,7 +147,10 @@ func (o *BookmarkCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *
 		body = strings.TrimSpace(assetBody)
 	}
 
-	if err := p.CreateBookmarks(ctx, username, nil, branch, body); err != nil {
+	// Use the normal mutation access layer so scenario seeding observes the
+	// same cache invalidation rules as application mutations.
+	ctx = context.WithValue(ctx, gobookmarks.ContextValues("provider"), sCtx.StorageProvider)
+	if err := gobookmarks.CreateBookmarks(ctx, username, nil, branch, body); err != nil {
 		return err
 	}
 
@@ -154,6 +158,13 @@ func (o *BookmarkCreateOp) Apply(ctx context.Context, sCtx *ScenarioContext, e *
 }
 
 func ValidateScenario(s *Scenario) error {
+	if gobookmarks.GetProvider(s.StorageProvider) == nil {
+		return fmt.Errorf("unsupported StorageProvider: %s", s.StorageProvider)
+	}
+	if s.AuthProvider != "" && gobookmarks.GetProvider(s.AuthProvider) == nil {
+		return fmt.Errorf("unsupported AuthProvider: %s", s.AuthProvider)
+	}
+	refs := make(map[string]bool)
 	for _, e := range s.Events {
 		op, ok := operations[e.Op]
 		if !ok {
@@ -161,6 +172,20 @@ func ValidateScenario(s *Scenario) error {
 		}
 		if err := op.Validate(e); err != nil {
 			return fmt.Errorf("event %s: %w", e.Name, err)
+		}
+		if eventProvider := e.Props["Provider"]; eventProvider != "" && eventProvider != s.StorageProvider {
+			return fmt.Errorf("event %s: Provider %q conflicts with StorageProvider %q", e.Name, eventProvider, s.StorageProvider)
+		}
+		if e.Op == "repo.create" || e.Op == "bookmark.create" {
+			if !refs[e.Props["User"]] {
+				return fmt.Errorf("event %s: unresolved user ref: %s", e.Name, e.Props["User"])
+			}
+		}
+		if e.Ref != "" {
+			if refs[e.Ref] {
+				return fmt.Errorf("event %s: duplicate ref: %s", e.Name, e.Ref)
+			}
+			refs[e.Ref] = true
 		}
 
 		// Ensure asset exists in context files during validation if provided
@@ -175,8 +200,9 @@ func ValidateScenario(s *Scenario) error {
 
 func ApplyScenario(ctx context.Context, s *Scenario) error {
 	sCtx := &ScenarioContext{
-		Refs:  make(map[string]string),
-		Files: s.Files,
+		Refs:            make(map[string]string),
+		Files:           s.Files,
+		StorageProvider: s.StorageProvider,
 	}
 
 	for _, e := range s.Events {

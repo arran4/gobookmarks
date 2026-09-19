@@ -59,8 +59,7 @@ func newTestProductionHarness(t *testing.T, fakeToken, userLogin string) (*Brows
 	}
 	mockClient := &http.Client{Transport: mockTransport}
 
-	r := setupRouter()
-	registerRoutes(r)
+	r := newApplicationRouter()
 
 	// Wrap the actual production router with a test-only context injector
 	// for oauth2.HTTPClient, avoiding process-global http.DefaultTransport mutation.

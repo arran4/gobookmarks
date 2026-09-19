@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	gobookmarks "github.com/arran4/gobookmarks"
+	"golang.org/x/oauth2"
 )
 
 func TestParseScenario(t *testing.T) {
@@ -81,6 +82,52 @@ Asset: missing.txt
 	}
 	if !strings.Contains(err.Error(), "missing asset: missing.txt") {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestBookmarkAssetResolutionSuccess(t *testing.T) {
+	txtar := `
+-- 01-user.event --
+Op: user.create
+Ref: alice
+Username: alice
+
+-- 02-bookmarks.event --
+Op: bookmark.create
+User: alice
+Asset: bookmarks/alice.txt
+
+-- bookmarks/alice.txt --
+https://example.com Example
+`
+	s, err := ParseScenario(strings.NewReader(txtar))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateScenario(s); err != nil {
+		t.Fatalf("ValidateScenario: %v", err)
+	}
+	if s.Files["bookmarks/alice.txt"] == "" {
+		t.Fatal("bookmark asset was not retained")
+	}
+}
+
+func TestScenarioManifestAndReferenceValidation(t *testing.T) {
+	for _, tc := range []struct{ name, scenario, want string }{
+		{"unsupported storage", "-- scenario.meta --\nStorageProvider: missing\n", "unsupported StorageProvider"},
+		{"unresolved ref", "-- a.event --\nOp: repo.create\nUser: nobody\nName: bookmarks\n", "unresolved user ref"},
+		{"duplicate ref", "-- a.event --\nOp: user.create\nRef: user\nUsername: a\n-- b.event --\nOp: user.create\nRef: user\nUsername: b\n", "duplicate ref"},
+		{"provider conflict", "-- scenario.meta --\nStorageProvider: sql\n-- a.event --\nOp: user.create\nUsername: a\nProvider: git\n", "conflicts"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := ParseScenario(strings.NewReader(tc.scenario))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := ValidateScenario(s); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("ValidateScenario error = %v, want %q", err, tc.want)
+			}
+		})
 	}
 }
 
@@ -186,8 +233,7 @@ func TestHistoryScenario(t *testing.T) {
 	}
 
 	// Verify history via the actual router logic
-	r := setupRouter()
-	registerRoutes(r)
+	r := newApplicationRouter()
 
 	browser, err := NewBrowser(r, "http://localhost")
 	if err != nil {
@@ -267,8 +313,7 @@ func TestComplexBookmarksUI(t *testing.T) {
 		t.Fatalf("access-layer seeded data err=%v body=%q", err, throughAccess)
 	}
 
-	r := setupRouter()
-	registerRoutes(r)
+	r := newApplicationRouter()
 	browser, err := NewBrowser(r, "http://localhost")
 	if err != nil {
 		t.Fatal(err)
@@ -290,6 +335,125 @@ func TestComplexBookmarksUI(t *testing.T) {
 	}
 	if response.Response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Logout")) || !bytes.Contains(body, []byte("Google")) || !bytes.Contains(body, []byte("Hacker News")) {
 		t.Fatalf("GET / status=%d location=%q cookies=%+v body=%q", response.Response.StatusCode, response.Response.Header.Get("Location"), cookieMetadata(response.Cookies), body)
+	}
+}
+
+func TestLocalGitScenario(t *testing.T) {
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	s, err := ParseScenario(strings.NewReader(`
+-- scenario.meta --
+StorageProvider: git
+-- 01-user.event --
+Op: user.create
+Ref: alice
+Username: alice
+-- 02-repo.event --
+Op: repo.create
+Ref: repo
+User: alice
+Name: bookmarks
+-- 03-v1.event --
+Op: bookmark.create
+User: alice
+
+https://example.com Version 1
+-- 04-v2.event --
+Op: bookmark.create
+User: alice
+
+https://example.com Version 2
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateScenario(s); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.WithValue(context.Background(), gobookmarks.ContextValues("provider"), "git")
+	if err := ApplyScenario(ctx, s); err != nil {
+		t.Fatal(err)
+	}
+	p := gobookmarks.GetProvider("git")
+	bookmarks, _, err := p.GetBookmarks(ctx, "alice", "refs/heads/main", nil)
+	if err != nil || !strings.Contains(bookmarks, "Version 2") {
+		t.Fatalf("git bookmarks err=%v body=%q", err, bookmarks)
+	}
+	commits, err := p.GetCommits(ctx, "alice", nil, "refs/heads/main", 1, 10)
+	if err != nil || len(commits) < 3 { // init plus two persisted bookmark revisions
+		t.Fatalf("git history err=%v commits=%d", err, len(commits))
+	}
+	entries, err := os.ReadDir(gobookmarks.Config.LocalGitPath)
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("local git repository was not created under scenario temp path: %v", err)
+	}
+}
+
+func TestProviderLoginScenario(t *testing.T) {
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cleanup()
+	file, err := os.Open("scenarios/provider-login.txtar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	s, err := ParseScenario(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.StorageProvider != "git" || s.AuthProvider != "github" || s.AuthUser != "charlie" {
+		t.Fatalf("unexpected provider-login identity: storage=%q auth=%q user=%q", s.StorageProvider, s.AuthProvider, s.AuthUser)
+	}
+	if err := ValidateScenario(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := ApplyScenario(context.WithValue(context.Background(), gobookmarks.ContextValues("provider"), "git"), s); err != nil {
+		t.Fatal(err)
+	}
+
+	gobookmarks.Config.GithubClientID = "scenario-client"
+	gobookmarks.Config.GithubSecret = "scenario-secret"
+	gobookmarks.Config.ExternalURL = "http://localhost"
+	mockClient := &http.Client{Transport: &mockOAuthRoundTripper{fakeToken: "scenario-token", userLogin: s.AuthUser}}
+	router := newApplicationRouter()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		router.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), oauth2.HTTPClient, mockClient)))
+	})
+	browser, err := NewBrowser(handler, "http://localhost")
+	if err != nil {
+		t.Fatal(err)
+	}
+	start, err := browser.Do("GET", "/login/github", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if start.Response.StatusCode != http.StatusTemporaryRedirect {
+		t.Fatalf("login start status=%d location=%q", start.Response.StatusCode, start.Response.Header.Get("Location"))
+	}
+	state, err := start.Response.Location()
+	if err != nil || state.Query().Get("state") == "" {
+		t.Fatalf("login start state: location=%q err=%v", start.Response.Header.Get("Location"), err)
+	}
+	callback, err := browser.Do("GET", "/oauth2Callback?code=scenario&state="+url.QueryEscape(state.Query().Get("state")), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if callback.Response.StatusCode != http.StatusFound && callback.Response.StatusCode != http.StatusSeeOther {
+		t.Fatalf("callback status=%d location=%q cookies=%+v", callback.Response.StatusCode, callback.Response.Header.Get("Location"), cookieMetadata(callback.Cookies))
+	}
+	page, err := browser.Do("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(page.Response.Body)
+	if err != nil || page.Response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Logout")) || !bytes.Contains(body, []byte("Mocked provider bookmark")) {
+		t.Fatalf("provider page err=%v status=%d body=%q", err, page.Response.StatusCode, body)
 	}
 }
 

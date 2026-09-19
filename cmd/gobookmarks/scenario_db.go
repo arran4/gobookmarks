@@ -9,6 +9,8 @@ import (
 )
 
 func setupScenarioBackend() (func(), error) {
+	originalConfig := gobookmarks.Config
+	originalSessionStore := gobookmarks.SessionStore
 	id := make([]byte, 16)
 	_, _ = rand.Read(id)
 	uuid := fmt.Sprintf("%x", id)
@@ -58,6 +60,13 @@ func setupScenarioBackend() (func(), error) {
 			// The caller cannot act on cleanup failures, but they must remain visible.
 			fmt.Fprintf(os.Stderr, "scenario cleanup %s: %v\n", tmpGitDir, err)
 		}
+		gobookmarks.Config = originalConfig
+		gobookmarks.SessionStore = originalSessionStore
+		// SQL providers hold a DB handle, so restore future tests to a fresh
+		// provider rather than letting an in-memory scenario database escape.
+		gobookmarks.RegisterProvider(&gobookmarks.SQLProvider{})
+		gobookmarks.RegisterProvider(&gobookmarks.GitProvider{})
+		gobookmarks.SetProviderOrder(gobookmarks.Config.ProviderOrder)
 	}
 
 	return cleanup, nil

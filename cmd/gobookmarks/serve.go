@@ -135,6 +135,15 @@ func setupRouter() *mux.Router {
 	return r
 }
 
+// newApplicationRouter is the single fully registered handler used by normal
+// serving and executable scenarios.  Keeping route registration here prevents
+// scenario serving from silently omitting application endpoints.
+func newApplicationRouter() *mux.Router {
+	r := setupRouter()
+	registerRoutes(r)
+	return r
+}
+
 func (c *ServeCommand) Subcommands() []Command {
 	return nil
 }
@@ -260,9 +269,7 @@ func (c *ServeCommand) Execute(args []string) error {
 		return errors.New("no providers available")
 	}
 
-	r := setupRouter()
-
-	registerRoutes(r)
+	r := newApplicationRouter()
 
 	if !fileExists("cert.pem") || !fileExists("key.pem") {
 		CreatePEMFiles()

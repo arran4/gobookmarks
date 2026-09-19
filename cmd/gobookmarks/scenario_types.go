@@ -13,8 +13,13 @@ import (
 type Scenario struct {
 	Preamble string
 	Manifest map[string]string
-	Events   []*Event
-	Files    map[string]string
+	// StorageProvider owns repositories and bookmark history. AuthProvider is
+	// the identity used when a scenario exercises an external login flow.
+	StorageProvider string
+	AuthProvider    string
+	AuthUser        string
+	Events          []*Event
+	Files           map[string]string
 }
 
 type Event struct {
@@ -65,6 +70,18 @@ func ParseScenario(r io.Reader) (*Scenario, error) {
 			s.Files[f.Name] = string(f.Data)
 		}
 	}
+	// SQL is deliberately the default for small local fixtures.  Authentication
+	// and persistence are separate: external identities never imply remote user
+	// creation.
+	s.StorageProvider = s.Manifest["StorageProvider"]
+	if s.StorageProvider == "" {
+		s.StorageProvider = "sql"
+	}
+	s.AuthProvider = s.Manifest["AuthProvider"]
+	if s.AuthProvider == "" {
+		s.AuthProvider = s.StorageProvider
+	}
+	s.AuthUser = s.Manifest["AuthUser"]
 
 	return s, nil
 }

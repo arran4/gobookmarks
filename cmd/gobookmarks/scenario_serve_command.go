@@ -94,8 +94,7 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		return fmt.Errorf("failed to apply scenario: %w", err)
 	}
 
-	r := setupRouter()
-	registerRoutes(r)
+	r := newApplicationRouter()
 
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// Use the scenario's provider isolation via context

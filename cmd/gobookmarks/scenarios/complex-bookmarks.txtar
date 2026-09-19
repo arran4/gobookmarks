@@ -22,7 +22,9 @@ Name: main
 Op: bookmark.create
 User: testuser
 Branch: main
+Asset: bookmarks/testuser/bookmarks.txt
 
+-- bookmarks/testuser/bookmarks.txt --
 Tab: Tab 1
 Page: Page 1
 Category: Search Engines
