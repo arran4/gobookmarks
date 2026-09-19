@@ -46,13 +46,18 @@ func setupScenarioBackend() (func(), error) {
 	// OpenDB will ping and call ensureSQLSchema to create tables
 	db, err := gobookmarks.OpenDB()
 	if err != nil {
-		os.RemoveAll(tmpGitDir)
+		if cleanupErr := os.RemoveAll(tmpGitDir); cleanupErr != nil {
+			return nil, fmt.Errorf("failed to initialize temp scenario db: %w (also failed to remove %s: %v)", err, tmpGitDir, cleanupErr)
+		}
 		return nil, fmt.Errorf("failed to initialize temp scenario db: %w", err)
 	}
 	defer func() { _ = db.Close() }()
 
 	cleanup := func() {
-		os.RemoveAll(tmpGitDir)
+		if err := os.RemoveAll(tmpGitDir); err != nil {
+			// The caller cannot act on cleanup failures, but they must remain visible.
+			fmt.Fprintf(os.Stderr, "scenario cleanup %s: %v\n", tmpGitDir, err)
+		}
 	}
 
 	return cleanup, nil

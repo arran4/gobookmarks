@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -157,7 +161,8 @@ func TestHistoryScenario(t *testing.T) {
 		t.Fatalf("Failed to validate scenario: %v", err)
 	}
 
-	if err := ApplyScenario(context.Background(), scenario); err != nil {
+	applyCtx := context.WithValue(context.Background(), gobookmarks.ContextValues("provider"), "sql")
+	if err := ApplyScenario(applyCtx, scenario); err != nil {
 		t.Fatalf("Failed to apply scenario: %v", err)
 	}
 
@@ -172,26 +177,35 @@ func TestHistoryScenario(t *testing.T) {
 	if len(commits) != 3 {
 		t.Errorf("Expected 3 commits, got %d", len(commits))
 	}
+	bookmarks, _, err := gobookmarks.GetBookmarks(applyCtx, "bob", "refs/heads/main", nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks through access layer: %v", err)
+	}
+	if !strings.Contains(bookmarks, "Version 3") {
+		t.Fatalf("access layer did not return the latest seeded bookmarks: %q", bookmarks)
+	}
 
 	// Verify history via the actual router logic
 	r := setupRouter()
 	registerRoutes(r)
 
-	// Issue a request to history as the authenticated user 'bob'
-	// We'll mimic the harness logic to do a direct HTTP GET simulating logged in user
-	// The harness uses httptest and browser
 	browser, err := NewBrowser(r, "http://localhost")
 	if err != nil {
 		t.Fatalf("Failed to create browser: %v", err)
 	}
 
-	// Force login cookie for 'bob' onto browser (this might require interacting with /login/sql first)
-	_, err = browser.DoForm("/login/sql", map[string][]string{
-		"user":     {"bob"},
+	login, err := browser.DoForm("/login/sql", url.Values{
+		"username": {"bob"},
 		"password": {"password"}, // UserCreateOp currently defaults to "password"
 	})
 	if err != nil {
 		t.Fatalf("Failed to execute login post: %v", err)
+	}
+	if login.Response.StatusCode != http.StatusSeeOther {
+		t.Fatalf("SQL login status = %d, location=%q, cookies=%+v", login.Response.StatusCode, login.Response.Header.Get("Location"), cookieMetadata(login.Cookies))
+	}
+	if location := login.Response.Header.Get("Location"); location == "/login/sql?error=invalid" || location == "" {
+		t.Fatalf("SQL login failed: location=%q, cookies=%+v", location, cookieMetadata(login.Cookies))
 	}
 
 	resp, err := browser.Do("GET", "/history", nil)
@@ -199,7 +213,90 @@ func TestHistoryScenario(t *testing.T) {
 		t.Fatalf("GET /history failed: %v", err)
 	}
 
-	if resp.Response.StatusCode != 200 {
-		t.Errorf("Expected 200 OK for /history, got %v", resp.Response.StatusCode)
+	body, readErr := io.ReadAll(resp.Response.Body)
+	if readErr != nil {
+		t.Fatalf("read /history response: %v", readErr)
 	}
+	if resp.Response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Logout")) || !bytes.Contains(body, []byte("refs/heads/main")) {
+		t.Fatalf("/history status=%d location=%q cookies=%+v body=%q", resp.Response.StatusCode, resp.Response.Header.Get("Location"), cookieMetadata(resp.Cookies), body)
+	}
+	latest, err := browser.Do("GET", "/?ref="+url.QueryEscape(commits[0].SHA), nil)
+	if err != nil {
+		t.Fatalf("GET latest revision: %v", err)
+	}
+	latestBody, err := io.ReadAll(latest.Response.Body)
+	if err != nil {
+		t.Fatalf("read latest revision: %v", err)
+	}
+	if latest.Response.StatusCode != http.StatusOK || !bytes.Contains(latestBody, []byte("Logout")) || !bytes.Contains(latestBody, []byte("Version 3")) {
+		t.Fatalf("latest revision status=%d location=%q cookies=%+v body=%q", latest.Response.StatusCode, latest.Response.Header.Get("Location"), cookieMetadata(latest.Cookies), latestBody)
+	}
+}
+
+func TestComplexBookmarksUI(t *testing.T) {
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
+		t.Fatalf("setupScenarioBackend: %v", err)
+	}
+	defer cleanup()
+
+	file, err := os.Open("scenarios/complex-bookmarks.txtar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = file.Close() }()
+	scenario, err := ParseScenario(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateScenario(scenario); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.WithValue(context.Background(), gobookmarks.ContextValues("provider"), "sql")
+	if err := ApplyScenario(ctx, scenario); err != nil {
+		t.Fatal(err)
+	}
+
+	p := gobookmarks.GetProvider("sql")
+	raw, _, err := p.GetBookmarks(context.Background(), "testuser", "refs/heads/main", nil)
+	if err != nil || !strings.Contains(raw, "Google") {
+		t.Fatalf("direct SQL seeded data err=%v body=%q", err, raw)
+	}
+	throughAccess, _, err := gobookmarks.GetBookmarks(ctx, "testuser", "refs/heads/main", nil)
+	if err != nil || !strings.Contains(throughAccess, "Google") {
+		t.Fatalf("access-layer seeded data err=%v body=%q", err, throughAccess)
+	}
+
+	r := setupRouter()
+	registerRoutes(r)
+	browser, err := NewBrowser(r, "http://localhost")
+	if err != nil {
+		t.Fatal(err)
+	}
+	login, err := browser.DoForm("/login/sql", url.Values{"username": {"testuser"}, "password": {"password"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if login.Response.StatusCode != http.StatusSeeOther || login.Response.Header.Get("Location") == "/login/sql?error=invalid" {
+		t.Fatalf("SQL login status=%d location=%q cookies=%+v", login.Response.StatusCode, login.Response.Header.Get("Location"), cookieMetadata(login.Cookies))
+	}
+	response, err := browser.Do("GET", "/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.Response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Logout")) || !bytes.Contains(body, []byte("Google")) || !bytes.Contains(body, []byte("Hacker News")) {
+		t.Fatalf("GET / status=%d location=%q cookies=%+v body=%q", response.Response.StatusCode, response.Response.Header.Get("Location"), cookieMetadata(response.Cookies), body)
+	}
+}
+
+func cookieMetadata(cookies []*http.Cookie) []CookieMetadata {
+	metadata := make([]CookieMetadata, 0, len(cookies))
+	for _, cookie := range cookies {
+		metadata = append(metadata, CookieMetadata{Identity: CookieIdentity{Name: cookie.Name, Domain: cookie.Domain, Path: cookie.Path}, MaxAge: cookie.MaxAge, Expires: cookie.Expires, Secure: cookie.Secure, HttpOnly: cookie.HttpOnly, SameSite: cookie.SameSite})
+	}
+	return metadata
 }
