@@ -25,3 +25,4 @@ Examples:
 **Important Note for Agents:**
 - Use `test verification template` (isolated unit/template rendering tests) for template-specific work.
 - Use executable scenarios (via `scenario serve`) when a screenshot or review needs realistic whole-application state.
+- `scenario apply` is a disposable rehearsal: it validates and seeds temporary state, then removes it when the command exits. It never writes a configured backend. Use `scenario serve` and log in through the normal route to inspect seeded state in a browser.

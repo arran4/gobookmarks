@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-
-	gobookmarks "github.com/arran4/gobookmarks"
 )
 
 type ScenarioApplyCommand struct {
@@ -66,30 +64,21 @@ func (c *ScenarioApplyCommand) Execute(args []string) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Config loading isn't triggered by main.go for scenario commands.
-	// If the user wants to apply to a real DB, they can load config. For now,
-	// we will initialize the disposable temp scenario backend if no connection is set.
-	rc := c.parent.Parent().(*RootCommand)
-	if rc.cfg.DBConnectionProvider == "" {
-		cleanup, err := setupScenarioBackend()
-		if err != nil {
-			return err
-		}
-		if cleanup != nil {
-			defer cleanup()
-		}
-	} else {
-		// Just sync global config and session store to act like normal execution
-		gobookmarks.Config = rc.cfg
-		if gobookmarks.Config.SessionKey != "" {
-			gobookmarks.SessionStore = gobookmarks.InitSessionStore([]byte(gobookmarks.Config.SessionKey))
-		}
+	// `scenario apply` is a validation/seeding rehearsal. It always creates a
+	// disposable runtime and removes it before returning; it never mutates a
+	// configured backend.
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
+		return err
+	}
+	if cleanup != nil {
+		defer cleanup()
 	}
 
 	if err := ApplyScenario(context.Background(), scenario); err != nil {
 		return fmt.Errorf("failed to apply scenario: %w", err)
 	}
 
-	fmt.Printf("Scenario applied successfully for %s\n", path)
+	fmt.Printf("Scenario applied successfully to disposable state for %s (state removed on exit)\n", path)
 	return nil
 }

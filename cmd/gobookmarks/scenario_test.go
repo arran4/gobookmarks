@@ -67,6 +67,11 @@ Op: user.create
 
 func TestBookmarkAssetResolution(t *testing.T) {
 	txtar := `
+-- 001-user.event --
+Op: user.create
+Ref: user
+Username: user
+
 -- 010-bookmarks.event --
 Op: bookmark.create
 User: user
@@ -159,8 +164,9 @@ Name: main
 	}
 
 	sCtx := &ScenarioContext{
-		Refs:  map[string]string{},
-		Files: s.Files,
+		Refs:            map[string]string{},
+		Files:           s.Files,
+		StorageProvider: "sql",
 	}
 
 	op := operations["repo.create"]
