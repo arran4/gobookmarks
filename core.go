@@ -19,6 +19,12 @@ func CoreAdderMiddleware(next http.Handler) http.Handler {
 		session := request.Context().Value(ContextValues("session")).(*sessions.Session)
 		githubUser, _ := session.Values["GithubUser"].(*User)
 		providerName, _ := session.Values["Provider"].(string)
+		// Executable scenarios may authenticate an external identity while using
+		// a separate disposable storage provider. This is request-scoped so it
+		// cannot alter ordinary application sessions.
+		if storageProvider, ok := request.Context().Value(ContextValues("scenarioStorageProvider")).(string); ok && storageProvider != "" {
+			providerName = storageProvider
+		}
 
 		login := ""
 		if githubUser != nil {

@@ -62,6 +62,14 @@ func invalidateBookmarkCache(user string) {
 	bookmarksCache.Unlock()
 }
 
+// ResetBookmarkCache removes process-wide cached bookmark data. Disposable
+// scenario runtimes call it during teardown so state cannot affect later tests.
+func ResetBookmarkCache() {
+	bookmarksCache.Lock()
+	bookmarksCache.data = make(map[string]*bookmarkCacheEntry)
+	bookmarksCache.Unlock()
+}
+
 func providerFromContext(ctx context.Context) Provider {
 	if name, ok := ctx.Value(ContextValues("provider")).(string); ok {
 		if p := GetProvider(name); p != nil {

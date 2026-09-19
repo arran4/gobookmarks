@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,7 +12,6 @@ import (
 	"testing"
 
 	gobookmarks "github.com/arran4/gobookmarks"
-	"golang.org/x/oauth2"
 )
 
 func TestParseScenario(t *testing.T) {
@@ -423,14 +423,10 @@ func TestProviderLoginScenario(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gobookmarks.Config.GithubClientID = "scenario-client"
-	gobookmarks.Config.GithubSecret = "scenario-secret"
+	configureScenarioAuth(s)
 	gobookmarks.Config.ExternalURL = "http://localhost"
 	mockClient := &http.Client{Transport: &mockOAuthRoundTripper{fakeToken: "scenario-token", userLogin: s.AuthUser}}
-	router := newApplicationRouter()
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		router.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), oauth2.HTTPClient, mockClient)))
-	})
+	handler := scenarioApplicationHandler(s, mockClient)
 	browser, err := NewBrowser(handler, "http://localhost")
 	if err != nil {
 		t.Fatal(err)
@@ -458,7 +454,7 @@ func TestProviderLoginScenario(t *testing.T) {
 		t.Fatal(err)
 	}
 	body, err := io.ReadAll(page.Response.Body)
-	if err != nil || page.Response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Logout")) || !bytes.Contains(body, []byte("Mocked provider bookmark")) {
+	if err != nil || page.Response.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Logout")) || !strings.Contains(html.UnescapeString(string(body)), "Charlie's Example") {
 		t.Fatalf("provider page err=%v status=%d body=%q", err, page.Response.StatusCode, body)
 	}
 }

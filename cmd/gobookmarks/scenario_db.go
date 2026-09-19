@@ -62,6 +62,7 @@ func setupScenarioBackend() (func(), error) {
 		}
 		gobookmarks.Config = originalConfig
 		gobookmarks.SessionStore = originalSessionStore
+		gobookmarks.ResetBookmarkCache()
 		// SQL providers hold a DB handle, so restore future tests to a fresh
 		// provider rather than letting an in-memory scenario database escape.
 		gobookmarks.RegisterProvider(&gobookmarks.SQLProvider{})

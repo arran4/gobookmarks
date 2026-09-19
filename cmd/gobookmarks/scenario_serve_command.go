@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	gobookmarks "github.com/arran4/gobookmarks"
 	"golang.org/x/oauth2"
 )
 
@@ -81,10 +82,12 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		defer cleanup()
 	}
 
-	// Create mock transport using same methodology as regression tests
+	configureScenarioAuth(scenario)
+	// The mock permits only the declared OAuth identity flow; all other
+	// requests fail at this boundary instead of reaching the network.
 	mockTransport := &mockOAuthRoundTripper{
 		fakeToken: "fake-scenario-token",
-		userLogin: "charlie", // Fallback, would ideally be extracted dynamically
+		userLogin: scenario.AuthUser,
 	}
 	mockClient := &http.Client{Transport: mockTransport}
 
@@ -94,14 +97,7 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		return fmt.Errorf("failed to apply scenario: %w", err)
 	}
 
-	r := newApplicationRouter()
-
-	testHandler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		// Use the scenario's provider isolation via context
-		// This uses golang.org/x/oauth2 HTTPClient key
-		ctx := context.WithValue(req.Context(), oauth2.HTTPClient, mockClient)
-		r.ServeHTTP(w, req.WithContext(ctx))
-	})
+	testHandler := scenarioApplicationHandler(scenario, mockClient)
 
 	port := ":8080"
 	if c.Port.set {
@@ -143,4 +139,24 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 
 	wg.Wait()
 	return nil
+}
+
+func configureScenarioAuth(scenario *Scenario) {
+	switch scenario.AuthProvider {
+	case "github":
+		gobookmarks.Config.GithubClientID = "scenario-github-client"
+		gobookmarks.Config.GithubSecret = "scenario-github-secret"
+	case "gitlab":
+		gobookmarks.Config.GitlabClientID = "scenario-gitlab-client"
+		gobookmarks.Config.GitlabSecret = "scenario-gitlab-secret"
+	}
+}
+
+func scenarioApplicationHandler(scenario *Scenario, mockClient *http.Client) http.Handler {
+	r := newApplicationRouter()
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := context.WithValue(req.Context(), oauth2.HTTPClient, mockClient)
+		ctx = context.WithValue(ctx, gobookmarks.ContextValues("scenarioStorageProvider"), scenario.StorageProvider)
+		r.ServeHTTP(w, req.WithContext(ctx))
+	})
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,14 +34,16 @@ func (m *mockOAuthRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 			Header:     header,
 		}, nil
 	}
+	// OAuth lifecycle tests intentionally exercise repository setup. These are
+	// explicit fixture endpoints, not a catch-all successful mock.
 	if strings.Contains(req.URL.Path, "/contents/bookmarks.txt") {
-		bookmarks := "Tab: Provider\nPage: Mock\nCategory: Links\nhttps://example.com Mocked provider bookmark"
-		body := fmt.Sprintf(`{"content":%q,"encoding":"base64","sha":"scenario-sha"}`, base64.StdEncoding.EncodeToString([]byte(bookmarks)))
-		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(body)), Header: header}, nil
+		if req.Method == http.MethodPut {
+			return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(bytes.NewBufferString(`{"content":{"sha":"scenario-sha"}}`)), Header: header}, nil
+		}
+		return &http.Response{StatusCode: http.StatusNotFound, Body: io.NopCloser(bytes.NewBufferString(`{"message":"Not Found"}`)), Header: header}, nil
 	}
 	if strings.Contains(req.URL.Path, "/repos/") {
 		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString(`{"name":"gobookmarks"}`)), Header: header}, nil
 	}
-
 	return nil, fmt.Errorf("unexpected outbound OAuth/provider request: %s %s", req.Method, req.URL.String())
 }
