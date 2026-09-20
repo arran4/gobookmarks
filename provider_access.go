@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 	"sync"
-	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -13,13 +12,7 @@ import (
 type bookmarkCacheEntry struct {
 	bookmarks string
 	sha       string
-	expiry    time.Time
 }
-
-var bookmarksCache = struct {
-	sync.RWMutex
-	data map[string]*bookmarkCacheEntry
-}{data: make(map[string]*bookmarkCacheEntry)}
 
 func cacheKey(user, ref string) string { return user + "|" + ref }
 
@@ -39,35 +32,6 @@ func invalidateRequestCache(ctx context.Context, user string) {
 			}
 		}
 	}
-}
-
-func getCachedBookmarks(user, ref string) (string, string, bool) {
-	key := cacheKey(user, ref)
-	bookmarksCache.RLock()
-	entry, ok := bookmarksCache.data[key]
-	bookmarksCache.RUnlock()
-	if !ok || time.Now().After(entry.expiry) {
-		return "", "", false
-	}
-	return entry.bookmarks, entry.sha, true
-}
-
-func invalidateBookmarkCache(user string) {
-	bookmarksCache.Lock()
-	for k := range bookmarksCache.data {
-		if strings.HasPrefix(k, user+"|") {
-			delete(bookmarksCache.data, k)
-		}
-	}
-	bookmarksCache.Unlock()
-}
-
-// ResetBookmarkCache removes process-wide cached bookmark data. Disposable
-// scenario runtimes call it during teardown so state cannot affect later tests.
-func ResetBookmarkCache() {
-	bookmarksCache.Lock()
-	bookmarksCache.data = make(map[string]*bookmarkCacheEntry)
-	bookmarksCache.Unlock()
 }
 
 func providerFromContext(ctx context.Context) Provider {
@@ -172,10 +136,6 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 		}
 		cd.requestCache.RUnlock()
 	}
-
-	if b, sha, ok := getCachedBookmarks(user, ref); ok {
-		return b, sha, nil
-	}
 	p := providerFromContext(ctx)
 	if p == nil {
 		return "", "", ErrNoProvider
@@ -201,7 +161,6 @@ func UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sour
 	}
 	err := p.UpdateBookmarks(ctx, user, token, sourceRef, branch, text, expectSHA)
 	if err == nil {
-		invalidateBookmarkCache(user)
 		invalidateRequestCache(ctx, user)
 	} else if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return ErrSignedOut
@@ -216,7 +175,6 @@ func CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, bran
 	}
 	err := p.CreateBookmarks(ctx, user, token, branch, text)
 	if err == nil {
-		invalidateBookmarkCache(user)
 		invalidateRequestCache(ctx, user)
 	} else if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
 		return ErrSignedOut
