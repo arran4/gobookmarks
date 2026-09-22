@@ -79,6 +79,19 @@ func RegisterProvider(p Provider) {
 	providerOrder = append(providerOrder, name)
 }
 
+// UnregisterProvider removes a previously registered provider by name.
+// This is primarily used for deterministic test lifecycle and cleanup.
+func UnregisterProvider(name string) {
+	delete(providers, name)
+	var newOrder []string
+	for _, n := range providerOrder {
+		if n != name {
+			newOrder = append(newOrder, n)
+		}
+	}
+	providerOrder = newOrder
+}
+
 // SetProviderOrder updates the order in which providers are returned by
 // ProviderNames. Names not recognized are ignored. Any registered providers not
 // mentioned remain at the end in alphabetical order.
