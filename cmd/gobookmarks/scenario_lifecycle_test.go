@@ -250,6 +250,20 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 }
 
 func TestProviderUnregisterCleanup(t *testing.T) {
+	// Capture original process-global state
+	originalProvider := gobookmarks.GetProvider("github")
+	originalOrder := append([]string{}, gobookmarks.Config.ProviderOrder...)
+
+	// Register unconditional restoration of the original state
+	t.Cleanup(func() {
+		if originalProvider != nil {
+			gobookmarks.RegisterProvider(originalProvider)
+		} else {
+			gobookmarks.UnregisterProvider("github")
+		}
+		gobookmarks.SetProviderOrder(originalOrder)
+	})
+
 	// First unregister github if it exists to ensure it's absent
 	gobookmarks.UnregisterProvider("github")
 
@@ -262,12 +276,22 @@ func TestProviderUnregisterCleanup(t *testing.T) {
 		t.Fatalf("setupScenarioBackend failed: %v", err)
 	}
 
+	// Register unconditional teardown of the scenario backend if we fail midway
+	t.Cleanup(func() {
+		if cleanup != nil {
+			cleanup()
+			cleanup = nil // prevent double-cleaning
+		}
+	})
+
 	// Verify setupScenarioBackend registers it
 	if gobookmarks.GetProvider("github") == nil {
 		t.Fatalf("github provider should be registered by scenario setup")
 	}
 
+	// Trigger cleanup manually to assert its behavior
 	cleanup()
+	cleanup = nil
 
 	// Verify cleanup completely unregisters it again because it was originally absent
 	if gobookmarks.GetProvider("github") != nil {
