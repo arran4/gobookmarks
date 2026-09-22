@@ -179,15 +179,7 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 
 		uniqueBookmarkStr := []byte("https://unique-to-run-0.example.com")
 		if i == 0 {
-			// Mutate state in Run 0 by updating the raw text entirely (which is what /edit does)
-			// Wait, the real BookmarksEditSaveAction reads "text", "branch", "ref".
-			// We need to fetch current bookmarks to append. But we can just use GetBookmarks or similar?
-			// The seeded complex-bookmarks.txtar starts with `Tab: Tab 1`
-			// We will just post the entire text to `/edit`.
-
-			// Let's get the original text via the provider?
-			// We are logged in as "testuser"
-			// But easier: just send a brand new document that has the unique string.
+			// Mutate state in Run 0 by updating the raw text entirely
 			newText := "Tab: Tab 1\nPage: Page 1\nCategory: Search Engines\n" + string(uniqueBookmarkStr) + " Unique\n"
 
 			respAdd, err := httpClient.PostForm(routerURL+"/edit", url.Values{
@@ -215,8 +207,11 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 			if err != nil {
 				t.Fatalf("run %d: GET / after edit failed: %v", i, err)
 			}
-			verifyBody, _ := io.ReadAll(respVerify.Body)
+			verifyBody, readErr := io.ReadAll(respVerify.Body)
 			_ = respVerify.Body.Close()
+			if readErr != nil {
+				t.Fatalf("run %d: Failed to read verify response body: %v", i, readErr)
+			}
 
 			if !bytes.Contains(verifyBody, uniqueBookmarkStr) {
 				t.Fatalf("run %d: Mutation was not persisted! Body did not contain unique string.", i)
