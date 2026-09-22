@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/arran4/gobookmarks"
 )
 
 func TestScenarioServePortInUse(t *testing.T) {
@@ -244,5 +246,31 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 
 		// Check that the underlying DB is actually closed by testing `Ping()` internally if we could.
 		// `SQLProvider.Close()` logic covers this aspect, preventing DB handle leakage.
+	}
+}
+
+func TestProviderUnregisterCleanup(t *testing.T) {
+	// First unregister github if it exists to ensure it's absent
+	gobookmarks.UnregisterProvider("github")
+
+	if gobookmarks.GetProvider("github") != nil {
+		t.Fatalf("github provider should be unregistered initially")
+	}
+
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
+		t.Fatalf("setupScenarioBackend failed: %v", err)
+	}
+
+	// Verify setupScenarioBackend registers it
+	if gobookmarks.GetProvider("github") == nil {
+		t.Fatalf("github provider should be registered by scenario setup")
+	}
+
+	cleanup()
+
+	// Verify cleanup completely unregisters it again because it was originally absent
+	if gobookmarks.GetProvider("github") != nil {
+		t.Fatalf("github provider should be unregistered after cleanup")
 	}
 }

@@ -63,17 +63,26 @@ func setupScenarioBackend() (func(), error) {
 
 		gobookmarks.Config = originalConfig
 		gobookmarks.SessionStore = originalSessionStore
+
 		if originalSQLProvider != nil {
 			gobookmarks.RegisterProvider(originalSQLProvider)
+		} else {
+			gobookmarks.UnregisterProvider("sql")
 		}
 		if originalGitProvider != nil {
 			gobookmarks.RegisterProvider(originalGitProvider)
+		} else {
+			gobookmarks.UnregisterProvider("git")
 		}
 		if originalGithubProvider != nil {
 			gobookmarks.RegisterProvider(originalGithubProvider)
+		} else {
+			gobookmarks.UnregisterProvider("github")
 		}
 		if originalGitlabProvider != nil {
 			gobookmarks.RegisterProvider(originalGitlabProvider)
+		} else {
+			gobookmarks.UnregisterProvider("gitlab")
 		}
 		gobookmarks.SetProviderOrder(originalProviderOrder)
 
@@ -93,17 +102,26 @@ func setupScenarioBackend() (func(), error) {
 		if sqlP, ok := gobookmarks.GetProvider("sql").(*gobookmarks.SQLProvider); ok {
 			_ = sqlP.Close()
 		}
+
 		if originalSQLProvider != nil {
 			gobookmarks.RegisterProvider(originalSQLProvider)
+		} else {
+			gobookmarks.UnregisterProvider("sql")
 		}
 		if originalGitProvider != nil {
 			gobookmarks.RegisterProvider(originalGitProvider)
+		} else {
+			gobookmarks.UnregisterProvider("git")
 		}
 		if originalGithubProvider != nil {
 			gobookmarks.RegisterProvider(originalGithubProvider)
+		} else {
+			gobookmarks.UnregisterProvider("github")
 		}
 		if originalGitlabProvider != nil {
 			gobookmarks.RegisterProvider(originalGitlabProvider)
+		} else {
+			gobookmarks.UnregisterProvider("gitlab")
 		}
 		gobookmarks.SetProviderOrder(originalProviderOrder)
 	}
