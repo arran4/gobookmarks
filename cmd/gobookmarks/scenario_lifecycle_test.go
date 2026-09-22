@@ -252,7 +252,7 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 func TestProviderUnregisterCleanup(t *testing.T) {
 	// Capture original process-global state
 	originalProvider := gobookmarks.GetProvider("github")
-	originalOrder := append([]string{}, gobookmarks.Config.ProviderOrder...)
+	originalOrder := append([]string{}, gobookmarks.ProviderNames()...)
 
 	// Register unconditional restoration of the original state
 	t.Cleanup(func() {
@@ -262,6 +262,16 @@ func TestProviderUnregisterCleanup(t *testing.T) {
 			gobookmarks.UnregisterProvider("github")
 		}
 		gobookmarks.SetProviderOrder(originalOrder)
+
+		finalOrder := gobookmarks.ProviderNames()
+		if len(finalOrder) != len(originalOrder) {
+			t.Fatalf("Expected final provider order length %d, got %d", len(originalOrder), len(finalOrder))
+		}
+		for i, n := range originalOrder {
+			if finalOrder[i] != n {
+				t.Fatalf("Expected final provider order [%d] to be %s, got %s", i, n, finalOrder[i])
+			}
+		}
 	})
 
 	// First unregister github if it exists to ensure it's absent
