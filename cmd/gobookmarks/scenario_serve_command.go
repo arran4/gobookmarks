@@ -18,6 +18,10 @@ type ScenarioServeCommand struct {
 	parent Command
 	Flags  *flag.FlagSet
 	Port   stringFlag
+
+	// readyPort is an optional test hook. If provided, the command will send the
+	// actual bound listener port (e.g. "127.0.0.1:45321") to it before serving.
+	readyPort chan<- string
 }
 
 func (sc *ScenarioCommand) NewScenarioServeCommand() (*ScenarioServeCommand, error) {
@@ -128,6 +132,9 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 
 	go func() {
 		fmt.Printf("Scenario serve HTTP server listening on %s...\n", boundPort)
+		if c.readyPort != nil {
+			c.readyPort <- boundPort
+		}
 		if err := httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}

@@ -11,6 +11,13 @@ import (
 func setupScenarioBackend() (func(), error) {
 	originalConfig := gobookmarks.Config
 	originalSessionStore := gobookmarks.SessionStore
+	originalProviderOrder := gobookmarks.Config.ProviderOrder
+
+	originalSQLProvider := gobookmarks.GetProvider("sql")
+	originalGitProvider := gobookmarks.GetProvider("git")
+	originalGithubProvider := gobookmarks.GetProvider("github")
+	originalGitlabProvider := gobookmarks.GetProvider("gitlab")
+
 	id := make([]byte, 16)
 	_, _ = rand.Read(id)
 	uuid := fmt.Sprintf("%x", id)
@@ -49,9 +56,28 @@ func setupScenarioBackend() (func(), error) {
 	db, err := gobookmarks.OpenDB()
 	if err != nil {
 		if cleanupErr := os.RemoveAll(tmpGitDir); cleanupErr != nil {
-			return nil, fmt.Errorf("failed to initialize temp scenario db: %w (also failed to remove %s: %v)", err, tmpGitDir, cleanupErr)
+			err = fmt.Errorf("failed to initialize temp scenario db: %w (also failed to remove %s: %v)", err, tmpGitDir, cleanupErr)
+		} else {
+			err = fmt.Errorf("failed to initialize temp scenario db: %w", err)
 		}
-		return nil, fmt.Errorf("failed to initialize temp scenario db: %w", err)
+
+		gobookmarks.Config = originalConfig
+		gobookmarks.SessionStore = originalSessionStore
+		if originalSQLProvider != nil {
+			gobookmarks.RegisterProvider(originalSQLProvider)
+		}
+		if originalGitProvider != nil {
+			gobookmarks.RegisterProvider(originalGitProvider)
+		}
+		if originalGithubProvider != nil {
+			gobookmarks.RegisterProvider(originalGithubProvider)
+		}
+		if originalGitlabProvider != nil {
+			gobookmarks.RegisterProvider(originalGitlabProvider)
+		}
+		gobookmarks.SetProviderOrder(originalProviderOrder)
+
+		return nil, err
 	}
 	defer func() { _ = db.Close() }()
 
@@ -67,9 +93,19 @@ func setupScenarioBackend() (func(), error) {
 		if sqlP, ok := gobookmarks.GetProvider("sql").(*gobookmarks.SQLProvider); ok {
 			_ = sqlP.Close()
 		}
-		gobookmarks.RegisterProvider(&gobookmarks.SQLProvider{})
-		gobookmarks.RegisterProvider(&gobookmarks.GitProvider{})
-		gobookmarks.SetProviderOrder(gobookmarks.Config.ProviderOrder)
+		if originalSQLProvider != nil {
+			gobookmarks.RegisterProvider(originalSQLProvider)
+		}
+		if originalGitProvider != nil {
+			gobookmarks.RegisterProvider(originalGitProvider)
+		}
+		if originalGithubProvider != nil {
+			gobookmarks.RegisterProvider(originalGithubProvider)
+		}
+		if originalGitlabProvider != nil {
+			gobookmarks.RegisterProvider(originalGitlabProvider)
+		}
+		gobookmarks.SetProviderOrder(originalProviderOrder)
 	}
 
 	return cleanup, nil
