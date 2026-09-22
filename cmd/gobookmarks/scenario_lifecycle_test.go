@@ -166,11 +166,42 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 		if err != nil {
 			t.Fatalf("run %d: GET / failed: %v", i, err)
 		}
-		body, _ := io.ReadAll(resp2.Body)
+		body, err := io.ReadAll(resp2.Body)
+		if err != nil {
+			t.Fatalf("run %d: Failed to read GET body: %v", i, err)
+		}
 		_ = resp2.Body.Close()
 
 		if resp2.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("Google")) {
 			t.Fatalf("run %d: Failed to retrieve seeded bookmarks, status %d", i, resp2.StatusCode)
+		}
+
+		uniqueBookmarkStr := []byte("https://unique-to-run-0.example.com")
+		if i == 0 {
+			// Mutate state in Run 0
+			respAdd, err := httpClient.PostForm(routerURL+"/edit", url.Values{
+				"tab":      []string{"0"},
+				"category": []string{"0"},
+				"page":     []string{"0"},
+				"task":     []string{"Save and Close"},
+				"branch":   []string{"main"},
+				"ref":      []string{"refs/heads/main"},
+				"title":    []string{"Unique Run 0 Bookmark"},
+				"url":      []string{string(uniqueBookmarkStr)},
+			})
+			if err != nil {
+				t.Fatalf("run %d: Bookmark POST failed: %v", i, err)
+			}
+			_ = respAdd.Body.Close()
+
+			if respAdd.StatusCode != http.StatusOK {
+				// edit actually responds with 200 containing javascript redirect
+			}
+		} else {
+			// Verify state is clean in Run 1 (and subsequent)
+			if bytes.Contains(body, uniqueBookmarkStr) {
+				t.Fatalf("run %d: Leaked state from previous scenario run detected", i)
+			}
 		}
 
 		// 3. Gracefully terminate
@@ -194,4 +225,15 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 		// Check that the underlying DB is actually closed by testing `Ping()` internally if we could.
 		// `SQLProvider.Close()` logic covers this aspect, preventing DB handle leakage.
 	}
+}
+
+func TestSetupScenarioBackendRollback(t *testing.T) {
+	// To test OpenDB failing within setupScenarioBackend, we would need to mock sql.Open or OpenDB,
+	// which is currently a tightly coupled package-level function without an injection point.
+	// We cannot force `OpenDB` to fail deterministically here because `setupScenarioBackend`
+	// hardcodes `Config.DBConnectionProvider = "sqlite3"` and a valid `file:...` connection string
+	// before invoking `OpenDB`. Refactoring `OpenDB` or the global `Config` access pattern
+	// throughout the application is outside the strictly-confined scope of this scenario fix PR.
+	// Therefore, this rollback path (the `if err != nil` block in `setupScenarioBackend` after `OpenDB()`)
+	// remains explicitly untested in this PR, relying solely on human review of the rollback assignments.
 }

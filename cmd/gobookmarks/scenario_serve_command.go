@@ -141,12 +141,14 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 		close(errCh)
 	}()
 
+	var serveErr error
+
 	select {
 	case <-ctx.Done():
 	case <-sigCh:
 	case err := <-errCh:
 		if err != nil {
-			return fmt.Errorf("HTTP server error: %w", err)
+			serveErr = fmt.Errorf("HTTP server error: %w", err)
 		}
 	}
 
@@ -155,10 +157,13 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 	defer cancel()
 
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		if serveErr != nil {
+			return fmt.Errorf("%v (and HTTP server error during shutdown: %w)", serveErr, err)
+		}
 		return fmt.Errorf("HTTP server error during shutdown: %w", err)
 	}
 
-	return nil
+	return serveErr
 }
 
 func configureScenarioAuth(scenario *Scenario) {
