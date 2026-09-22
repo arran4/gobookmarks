@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -178,24 +179,47 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 
 		uniqueBookmarkStr := []byte("https://unique-to-run-0.example.com")
 		if i == 0 {
-			// Mutate state in Run 0
+			// Mutate state in Run 0 by updating the raw text entirely (which is what /edit does)
+			// Wait, the real BookmarksEditSaveAction reads "text", "branch", "ref".
+			// We need to fetch current bookmarks to append. But we can just use GetBookmarks or similar?
+			// The seeded complex-bookmarks.txtar starts with `Tab: Tab 1`
+			// We will just post the entire text to `/edit`.
+
+			// Let's get the original text via the provider?
+			// We are logged in as "testuser"
+			// But easier: just send a brand new document that has the unique string.
+			newText := "Tab: Tab 1\nPage: Page 1\nCategory: Search Engines\n" + string(uniqueBookmarkStr) + " Unique\n"
+
 			respAdd, err := httpClient.PostForm(routerURL+"/edit", url.Values{
-				"tab":      []string{"0"},
-				"category": []string{"0"},
-				"page":     []string{"0"},
-				"task":     []string{"Save and Close"},
-				"branch":   []string{"main"},
-				"ref":      []string{"refs/heads/main"},
-				"title":    []string{"Unique Run 0 Bookmark"},
-				"url":      []string{string(uniqueBookmarkStr)},
+				"task":   []string{"Save and Close"},
+				"branch": []string{"main"},
+				"ref":    []string{"refs/heads/main"},
+				"text":   []string{newText},
 			})
 			if err != nil {
 				t.Fatalf("run %d: Bookmark POST failed: %v", i, err)
 			}
+
+			bodyAdd, readErr := io.ReadAll(respAdd.Body)
 			_ = respAdd.Body.Close()
+			if readErr != nil {
+				t.Fatalf("run %d: Failed to read edit response body: %v", i, readErr)
+			}
 
 			if respAdd.StatusCode != http.StatusOK {
-				// edit actually responds with 200 containing javascript redirect
+				t.Fatalf("run %d: Bookmark POST returned unexpected status %d: %s", i, respAdd.StatusCode, bodyAdd)
+			}
+
+			// Verify mutation is present
+			respVerify, err := httpClient.Get(routerURL + "/")
+			if err != nil {
+				t.Fatalf("run %d: GET / after edit failed: %v", i, err)
+			}
+			verifyBody, _ := io.ReadAll(respVerify.Body)
+			_ = respVerify.Body.Close()
+
+			if !bytes.Contains(verifyBody, uniqueBookmarkStr) {
+				t.Fatalf("run %d: Mutation was not persisted! Body did not contain unique string.", i)
 			}
 		} else {
 			// Verify state is clean in Run 1 (and subsequent)
@@ -216,24 +240,14 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 			}
 		}
 
-		// 4. Verify the listener is released by attempting to connect
-		_, err = http.Get(routerURL)
-		if err == nil {
-			t.Fatalf("run %d: Expected connection to fail after shutdown, but it succeeded", i)
+		// 4. Verify the listener is released explicitly by rebinding
+		ln, err := net.Listen("tcp", boundPort)
+		if err != nil {
+			t.Fatalf("run %d: Expected port %s to be released, but could not bind it: %v", i, boundPort, err)
 		}
+		_ = ln.Close()
 
 		// Check that the underlying DB is actually closed by testing `Ping()` internally if we could.
 		// `SQLProvider.Close()` logic covers this aspect, preventing DB handle leakage.
 	}
-}
-
-func TestSetupScenarioBackendRollback(t *testing.T) {
-	// To test OpenDB failing within setupScenarioBackend, we would need to mock sql.Open or OpenDB,
-	// which is currently a tightly coupled package-level function without an injection point.
-	// We cannot force `OpenDB` to fail deterministically here because `setupScenarioBackend`
-	// hardcodes `Config.DBConnectionProvider = "sqlite3"` and a valid `file:...` connection string
-	// before invoking `OpenDB`. Refactoring `OpenDB` or the global `Config` access pattern
-	// throughout the application is outside the strictly-confined scope of this scenario fix PR.
-	// Therefore, this rollback path (the `if err != nil` block in `setupScenarioBackend` after `OpenDB()`)
-	// remains explicitly untested in this PR, relying solely on human review of the rollback assignments.
 }
