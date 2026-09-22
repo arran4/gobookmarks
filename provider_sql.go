@@ -48,6 +48,19 @@ func (p *SQLProvider) getDB() (*sql.DB, error) {
 	return p.db, nil
 }
 
+// Close explicitly closes the cached database connection if one exists.
+// This is primarily used for test isolation and resource cleanup during scenario execution.
+func (p *SQLProvider) Close() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.db != nil {
+		err := p.db.Close()
+		p.db = nil
+		return err
+	}
+	return nil
+}
+
 func (p *SQLProvider) Name() string                                                     { return "sql" }
 func (p *SQLProvider) DefaultServer() string                                            { return "" }
 func (p *SQLProvider) Config(clientID, clientSecret, redirectURL string) *oauth2.Config { return nil }

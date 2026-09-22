@@ -4,11 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 
 	gobookmarks "github.com/arran4/gobookmarks"
@@ -47,6 +46,10 @@ func (c *ScenarioServeCommand) Subcommands() []Command {
 }
 
 func (c *ScenarioServeCommand) Execute(args []string) error {
+	return c.ExecuteContext(context.Background(), args)
+}
+
+func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string) error {
 	c.FlagSet().Usage = func() { printHelp(c, nil) }
 	if err := c.FlagSet().Parse(args); err != nil {
 		printHelp(c, err)
@@ -107,37 +110,47 @@ func (c *ScenarioServeCommand) Execute(args []string) error {
 		}
 	}
 
+	listener, err := net.Listen("tcp", port)
+	if err != nil {
+		return fmt.Errorf("failed to bind to port %s: %w", port, err)
+	}
+
 	httpServer := &http.Server{
-		Addr:    port,
 		Handler: testHandler,
 	}
 
-	var sigCh chan os.Signal
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	defer signal.Stop(sigCh)
+	errCh := make(chan error, 1)
+
+	boundPort := listener.Addr().String()
+
 	go func() {
-		sigCh = make(chan os.Signal, 1)
-		signal.Notify(sigCh, os.Interrupt)
-		<-sigCh
-
-		timeout := 5 * time.Second
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-
-		if err := httpServer.Shutdown(ctx); err != nil {
-			log.Printf("HTTP server error during shutdown: %v", err)
+		fmt.Printf("Scenario serve HTTP server listening on %s...\n", boundPort)
+		if err := httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+			errCh <- err
 		}
+		close(errCh)
 	}()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Printf("Scenario serve HTTP server listening on %s...\n", port)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("HTTP server error: %v", err)
+	select {
+	case <-ctx.Done():
+	case <-sigCh:
+	case err := <-errCh:
+		if err != nil {
+			return fmt.Errorf("HTTP server error: %w", err)
 		}
-	}()
+	}
 
-	wg.Wait()
+	timeout := 5 * time.Second
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("HTTP server error during shutdown: %w", err)
+	}
+
 	return nil
 }
 
