@@ -27,3 +27,11 @@ Examples:
 - Use executable scenarios (via `scenario serve`) when a screenshot or review needs realistic whole-application state.
 - `scenario apply` is a disposable rehearsal: it validates and seeds temporary state, then removes it when the command exits. It never writes a configured backend. Use `scenario serve` and log in through the normal route to inspect seeded state in a browser.
 - A scenario may authenticate through `AuthProvider` while rendering data from its disposable `StorageProvider`; `scenario serve` applies that storage choice only to its request context. External login fixtures use the manifest `AuthUser` and reject undeclared outbound requests.
+
+### Caching Architecture
+
+- The application uses a strictly request-scoped cache (`requestCache`) bound to `CoreData` via `CoreAdderMiddleware`.
+- The cache deduplicates `GetBookmarks()` calls within a single HTTP request, which frequently occur during template rendering (e.g., retrieving tab names and lists multiple times per page).
+- The cache is correctly keyed by `<user>|<ref>|<providerName>` to isolate environments where `Provider` may be overridden mid-request (such as within execution scenarios).
+- Providers use SHA-based identifiers for basic change detection, but Git semantics dictate this SHA represents the history state and does not guarantee strict monotonic concurrency on its own. The underlying systems (GitHub API, GitLab API, Local Git, SQL) process writes safely, resolving the request cache's immediate need to track versions inside a single transaction.
+- There is no cross-request or process-wide cache. It was intentionally removed (#257) to avoid complex staleness bugs, as bookmarks are updated externally and most providers lack efficient push notifications for invalidation. Network overhead is considered acceptable for the current use cases.
