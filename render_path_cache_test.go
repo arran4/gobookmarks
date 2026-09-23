@@ -56,7 +56,9 @@ func TestRenderPathCacheCount(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Template execute failed: %v", err)
 		}
-		w.Write(buf.Bytes())
+		if _, err := w.Write(buf.Bytes()); err != nil {
+			t.Fatalf("Response write failed: %v", err)
+		}
 	}))
 
 	w := httptest.NewRecorder()
@@ -101,7 +103,9 @@ func TestRenderPathCacheCount(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Template execute failed: %v", err)
 		}
-		w.Write(buf.Bytes())
+		if _, err := w.Write(buf.Bytes()); err != nil {
+			t.Fatalf("Response write failed: %v", err)
+		}
 	}).ServeHTTP(wNoCache, reqNoCache)
 
 	uncachedCount := callCount
