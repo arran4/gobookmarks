@@ -56,8 +56,7 @@ func TestRenderPathCacheCount(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Template execute failed: %v", err)
 		}
-
-		w.WriteHeader(http.StatusOK)
+		w.Write(buf.Bytes())
 	}))
 
 	w := httptest.NewRecorder()
@@ -102,13 +101,17 @@ func TestRenderPathCacheCount(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Template execute failed: %v", err)
 		}
-		w.WriteHeader(http.StatusOK)
+		w.Write(buf.Bytes())
 	}).ServeHTTP(wNoCache, reqNoCache)
 
 	uncachedCount := callCount
 	t.Logf("Uncached path made %d provider calls", uncachedCount)
 
-	if uncachedCount <= cachedCount {
-		t.Errorf("Expected uncached calls (%d) to be > cached calls (%d)", uncachedCount, cachedCount)
+	if uncachedCount != 3 {
+		t.Errorf("Expected exactly 3 uncached calls, got %d", uncachedCount)
+	}
+
+	if w.Body.String() != wNoCache.Body.String() {
+		t.Errorf("Output mismatch between cached and uncached rendering.\nCached: %q\nUncached: %q", w.Body.String(), wNoCache.Body.String())
 	}
 }
