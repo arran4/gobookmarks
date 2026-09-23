@@ -14,7 +14,7 @@ type bookmarkCacheEntry struct {
 	sha       string
 }
 
-func cacheKey(user, ref string) string { return user + "|" + ref }
+func cacheKey(user, ref, provider string) string { return user + "|" + ref + "|" + provider }
 
 type requestCache struct {
 	sync.RWMutex
@@ -127,7 +127,11 @@ func GetAdjacentCommits(ctx context.Context, user string, token *oauth2.Token, r
 }
 
 func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	key := cacheKey(user, ref)
+	p := providerFromContext(ctx)
+	if p == nil {
+		return "", "", ErrNoProvider
+	}
+	key := cacheKey(user, ref, p.Name())
 	if cd, ok := ctx.Value(ContextValues("coreData")).(*CoreData); ok && cd.requestCache != nil {
 		cd.requestCache.RLock()
 		if entry, ok := cd.requestCache.data[key]; ok {
@@ -135,10 +139,6 @@ func GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (s
 			return entry.bookmarks, entry.sha, nil
 		}
 		cd.requestCache.RUnlock()
-	}
-	p := providerFromContext(ctx)
-	if p == nil {
-		return "", "", ErrNoProvider
 	}
 	b, sha, err := p.GetBookmarks(ctx, user, ref, token)
 	if errors.Is(err, ErrRepoNotFound) && p.Name() == "git" {
