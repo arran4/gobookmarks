@@ -33,5 +33,9 @@ Examples:
 - The application uses a strictly request-scoped cache (`requestCache`) bound to `CoreData` via `CoreAdderMiddleware`.
 - The cache deduplicates `GetBookmarks()` calls within a single HTTP request, which frequently occur during template rendering (e.g., retrieving tab names and lists multiple times per page).
 - The cache is correctly keyed by `<user>|<ref>|<providerName>` to isolate environments where `Provider` may be overridden mid-request (such as within execution scenarios).
-- Providers use SHA-based identifiers for basic change detection, but Git semantics dictate this SHA represents the history state and does not guarantee strict monotonic concurrency on its own. The underlying systems (GitHub API, GitLab API, Local Git, SQL) process writes safely, resolving the request cache's immediate need to track versions inside a single transaction.
+- Providers use SHA-based identifiers for basic change detection, but Git semantics dictate this SHA represents the history state and does not guarantee strict monotonic concurrency on its own. The underlying systems process writes with varying levels of safety:
+    - **GitHub**: Returns the Git Blob SHA. `UpdateBookmarks` passes this to `UpdateFile`, which natively guarantees atomicity.
+    - **GitLab**: Returns the `LastCommitID`. `UpdateBookmarks` passes this as `LastCommitID`, relying on the GitLab API for atomicity.
+    - **Local Git**: Returns the commit hash. Checks `expectSHA` against `head.Hash().String()` manually. This creates a read/check/write window and is not strictly atomic against rapid concurrent local commits.
+    - **SQL**: Returns the stored SHA. Uses a database transaction, but only performs a standard `SELECT` check before inserting/updating, lacking a `FOR UPDATE` lock.
 - There is no cross-request or process-wide cache. It was intentionally removed (#257) to avoid complex staleness bugs, as bookmarks are updated externally and most providers lack efficient push notifications for invalidation. Network overhead is considered acceptable for the current use cases.
