@@ -1,12 +1,15 @@
 package gobookmarks
 
 import (
+	"bytes"
 	"context"
-	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 func TestRenderPathCacheCount(t *testing.T) {
@@ -42,10 +45,17 @@ func TestRenderPathCacheCount(t *testing.T) {
 	req = req.WithContext(ctx)
 
 	handler := CoreAdderMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simulate func usages inside template rendering
-		GetBookmarks(r.Context(), "testuser", "main", nil) // simulated tabName call
-		GetBookmarks(r.Context(), "testuser", "main", nil) // simulated bookmark page rendering
-		GetBookmarks(r.Context(), "testuser", "main", nil) // simulated activeTab evaluation
+		// Use real template logic simulating a real page with multiple reads
+		tmplStr := `{{ tabName }} {{ bookmarks }} {{ tabName }}`
+		tmpl, err := template.New("test").Funcs(NewFuncs(r)).Parse(tmplStr)
+		if err != nil {
+			t.Fatalf("Template parse failed: %v", err)
+		}
+		var buf bytes.Buffer
+		err = tmpl.Execute(&buf, r.Context().Value(ContextValues("coreData")).(*CoreData))
+		if err != nil {
+			t.Fatalf("Template execute failed: %v", err)
+		}
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -82,9 +92,17 @@ func TestRenderPathCacheCount(t *testing.T) {
 	wNoCache := httptest.NewRecorder()
 
 	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		GetBookmarks(r.Context(), "testuser", "main", nil)
-		GetBookmarks(r.Context(), "testuser", "main", nil)
-		GetBookmarks(r.Context(), "testuser", "main", nil)
+		tmplStr := `{{ tabName }} {{ bookmarks }} {{ tabName }}`
+		tmpl, err := template.New("test").Funcs(NewFuncs(r)).Parse(tmplStr)
+		if err != nil {
+			t.Fatalf("Template parse failed: %v", err)
+		}
+		var buf bytes.Buffer
+		err = tmpl.Execute(&buf, r.Context().Value(ContextValues("coreData")).(*CoreData))
+		if err != nil {
+			t.Fatalf("Template execute failed: %v", err)
+		}
+		w.WriteHeader(http.StatusOK)
 	}).ServeHTTP(wNoCache, reqNoCache)
 
 	uncachedCount := callCount
