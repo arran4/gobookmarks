@@ -31,11 +31,11 @@ Examples:
 ### Caching Architecture
 
 - The application uses a strictly request-scoped cache (`requestCache`) bound to `CoreData` via `CoreAdderMiddleware`.
-- The cache deduplicates `GetBookmarks()` calls within a single HTTP request, which frequently occur during template rendering (e.g., retrieving tab names and lists multiple times per page).
-- The cache is correctly keyed by `<user>|<ref>|<providerName>` to isolate environments where `Provider` may be overridden mid-request (such as within execution scenarios).
+- The cache deduplicates `GetBookmarks()` calls within a single HTTP request, which frequently occur during template rendering (e.g., retrieving tab names and lists multiple times per page). During rendering, benchmark tests show un-cached reads hitting providers 3+ times per page-load, whereas the request cache reduces this to exactly 1 call.
+- The request-scoped cache naturally operates with no TTL; it expires immediately when the HTTP request handler finishes. A single `CoreData` instance generally maintains stable provider, user, and token contexts. However, the cache is explicitly keyed by `<user>|<ref>|<providerName>` to isolate edge cases where `Provider` may be overridden mid-request (such as within execution scenario runs).
 - Providers use SHA-based identifiers for basic change detection, but Git semantics dictate this SHA represents the history state and does not guarantee strict monotonic concurrency on its own. The underlying systems process writes with varying levels of safety:
-    - **GitHub**: Returns the Git Blob SHA. `UpdateBookmarks` passes this to `UpdateFile`, which natively guarantees atomicity.
-    - **GitLab**: Returns the `LastCommitID`. `UpdateBookmarks` passes this as `LastCommitID`, relying on the GitLab API for atomicity.
-    - **Local Git**: Returns the commit hash. Checks `expectSHA` against `head.Hash().String()` manually. This creates a read/check/write window and is not strictly atomic against rapid concurrent local commits.
-    - **SQL**: Returns the stored SHA. Uses a database transaction, but only performs a standard `SELECT` check before inserting/updating, lacking a `FOR UPDATE` lock.
-- There is no cross-request or process-wide cache. It was intentionally removed (#257) to avoid complex staleness bugs, as bookmarks are updated externally and most providers lack efficient push notifications for invalidation. Network overhead is considered acceptable for the current use cases.
+    - **GitHub**: Compares a non-empty `expectSHA` with a *freshly fetched* `contents.SHA`, and then passes the newly fetched `contents.SHA` to `UpdateFile`. This allows a read/check/write window that is not strictly atomic against racing commits.
+    - **GitLab**: Submits `LastCommitID` back to the server API, without universal proof of branch-head atomicity.
+    - **Local Git**: Stale versions missing from HEAD will fail natively on `sha mismatch`. It checks `expectSHA` against `head.Hash().String()` manually. This creates a read/check/write window and is not strictly atomic.
+    - **SQL**: Stale versions fail safely. Uses a database transaction, but distinguishes transaction atomicity from atomic version comparison by only performing a standard `SELECT` check before inserting/updating, lacking a `FOR UPDATE` lock.
+- There is no cross-request or process-wide cache. It was intentionally removed (#257) to avoid complex staleness bugs, as bookmarks are updated externally and most providers lack efficient push notifications for invalidation. Any future cross-request caching should only be implemented as a separate follow-up if strictly evidenced.

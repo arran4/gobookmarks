@@ -64,19 +64,70 @@ func TestRequestCacheIsolation(t *testing.T) {
 		t.Fatalf("Unexpected prov2 values: b2=%q sha2=%q", b2, sha2)
 	}
 
-	if mockP1.getBookmarksCalls != 1 {
+	if mockP1.getBookmarksCalls != int32(1) {
 		t.Fatalf("Expected 1 call to prov1, got %d", mockP1.getBookmarksCalls)
 	}
-	if mockP2.getBookmarksCalls != 1 {
+	if mockP2.getBookmarksCalls != int32(1) {
 		t.Fatalf("Expected 1 call to prov2, got %d", mockP2.getBookmarksCalls)
 	}
 
 	// Ensure duplicate requests leverage cache properly
-	_, _, err3 := GetBookmarks(ctx1, "testuser", "main", nil)
+	b3, sha3, err3 := GetBookmarks(ctx1, "testuser", "main", nil)
 	if err3 != nil {
 		t.Fatalf("Unexpected error for prov1 cached hit: %v", err3)
 	}
-	if mockP1.getBookmarksCalls != 1 {
+	if b3 != "data from prov1" || sha3 != "sha1" {
+		t.Fatalf("Cache hit returned unexpected values: b3=%q sha3=%q", b3, sha3)
+	}
+	if mockP1.getBookmarksCalls != int32(1) {
 		t.Fatalf("Expected still 1 call to prov1 due to caching, got %d", mockP1.getBookmarksCalls)
+	}
+}
+
+func TestRequestCacheConcurrency(t *testing.T) {
+	origOrder := ProviderNames()
+	origProviders := make(map[string]Provider)
+	for _, name := range origOrder {
+		origProviders[name] = GetProvider(name)
+	}
+	defer func() {
+		providers = origProviders
+		SetProviderOrder(origOrder)
+	}()
+
+	mockP := &mockAccessProvider{
+		nameFunc: func() string { return "mock_concurrent" },
+		getBookmarksFunc: func(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+			return "concurrent data", "shaX", nil
+		},
+		updateBookmarksFunc: func(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
+			return nil
+		},
+	}
+	RegisterProvider(mockP)
+
+	cd := &CoreData{
+		UserRef:      "testuser",
+		requestCache: &requestCache{data: make(map[string]*bookmarkCacheEntry)},
+	}
+
+	ctx := context.WithValue(context.Background(), ContextValues("coreData"), cd)
+	ctx = context.WithValue(ctx, ContextValues("provider"), "mock_concurrent")
+
+	// Trigger concurrent read and writes/invalidations to prove RWMutex prevents panics
+	done := make(chan bool)
+	for i := 0; i < 50; i++ {
+		go func() {
+			_, _, _ = GetBookmarks(ctx, "testuser", "main", nil)
+			done <- true
+		}()
+		go func() {
+			_ = UpdateBookmarks(ctx, "testuser", nil, "main", "main", "new data", "shaX")
+			done <- true
+		}()
+	}
+
+	for i := 0; i < 100; i++ {
+		<-done
 	}
 }

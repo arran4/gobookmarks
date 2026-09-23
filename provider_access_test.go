@@ -3,6 +3,7 @@ package gobookmarks
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 
 	"golang.org/x/oauth2"
@@ -17,9 +18,9 @@ type mockAccessProvider struct {
 	getBranchesFunc     func(ctx context.Context, user string, token *oauth2.Token) ([]*Branch, error)
 	getCommitsFunc      func(ctx context.Context, user string, token *oauth2.Token, ref string, page, perPage int) ([]*Commit, error)
 
-	getBookmarksCalls    int
-	updateBookmarksCalls int
-	createBookmarksCalls int
+	getBookmarksCalls    int32
+	updateBookmarksCalls int32
+	createBookmarksCalls int32
 }
 
 func (m *mockAccessProvider) Name() string {
@@ -50,7 +51,7 @@ func (m *mockAccessProvider) DefaultServer() string {
 }
 
 func (m *mockAccessProvider) GetBookmarks(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
-	m.getBookmarksCalls++
+	atomic.AddInt32(&m.getBookmarksCalls, 1)
 	if m.getBookmarksFunc != nil {
 		return m.getBookmarksFunc(ctx, user, ref, token)
 	}
@@ -58,7 +59,7 @@ func (m *mockAccessProvider) GetBookmarks(ctx context.Context, user, ref string,
 }
 
 func (m *mockAccessProvider) UpdateBookmarks(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
-	m.updateBookmarksCalls++
+	atomic.AddInt32(&m.updateBookmarksCalls, 1)
 	if m.updateBookmarksFunc != nil {
 		return m.updateBookmarksFunc(ctx, user, token, sourceRef, branch, text, expectSHA)
 	}
@@ -66,7 +67,7 @@ func (m *mockAccessProvider) UpdateBookmarks(ctx context.Context, user string, t
 }
 
 func (m *mockAccessProvider) CreateBookmarks(ctx context.Context, user string, token *oauth2.Token, branch, text string) error {
-	m.createBookmarksCalls++
+	atomic.AddInt32(&m.createBookmarksCalls, 1)
 	if m.createBookmarksFunc != nil {
 		return m.createBookmarksFunc(ctx, user, token, branch, text)
 	}
@@ -132,7 +133,7 @@ func TestRequestCacheReuse(t *testing.T) {
 	if b1 != "bookmarks data" || sha1 != "sha123" {
 		t.Errorf("unexpected results: %q, %q", b1, sha1)
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 call, got %d", mockP.getBookmarksCalls)
 	}
 
@@ -143,7 +144,7 @@ func TestRequestCacheReuse(t *testing.T) {
 	if b2 != "bookmarks data" || sha2 != "sha123" {
 		t.Errorf("unexpected results: %q, %q", b2, sha2)
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected still 1 call, got %d", mockP.getBookmarksCalls)
 	}
 }
@@ -174,7 +175,7 @@ func TestIndependentRequestCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 call, got %d", mockP.getBookmarksCalls)
 	}
 
@@ -182,7 +183,7 @@ func TestIndependentRequestCaches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 2 {
+	if mockP.getBookmarksCalls != int32(2) {
 		t.Errorf("expected 2 calls, got %d", mockP.getBookmarksCalls)
 	}
 }
@@ -233,7 +234,7 @@ func TestMutationInvalidatesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 call, got %d", mockP.getBookmarksCalls)
 	}
 
@@ -241,7 +242,7 @@ func TestMutationInvalidatesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.updateBookmarksCalls != 1 {
+	if mockP.updateBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 update call, got %d", mockP.updateBookmarksCalls)
 	}
 
@@ -249,7 +250,7 @@ func TestMutationInvalidatesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 2 {
+	if mockP.getBookmarksCalls != int32(2) {
 		t.Errorf("expected 2 calls, got %d", mockP.getBookmarksCalls)
 	}
 	if b3 != "updated bookmarks" || sha3 != "newSha" {
@@ -261,7 +262,7 @@ func TestMutationInvalidatesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.createBookmarksCalls != 1 {
+	if mockP.createBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 create call, got %d", mockP.createBookmarksCalls)
 	}
 
@@ -269,7 +270,7 @@ func TestMutationInvalidatesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 3 {
+	if mockP.getBookmarksCalls != int32(3) {
 		t.Errorf("expected 3 calls, got %d", mockP.getBookmarksCalls)
 	}
 	if b4 != "created bookmarks" || sha4 != "newShaCreated" {
@@ -305,7 +306,7 @@ func TestFailedMutationPreservesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 call, got %d", mockP.getBookmarksCalls)
 	}
 
@@ -318,7 +319,7 @@ func TestFailedMutationPreservesCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected still 1 call, got %d", mockP.getBookmarksCalls)
 	}
 	if b != "preserved bookmarks" || sha != "presSha" {
@@ -405,7 +406,7 @@ func TestFailedReadNotCached(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if mockP.getBookmarksCalls != 1 {
+	if mockP.getBookmarksCalls != int32(1) {
 		t.Errorf("expected 1 call, got %d", mockP.getBookmarksCalls)
 	}
 
@@ -414,7 +415,7 @@ func TestFailedReadNotCached(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if mockP.getBookmarksCalls != 2 {
+	if mockP.getBookmarksCalls != int32(2) {
 		t.Errorf("expected 2 calls, got %d", mockP.getBookmarksCalls)
 	}
 }
