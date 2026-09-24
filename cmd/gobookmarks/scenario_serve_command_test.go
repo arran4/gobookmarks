@@ -7,18 +7,52 @@ import (
 	"time"
 )
 
+func TestParseScenarioPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		hasErr   bool
+	}{
+		{"default empty", "", "127.0.0.1:8080", false},
+		{"numeric port", "8081", "127.0.0.1:8081", false},
+		{"colon port", ":8081", "127.0.0.1:8081", false},
+		{"explicit loopback", "127.0.0.1:8081", "127.0.0.1:8081", false},
+		{"explicit external", "0.0.0.0:8081", "0.0.0.0:8081", false},
+		{"malformed address", "invalid::port", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseScenarioPort(tt.input)
+			if tt.hasErr {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if got != tt.expected {
+					t.Errorf("Expected %q, got %q", tt.expected, got)
+				}
+			}
+		})
+	}
+}
+
 func TestScenarioServeAddressParsing(t *testing.T) {
 	tests := []struct {
 		name       string
 		portArg    string
 		expectErr  bool
-		expectHost string // can be empty to skip
+		expectHost string
 	}{
-		{"default", "", false, "127.0.0.1"},
-		{"numeric port", "0", false, "127.0.0.1"},
-		{"colon port", ":0", false, "127.0.0.1"},
-		{"explicit loopback", "127.0.0.1:0", false, "127.0.0.1"},
-		{"explicit non-loopback", "0.0.0.0:0", false, "0.0.0.0"}, // Or we can test if it binds to 0.0.0.0
+		{"numeric ephemeral port", "0", false, "127.0.0.1"},
+		{"colon ephemeral port", ":0", false, "127.0.0.1"},
+		{"explicit loopback ephemeral", "127.0.0.1:0", false, "127.0.0.1"},
+		{"explicit non-loopback ephemeral", "0.0.0.0:0", false, "0.0.0.0"},
+		{"explicit ipv6 loopback", "[::1]:0", false, "::1"},
 		{"malformed host", "invalid::port", true, ""},
 	}
 
@@ -70,8 +104,11 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 			}
 
 			if tt.expectHost != "" {
-				// net.Listen on "0.0.0.0:0" might resolve to "[::]:PORT", so we check behavior appropriately
-				if tt.expectHost == "127.0.0.1" && host != "127.0.0.1" {
+				if tt.expectHost == "0.0.0.0" {
+					if host != "0.0.0.0" && host != "::" {
+						t.Errorf("Expected external wildcard host (0.0.0.0 or ::), got %q (bound address: %s)", host, boundPort)
+					}
+				} else if host != tt.expectHost {
 					t.Errorf("Expected host %q, got %q (bound address: %s)", tt.expectHost, host, boundPort)
 				}
 			}
