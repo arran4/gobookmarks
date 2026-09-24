@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"time"
 
 	gobookmarks "github.com/arran4/gobookmarks"
@@ -29,7 +31,7 @@ func (sc *ScenarioCommand) NewScenarioServeCommand() (*ScenarioServeCommand, err
 		parent: sc,
 		Flags:  flag.NewFlagSet("serve", flag.ContinueOnError),
 	}
-	c.Flags.Var(&c.Port, "port", "Port to serve on (default: 8080)")
+	c.Flags.Var(&c.Port, "port", "Port or host:port to serve on. Defaults to 127.0.0.1:8080. Use 0.0.0.0:PORT to expose externally.")
 	return c, nil
 }
 
@@ -106,17 +108,19 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 
 	testHandler := scenarioApplicationHandler(scenario, mockClient)
 
-	port := ":8080"
+	portVal := ""
 	if c.Port.set {
-		port = c.Port.value
-		if port != "" && port[0] != ':' {
-			port = ":" + port
-		}
+		portVal = c.Port.value
+	}
+
+	port, err := parseScenarioPort(portVal)
+	if err != nil {
+		return err
 	}
 
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
-		return fmt.Errorf("failed to bind to port %s: %w", port, err)
+		return fmt.Errorf("failed to bind to address %s: %w", port, err)
 	}
 
 	httpServer := &http.Server{
@@ -164,6 +168,28 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 	}
 
 	return serveErr
+}
+
+func parseScenarioPort(val string) (string, error) {
+	if val == "" {
+		return "127.0.0.1:8080", nil
+	}
+
+	host, port, err := net.SplitHostPort(val)
+	if err != nil {
+		if !strings.Contains(val, ":") {
+			if _, errPort := strconv.ParseUint(val, 10, 16); errPort == nil {
+				return "127.0.0.1:" + val, nil
+			}
+		}
+		return "", fmt.Errorf("malformed address %q: %w", val, err)
+	}
+
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
+	return net.JoinHostPort(host, port), nil
 }
 
 func configureScenarioAuth(scenario *Scenario) {
