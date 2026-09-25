@@ -31,7 +31,7 @@ func (sc *ScenarioCommand) NewScenarioServeCommand() (*ScenarioServeCommand, err
 		parent: sc,
 		Flags:  flag.NewFlagSet("serve", flag.ContinueOnError),
 	}
-	c.Flags.Var(&c.Port, "port", "Port or host:port to serve on. Defaults to 127.0.0.1:8080. Use 0.0.0.0:PORT to expose externally.")
+	c.Flags.Var(&c.Port, "port", "Port or host:port to serve on. Defaults to 127.0.0.1:8080. Use 0.0.0.0:PORT to expose externally.\nWarning: Externally reachable previews use synthetic fixture credentials and must not be exposed to untrusted networks.")
 	return c, nil
 }
 
