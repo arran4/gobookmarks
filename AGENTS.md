@@ -22,6 +22,9 @@ Examples:
 - `gobookmarks scenario serve cmd/gobookmarks/scenarios/complex-bookmarks.txtar`
 - `gobookmarks scenario serve --port :8081 cmd/gobookmarks/scenarios/history.txtar`
 
+By default, the server listens only on loopback (`127.0.0.1`). If you need to expose the preview to external networks, use `--port 0.0.0.0:8080`.
+**Warning**: Scenarios use disposable synthetic credentials (such as predictable fake tokens or passwords) and are not authenticated against a real provider. Do not expose them to untrusted networks.
+
 **Important Note for Agents:**
 - Use `test verification template` (isolated unit/template rendering tests) for template-specific work.
 - Use executable scenarios (via `scenario serve`) when a screenshot or review needs realistic whole-application state.
