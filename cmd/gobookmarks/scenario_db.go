@@ -9,9 +9,11 @@ import (
 	gobookmarks "github.com/arran4/gobookmarks"
 )
 
-var injectedOpenDBOverride func() (*sql.DB, error)
-
 func setupScenarioBackend() (func(), error) {
+	return setupScenarioBackendWithOpenDB(gobookmarks.OpenDB)
+}
+
+func setupScenarioBackendWithOpenDB(openDBFn func() (*sql.DB, error)) (func(), error) {
 	originalConfig := gobookmarks.Config
 	originalSessionStore := gobookmarks.SessionStore
 	originalLiveProviderOrder := append([]string(nil), gobookmarks.ProviderNames()...)
@@ -54,11 +56,6 @@ func setupScenarioBackend() (func(), error) {
 
 	gitlabP := &gobookmarks.GitLabProvider{}
 	gobookmarks.RegisterProvider(gitlabP)
-
-	openDBFn := gobookmarks.OpenDB
-	if injectedOpenDBOverride != nil {
-		openDBFn = injectedOpenDBOverride
-	}
 
 	// OpenDB will ping and call ensureSQLSchema to create tables
 	db, err := openDBFn()

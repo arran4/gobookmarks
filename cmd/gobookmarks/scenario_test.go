@@ -161,6 +161,24 @@ func TestScenarioManifestAndReferenceValidation(t *testing.T) {
 	}
 }
 
+func TestUnknownOperation(t *testing.T) {
+	txtar := `
+-- 010-unknown.event --
+Op: unknown.op
+`
+	s, err := ParseScenario(strings.NewReader(txtar))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ValidateScenario(s)
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if !strings.Contains(err.Error(), "unknown operation: unknown.op") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestSymbolicReferenceFailure(t *testing.T) {
 	s := &ScenarioContext{Refs: make(map[string]string), StorageProvider: "sql"}
 
@@ -186,6 +204,24 @@ func TestSymbolicReferenceFailure(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unknown user ref") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTempSQLiteBackend(t *testing.T) {
+	cleanup, err := setupScenarioBackend()
+	if err != nil {
+		t.Fatalf("setupScenarioBackend failed: %v", err)
+	}
+	if cleanup != nil {
+		defer cleanup()
+	}
+
+	if gobookmarks.Config.DBConnectionProvider != "sqlite3" {
+		t.Errorf("expected DB provider sqlite3, got %q", gobookmarks.Config.DBConnectionProvider)
+	}
+
+	if !strings.Contains(gobookmarks.Config.DBConnectionString, "mode=memory") {
+		t.Errorf("expected DB string to contain mode=memory, got %q", gobookmarks.Config.DBConnectionString)
 	}
 }
 

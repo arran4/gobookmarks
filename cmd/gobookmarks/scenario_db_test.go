@@ -60,14 +60,21 @@ func TestScenarioDBFailureRestoration(t *testing.T) {
 		t.Fatalf("Failed to setup test live provider order: %v", gobookmarks.ProviderNames())
 	}
 
+	// Capture the original providers to compare against during restoration check
+	originalProviders := make(map[string]gobookmarks.Provider)
+	for _, name := range gobookmarks.ProviderNames() {
+		originalProviders[name] = gobookmarks.GetProvider(name)
+	}
+	originalSessionStore := gobookmarks.SessionStore
+	originalConfig := gobookmarks.Config
+
 	// 2. Inject failure mechanism directly returning an error on OpenDB
-	injectedOpenDBOverride = func() (*sql.DB, error) {
+	injectedOpenDBOverride := func() (*sql.DB, error) {
 		return nil, errors.New("injected OpenDB failure")
 	}
-	t.Cleanup(func() { injectedOpenDBOverride = nil })
 
 	// 3. Call setupScenarioBackend and expect it to fail
-	cleanup, err := setupScenarioBackend()
+	cleanup, err := setupScenarioBackendWithOpenDB(injectedOpenDBOverride)
 
 	if err == nil {
 		if cleanup != nil {
@@ -82,8 +89,25 @@ func TestScenarioDBFailureRestoration(t *testing.T) {
 		t.Errorf("ProviderNames not restored correctly. Expected 'gitlab,github,git', got '%v'", finalOrder)
 	}
 
+	for _, name := range finalOrder {
+		if gobookmarks.GetProvider(name) != originalProviders[name] {
+			t.Errorf("Provider %s was replaced/mutated, identity mismatch", name)
+		}
+	}
+
 	if strings.Join(gobookmarks.Config.ProviderOrder, ",") != "some,other,order" {
 		t.Errorf("Config.ProviderOrder changed. Expected 'some,other,order', got '%v'", gobookmarks.Config.ProviderOrder)
+	}
+	if gobookmarks.Config.LocalGitPath != originalConfig.LocalGitPath ||
+		gobookmarks.Config.DBConnectionProvider != originalConfig.DBConnectionProvider ||
+		gobookmarks.Config.DBConnectionString != originalConfig.DBConnectionString ||
+		gobookmarks.Config.SessionKey != originalConfig.SessionKey ||
+		gobookmarks.Config.SessionName != originalConfig.SessionName {
+		t.Errorf("Config was not fully restored. Current: %+v", gobookmarks.Config)
+	}
+
+	if gobookmarks.SessionStore != originalSessionStore {
+		t.Errorf("SessionStore not restored")
 	}
 
 	if gobookmarks.GetProvider("sql") != nil {
@@ -108,6 +132,14 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 		t.Fatalf("Failed to setup test live provider order: %v", gobookmarks.ProviderNames())
 	}
 
+	// Capture the original providers to compare against during restoration check
+	originalProviders := make(map[string]gobookmarks.Provider)
+	for _, name := range gobookmarks.ProviderNames() {
+		originalProviders[name] = gobookmarks.GetProvider(name)
+	}
+	originalSessionStore := gobookmarks.SessionStore
+	originalConfig := gobookmarks.Config
+
 	// 3. Call setupScenarioBackend and expect it to succeed
 	cleanup, err := setupScenarioBackend()
 
@@ -127,8 +159,26 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 		t.Errorf("ProviderNames not restored correctly. Expected 'gitlab,github,git', got '%v'", finalOrder)
 	}
 
+	for _, name := range finalOrder {
+		if gobookmarks.GetProvider(name) != originalProviders[name] {
+			t.Errorf("Provider %s was replaced/mutated, identity mismatch", name)
+		}
+	}
+
 	if strings.Join(gobookmarks.Config.ProviderOrder, ",") != "some,other,order" {
 		t.Errorf("Config.ProviderOrder changed. Expected 'some,other,order', got '%v'", gobookmarks.Config.ProviderOrder)
+	}
+
+	if gobookmarks.Config.LocalGitPath != originalConfig.LocalGitPath ||
+		gobookmarks.Config.DBConnectionProvider != originalConfig.DBConnectionProvider ||
+		gobookmarks.Config.DBConnectionString != originalConfig.DBConnectionString ||
+		gobookmarks.Config.SessionKey != originalConfig.SessionKey ||
+		gobookmarks.Config.SessionName != originalConfig.SessionName {
+		t.Errorf("Config was not fully restored. Current: %+v", gobookmarks.Config)
+	}
+
+	if gobookmarks.SessionStore != originalSessionStore {
+		t.Errorf("SessionStore not restored")
 	}
 
 	if gobookmarks.GetProvider("sql") != nil {
