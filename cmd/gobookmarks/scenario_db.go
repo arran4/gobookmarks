@@ -70,9 +70,7 @@ func setupScenarioBackendWithOpenDB(openDBFn func() (*sql.DB, error)) (func(), e
 		gobookmarks.SessionStore = originalSessionStore
 
 		// Only close the specific sqlP we just registered, ignoring what's inside the registry
-		if sqlP != nil {
-			_ = sqlP.Close()
-		}
+		_ = sqlP.Close()
 
 		if originalSQLProvider != nil {
 			gobookmarks.RegisterProvider(originalSQLProvider)
@@ -111,9 +109,7 @@ func setupScenarioBackendWithOpenDB(openDBFn func() (*sql.DB, error)) (func(), e
 		// SQL providers hold a DB handle, so restore future tests to a fresh
 		// provider rather than letting an in-memory scenario database escape.
 		// Only close the specific sqlP we just registered
-		if sqlP != nil {
-			_ = sqlP.Close()
-		}
+		_ = sqlP.Close()
 
 		if originalSQLProvider != nil {
 			gobookmarks.RegisterProvider(originalSQLProvider)

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
@@ -68,8 +69,11 @@ func TestScenarioDBFailureRestoration(t *testing.T) {
 	originalSessionStore := gobookmarks.SessionStore
 	originalConfig := gobookmarks.Config
 
+	var injectedGitPath string
+
 	// 2. Inject failure mechanism directly returning an error on OpenDB
 	injectedOpenDBOverride := func() (*sql.DB, error) {
+		injectedGitPath = gobookmarks.Config.LocalGitPath
 		return nil, errors.New("injected OpenDB failure")
 	}
 
@@ -81,6 +85,15 @@ func TestScenarioDBFailureRestoration(t *testing.T) {
 			cleanup()
 		}
 		t.Fatalf("Expected setupScenarioBackend to fail due to injected error")
+	}
+
+	if injectedGitPath == "" {
+		t.Fatalf("Expected git path to be injected")
+	}
+
+	// Assert tmp directory cleaned up
+	if _, statErr := os.Stat(injectedGitPath); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("Expected scenario temp path %s to be cleaned up, but got stat err %v", injectedGitPath, statErr)
 	}
 
 	// 4. Verify exact restoration of the state THAT WAS PRESENT IMMEDIATELY PRIOR TO CALLING setupScenarioBackend()
@@ -121,14 +134,15 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 	// 1. Set up unconditional restoration for all state
 	setupTestGlobalStateRestoration(t)
 
-	// Ensure SQL is unregistered to test full restoration
-	gobookmarks.UnregisterProvider("sql")
+	// Keep an existing SQL provider to test that teardown restores the EXISTING sql provider
+	pSql := &gobookmarks.SQLProvider{}
+	gobookmarks.RegisterProvider(pSql)
 
-	testOrder := []string{"gitlab", "github", "git"}
+	testOrder := []string{"gitlab", "github", "git", "sql"}
 	gobookmarks.SetProviderOrder(testOrder)
 	gobookmarks.Config.ProviderOrder = []string{"some", "other", "order"} // Different from live
 
-	if strings.Join(gobookmarks.ProviderNames(), ",") != "gitlab,github,git" {
+	if strings.Join(gobookmarks.ProviderNames(), ",") != "gitlab,github,git,sql" {
 		t.Fatalf("Failed to setup test live provider order: %v", gobookmarks.ProviderNames())
 	}
 
@@ -141,7 +155,7 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 	originalConfig := gobookmarks.Config
 
 	// 3. Call setupScenarioBackend and expect it to succeed
-	cleanup, err := setupScenarioBackend()
+	cleanup, err := setupScenarioBackendWithOpenDB(gobookmarks.OpenDB)
 
 	if err != nil {
 		t.Fatalf("Expected setupScenarioBackend to succeed: %v", err)
@@ -151,12 +165,19 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 		t.Fatalf("Expected cleanup function to be returned")
 	}
 
+	injectedGitPath := gobookmarks.Config.LocalGitPath
+
 	cleanup() // TEARDOWN
+
+	// Assert tmp directory cleaned up
+	if _, statErr := os.Stat(injectedGitPath); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("Expected scenario temp path %s to be cleaned up, but got stat err %v", injectedGitPath, statErr)
+	}
 
 	// 4. Verify exact restoration of the state THAT WAS PRESENT IMMEDIATELY PRIOR TO CALLING setupScenarioBackend()
 	finalOrder := gobookmarks.ProviderNames()
-	if strings.Join(finalOrder, ",") != "gitlab,github,git" {
-		t.Errorf("ProviderNames not restored correctly. Expected 'gitlab,github,git', got '%v'", finalOrder)
+	if strings.Join(finalOrder, ",") != "gitlab,github,git,sql" {
+		t.Errorf("ProviderNames not restored correctly. Expected 'gitlab,github,git,sql', got '%v'", finalOrder)
 	}
 
 	for _, name := range finalOrder {
@@ -179,9 +200,5 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 
 	if gobookmarks.SessionStore != originalSessionStore {
 		t.Errorf("SessionStore not restored")
-	}
-
-	if gobookmarks.GetProvider("sql") != nil {
-		t.Errorf("SQL provider should have been unregistered on failure")
 	}
 }
