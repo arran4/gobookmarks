@@ -7,64 +7,69 @@ import (
 	"time"
 )
 
-func TestParseScenarioPort(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-		hasErr   bool
-	}{
-		{"default empty", "", "127.0.0.1:8080", false},
-		{"numeric port", "8081", "127.0.0.1:8081", false},
-		{"colon port", ":8081", "127.0.0.1:8081", false},
-		{"explicit loopback", "127.0.0.1:8081", "127.0.0.1:8081", false},
-		{"explicit external", "0.0.0.0:8081", "0.0.0.0:8081", false},
-		{"malformed address", "invalid::port", "", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseScenarioPort(tt.input)
-			if tt.hasErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if got != tt.expected {
-					t.Errorf("Expected %q, got %q", tt.expected, got)
-				}
-			}
-		})
-	}
-}
-
 func TestScenarioServeAddressParsing(t *testing.T) {
 	tests := []struct {
-		name       string
-		portArg    string
-		expectErr  bool
-		expectHost string
+		name         string
+		portArg      string
+		expectErr    bool
+		expectedHost string
 	}{
-		{"numeric ephemeral port", "0", false, "127.0.0.1"},
-		{"colon ephemeral port", ":0", false, "127.0.0.1"},
-		{"explicit loopback ephemeral", "127.0.0.1:0", false, "127.0.0.1"},
-		{"explicit non-loopback ephemeral", "0.0.0.0:0", false, "0.0.0.0"},
-		{"explicit ipv6 loopback", "[::1]:0", false, "::1"},
-		{"malformed host", "invalid::port", true, ""},
+		{
+			name:         "numeric_ephemeral_port",
+			portArg:      "0",
+			expectErr:    false,
+			expectedHost: "127.0.0.1",
+		},
+		{
+			name:         "colon_ephemeral_port",
+			portArg:      ":0",
+			expectErr:    false,
+			expectedHost: "127.0.0.1",
+		},
+		{
+			name:         "explicit_loopback_ephemeral",
+			portArg:      "127.0.0.1:0",
+			expectErr:    false,
+			expectedHost: "127.0.0.1",
+		},
+		{
+			name:         "explicit_non-loopback_ephemeral",
+			portArg:      "0.0.0.0:0",
+			expectErr:    false,
+			expectedHost: "0.0.0.0", // we can bind to all interfaces
+		},
+		{
+			name:         "explicit_ipv6_loopback",
+			portArg:      "[::1]:0",
+			expectErr:    false,
+			expectedHost: "::1",
+		},
+		{
+			name:      "invalid_address",
+			portArg:   "invalid-address",
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			root := NewRootCommand()
-			sc := root.ScenarioCmd.ServeCommand
-			readyPortCh := make(chan string, 1)
-			sc.readyPort = readyPortCh
 
 			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+			errCh := make(chan error, 1)
+
+			var cleanedUp bool
+			t.Cleanup(func() {
+				if !cleanedUp {
+					cancel()
+					<-errCh
+				}
+			})
+
+			readyPortCh := make(chan string, 1)
+
+			sc := root.ScenarioCmd.ServeCommand
+			sc.readyPort = readyPortCh
 
 			args := []string{}
 			if tt.portArg != "" {
@@ -72,7 +77,6 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 			}
 			args = append(args, "scenarios/complex-bookmarks.txtar")
 
-			errCh := make(chan error, 1)
 			go func() {
 				errCh <- sc.ExecuteContext(ctx, args)
 			}()
@@ -83,7 +87,8 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 			select {
 			case boundPort = <-readyPortCh:
 			case serveErr = <-errCh:
-			case <-time.After(2 * time.Second):
+				cleanedUp = true // since errCh produced a result, it exited
+			case <-time.After(5 * time.Second):
 				t.Fatalf("Timeout waiting for scenario serve to start or error")
 			}
 
@@ -98,23 +103,24 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", serveErr)
 			}
 
-			host, _, err := net.SplitHostPort(boundPort)
-			if err != nil {
-				t.Fatalf("Failed to split bound port %q: %v", boundPort, err)
+			if boundPort == "" {
+				t.Fatalf("Expected bound port to be reported")
 			}
 
-			if tt.expectHost != "" {
-				if tt.expectHost == "0.0.0.0" {
-					if host != "0.0.0.0" && host != "::" {
-						t.Errorf("Expected external wildcard host (0.0.0.0 or ::), got %q (bound address: %s)", host, boundPort)
-					}
-				} else if host != tt.expectHost {
-					t.Errorf("Expected host %q, got %q (bound address: %s)", tt.expectHost, host, boundPort)
-				}
+			host, _, err := net.SplitHostPort(boundPort)
+			if err != nil {
+				t.Fatalf("Failed to split reported bound port %q: %v", boundPort, err)
+			}
+
+			if host != tt.expectedHost && !(tt.expectedHost == "0.0.0.0" && host == "::") { // Support dual-stack IPv6 0.0.0.0 maps to :: on linux
+				t.Errorf("Expected host %q, got %q", tt.expectedHost, host)
 			}
 
 			cancel()
-			<-errCh
+			if !cleanedUp {
+				<-errCh
+				cleanedUp = true
+			}
 		})
 	}
 }

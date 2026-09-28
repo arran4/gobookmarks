@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -68,6 +69,7 @@ func TestScenarioDBFailureRestoration(t *testing.T) {
 	}
 	originalSessionStore := gobookmarks.SessionStore
 	originalConfig := gobookmarks.Config
+	originalConfig.ProviderOrder = append([]string(nil), originalConfig.ProviderOrder...)
 
 	var injectedGitPath string
 
@@ -108,15 +110,8 @@ func TestScenarioDBFailureRestoration(t *testing.T) {
 		}
 	}
 
-	if strings.Join(gobookmarks.Config.ProviderOrder, ",") != "some,other,order" {
-		t.Errorf("Config.ProviderOrder changed. Expected 'some,other,order', got '%v'", gobookmarks.Config.ProviderOrder)
-	}
-	if gobookmarks.Config.LocalGitPath != originalConfig.LocalGitPath ||
-		gobookmarks.Config.DBConnectionProvider != originalConfig.DBConnectionProvider ||
-		gobookmarks.Config.DBConnectionString != originalConfig.DBConnectionString ||
-		gobookmarks.Config.SessionKey != originalConfig.SessionKey ||
-		gobookmarks.Config.SessionName != originalConfig.SessionName {
-		t.Errorf("Config was not fully restored. Current: %+v", gobookmarks.Config)
+	if !reflect.DeepEqual(gobookmarks.Config, originalConfig) {
+		t.Errorf("Config was not exactly restored. Expected: %+v, Got: %+v", originalConfig, gobookmarks.Config)
 	}
 
 	if gobookmarks.SessionStore != originalSessionStore {
@@ -153,6 +148,7 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 	}
 	originalSessionStore := gobookmarks.SessionStore
 	originalConfig := gobookmarks.Config
+	originalConfig.ProviderOrder = append([]string(nil), originalConfig.ProviderOrder...)
 
 	// 3. Call setupScenarioBackend and expect it to succeed
 	cleanup, err := setupScenarioBackendWithOpenDB(gobookmarks.OpenDB)
@@ -186,16 +182,8 @@ func TestScenarioDBTeardownRestoration(t *testing.T) {
 		}
 	}
 
-	if strings.Join(gobookmarks.Config.ProviderOrder, ",") != "some,other,order" {
-		t.Errorf("Config.ProviderOrder changed. Expected 'some,other,order', got '%v'", gobookmarks.Config.ProviderOrder)
-	}
-
-	if gobookmarks.Config.LocalGitPath != originalConfig.LocalGitPath ||
-		gobookmarks.Config.DBConnectionProvider != originalConfig.DBConnectionProvider ||
-		gobookmarks.Config.DBConnectionString != originalConfig.DBConnectionString ||
-		gobookmarks.Config.SessionKey != originalConfig.SessionKey ||
-		gobookmarks.Config.SessionName != originalConfig.SessionName {
-		t.Errorf("Config was not fully restored. Current: %+v", gobookmarks.Config)
+	if !reflect.DeepEqual(gobookmarks.Config, originalConfig) {
+		t.Errorf("Config was not exactly restored. Expected: %+v, Got: %+v", originalConfig, gobookmarks.Config)
 	}
 
 	if gobookmarks.SessionStore != originalSessionStore {
