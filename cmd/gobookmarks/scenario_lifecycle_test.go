@@ -33,16 +33,27 @@ func TestScenarioServePortInUse(t *testing.T) {
 
 	var finalErr error
 	var done bool
+	timedOut := false
+
 	select {
 	case finalErr = <-errCh:
 		done = true
 	case <-time.After(2 * time.Second):
-		t.Fatalf("scenario serve command hanging when port is in use")
+		timedOut = true
 	}
 
 	cancel()
 	if !done {
-		finalErr = <-errCh
+		select {
+		case finalErr = <-errCh:
+			// joined
+		case <-time.After(5 * time.Second):
+			t.Fatalf("scenario serve command did not exit after cancellation")
+		}
+	}
+
+	if timedOut {
+		t.Fatalf("scenario serve command hanging when port is in use")
 	}
 
 	if finalErr == nil {
