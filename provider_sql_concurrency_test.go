@@ -18,7 +18,7 @@ func TestSQLProvider_UpdateBookmarks_Concurrency(t *testing.T) {
 	Config.DBConnectionString = ":memory:"
 
 	p := &SQLProvider{}
-	defer p.Close()
+	defer func() { _ = p.Close() }()
 
 	ctx := context.Background()
 	user := "testuser"
@@ -89,7 +89,7 @@ func TestSQLProvider_UpdateBookmarks_Rollback(t *testing.T) {
 	Config.DBConnectionString = ":memory:"
 
 	p := &SQLProvider{}
-	defer p.Close()
+	defer func() { _ = p.Close() }()
 
 	ctx := context.Background()
 	user := "testuser"
