@@ -7,6 +7,35 @@ import (
 	"time"
 )
 
+func TestParseScenarioPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		hasErr   bool
+	}{
+		{"default empty", "", "127.0.0.1:8080", false},
+		{"numeric port", "8081", "127.0.0.1:8081", false},
+		{"colon port", ":8081", "127.0.0.1:8081", false},
+		{"explicit loopback", "127.0.0.1:8081", "127.0.0.1:8081", false},
+		{"explicit all", "0.0.0.0:8081", "0.0.0.0:8081", false},
+		{"explicit ipv6 loopback", "[::1]:8081", "[::1]:8081", false},
+		{"invalid address", "invalid-address", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseScenarioPort(tt.input)
+			if (err != nil) != tt.hasErr {
+				t.Fatalf("expected error: %v, got: %v", tt.hasErr, err)
+			}
+			if !tt.hasErr && got != tt.expected {
+				t.Errorf("expected: %s, got: %s", tt.expected, got)
+			}
+		})
+	}
+}
+
 func TestScenarioServeAddressParsing(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -112,7 +141,8 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 				t.Fatalf("Failed to split reported bound port %q: %v", boundPort, err)
 			}
 
-			if host != tt.expectedHost && !(tt.expectedHost == "0.0.0.0" && host == "::") { // Support dual-stack IPv6 0.0.0.0 maps to :: on linux
+			isValidHost := host == tt.expectedHost || (tt.expectedHost == "0.0.0.0" && host == "::")
+			if !isValidHost {
 				t.Errorf("Expected host %q, got %q", tt.expectedHost, host)
 			}
 

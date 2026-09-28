@@ -23,7 +23,7 @@ func TestScenarioServePortInUse(t *testing.T) {
 	port := ":" + u.Port()
 
 	root := NewRootCommand()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -32,15 +32,16 @@ func TestScenarioServePortInUse(t *testing.T) {
 	}()
 
 	var finalErr error
+	var done bool
 	select {
-	case <-ctx.Done():
-		finalErr = nil // Hanging case handled manually via context timeout test check
-	case err := <-errCh:
-		finalErr = err
+	case finalErr = <-errCh:
+		done = true
+	case <-time.After(2 * time.Second):
+		t.Fatalf("scenario serve command hanging when port is in use")
 	}
 
 	cancel()
-	if finalErr == nil {
+	if !done {
 		finalErr = <-errCh
 	}
 
