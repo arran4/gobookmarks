@@ -162,10 +162,14 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
 		if serveErr != nil {
-			return fmt.Errorf("%v (and HTTP server error during shutdown: %w)", serveErr, err)
+			serveErr = fmt.Errorf("%v (and HTTP server error during shutdown: %w)", serveErr, err)
+		} else {
+			serveErr = fmt.Errorf("HTTP server error during shutdown: %w", err)
 		}
-		return fmt.Errorf("HTTP server error during shutdown: %w", err)
 	}
+
+	// Important: Wait for the goroutine to actually exit before we return and tear down globals.
+	<-errCh
 
 	return serveErr
 }

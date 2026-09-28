@@ -118,19 +118,44 @@ https://example.com Example
 }
 
 func TestScenarioManifestAndReferenceValidation(t *testing.T) {
-	for _, tc := range []struct{ name, scenario, want string }{
+	tests := []struct {
+		name        string
+		scenario    string
+		expectError string
+	}{
 		{"unsupported storage", "-- scenario.meta --\nStorageProvider: missing\n", "unsupported StorageProvider"},
-		{"unresolved ref", "-- a.event --\nOp: repo.create\nUser: nobody\nName: bookmarks\n", "unresolved user ref"},
-		{"duplicate ref", "-- a.event --\nOp: user.create\nRef: user\nUsername: a\n-- b.event --\nOp: user.create\nRef: user\nUsername: b\n", "duplicate ref"},
-		{"provider conflict", "-- scenario.meta --\nStorageProvider: sql\n-- a.event --\nOp: user.create\nUsername: a\nProvider: git\n", "conflicts"},
-	} {
+		{"unsupported auth", "-- scenario.meta --\nStorageProvider: sql\nAuthProvider: missing\n", "unsupported AuthProvider"},
+		{"unresolved ref", "-- scenario.meta --\nStorageProvider: sql\n-- 01.event --\nOp: repo.create\nUser: unknown\nName: x\n", "unresolved user ref"},
+		{"duplicate ref", "-- scenario.meta --\nStorageProvider: sql\n-- 01.event --\nOp: user.create\nRef: r1\nUsername: u1\n-- 02.event --\nOp: user.create\nRef: r1\nUsername: u2\n", "duplicate ref"},
+		{"provider conflict", "-- scenario.meta --\nStorageProvider: sql\n-- 01.event --\nOp: user.create\nProvider: git\nUsername: u1\n", "conflicts"},
+	}
+
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			originalSql := gobookmarks.GetProvider("sql")
+			originalOrder := append([]string(nil), gobookmarks.ProviderNames()...)
+			t.Cleanup(func() {
+				if originalSql != nil {
+					gobookmarks.RegisterProvider(originalSql)
+				} else {
+					gobookmarks.UnregisterProvider("sql")
+				}
+				gobookmarks.SetProviderOrder(originalOrder)
+			})
+
+			// We only need sql for the tests testing non-storage provider validation errors, since missing is used for the first test
+			gobookmarks.RegisterProvider(&gobookmarks.SQLProvider{})
+
 			s, err := ParseScenario(strings.NewReader(tc.scenario))
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("ParseScenario error = %v", err)
 			}
-			if err := ValidateScenario(s); err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("ValidateScenario error = %v, want %q", err, tc.want)
+			err = ValidateScenario(s)
+			if err == nil {
+				t.Fatalf("ValidateScenario error = nil, want %q", tc.expectError)
+			}
+			if !strings.Contains(err.Error(), tc.expectError) {
+				t.Errorf("ValidateScenario error = %v, want %q", err, tc.expectError)
 			}
 		})
 	}
@@ -143,39 +168,42 @@ Op: unknown.op
 `
 	s, err := ParseScenario(strings.NewReader(txtar))
 	if err != nil {
-		t.Fatalf("ParseScenario failed: %v", err)
+		t.Fatal(err)
 	}
 	err = ValidateScenario(s)
 	if err == nil {
-		t.Errorf("expected error for unknown op")
+		t.Fatal("expected validation error")
+	}
+	if !strings.Contains(err.Error(), "unknown operation: unknown.op") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestSymbolicReferenceFailure(t *testing.T) {
-	txtar := `
--- 010-repo.event --
-Op: repo.create
-User: missing-ref
-Name: main
-`
-	s, err := ParseScenario(strings.NewReader(txtar))
-	if err != nil {
-		t.Fatalf("ParseScenario failed: %v", err)
-	}
+	s := &ScenarioContext{Refs: make(map[string]string), StorageProvider: "sql"}
 
-	sCtx := &ScenarioContext{
-		Refs:            map[string]string{},
-		Files:           s.Files,
-		StorageProvider: "sql",
-	}
+	originalSql := gobookmarks.GetProvider("sql")
+	originalOrder := append([]string(nil), gobookmarks.ProviderNames()...)
+	t.Cleanup(func() {
+		if originalSql != nil {
+			gobookmarks.RegisterProvider(originalSql)
+		} else {
+			gobookmarks.UnregisterProvider("sql")
+		}
+		gobookmarks.SetProviderOrder(originalOrder)
+	})
 
-	op := operations["repo.create"]
-	err = op.Apply(context.Background(), sCtx, s.Events[0])
+	// We need sql for this test
+	gobookmarks.RegisterProvider(&gobookmarks.SQLProvider{})
+
+	op := &RepoCreateOp{}
+	e := &Event{Props: map[string]string{"User": "missing_ref", "Name": "bookmarks"}}
+	err := op.Apply(context.Background(), s, e)
 	if err == nil {
-		t.Errorf("expected unknown user ref error")
+		t.Fatal("expected error for missing reference")
 	}
 	if !strings.Contains(err.Error(), "unknown user ref") {
-		t.Errorf("unexpected error: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -186,6 +214,14 @@ func TestTempSQLiteBackend(t *testing.T) {
 	}
 	if cleanup != nil {
 		defer cleanup()
+	}
+
+	if gobookmarks.Config.DBConnectionProvider != "sqlite3" {
+		t.Errorf("expected DB provider sqlite3, got %q", gobookmarks.Config.DBConnectionProvider)
+	}
+
+	if !strings.Contains(gobookmarks.Config.DBConnectionString, "mode=memory") {
+		t.Errorf("expected DB string to contain mode=memory, got %q", gobookmarks.Config.DBConnectionString)
 	}
 }
 

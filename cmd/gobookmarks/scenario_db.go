@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"os"
 
@@ -9,9 +10,13 @@ import (
 )
 
 func setupScenarioBackend() (func(), error) {
+	return setupScenarioBackendWithOpenDB(gobookmarks.OpenDB)
+}
+
+func setupScenarioBackendWithOpenDB(openDBFn func() (*sql.DB, error)) (func(), error) {
 	originalConfig := gobookmarks.Config
 	originalSessionStore := gobookmarks.SessionStore
-	originalProviderOrder := gobookmarks.Config.ProviderOrder
+	originalLiveProviderOrder := append([]string(nil), gobookmarks.ProviderNames()...)
 
 	originalSQLProvider := gobookmarks.GetProvider("sql")
 	originalGitProvider := gobookmarks.GetProvider("git")
@@ -53,7 +58,7 @@ func setupScenarioBackend() (func(), error) {
 	gobookmarks.RegisterProvider(gitlabP)
 
 	// OpenDB will ping and call ensureSQLSchema to create tables
-	db, err := gobookmarks.OpenDB()
+	db, err := openDBFn()
 	if err != nil {
 		if cleanupErr := os.RemoveAll(tmpGitDir); cleanupErr != nil {
 			err = fmt.Errorf("failed to initialize temp scenario db: %w (also failed to remove %s: %v)", err, tmpGitDir, cleanupErr)
@@ -63,6 +68,9 @@ func setupScenarioBackend() (func(), error) {
 
 		gobookmarks.Config = originalConfig
 		gobookmarks.SessionStore = originalSessionStore
+
+		// Only close the specific sqlP we just registered, ignoring what's inside the registry
+		_ = sqlP.Close()
 
 		if originalSQLProvider != nil {
 			gobookmarks.RegisterProvider(originalSQLProvider)
@@ -84,7 +92,7 @@ func setupScenarioBackend() (func(), error) {
 		} else {
 			gobookmarks.UnregisterProvider("gitlab")
 		}
-		gobookmarks.SetProviderOrder(originalProviderOrder)
+		gobookmarks.SetProviderOrder(originalLiveProviderOrder)
 
 		return nil, err
 	}
@@ -97,11 +105,11 @@ func setupScenarioBackend() (func(), error) {
 		}
 		gobookmarks.Config = originalConfig
 		gobookmarks.SessionStore = originalSessionStore
+
 		// SQL providers hold a DB handle, so restore future tests to a fresh
 		// provider rather than letting an in-memory scenario database escape.
-		if sqlP, ok := gobookmarks.GetProvider("sql").(*gobookmarks.SQLProvider); ok {
-			_ = sqlP.Close()
-		}
+		// Only close the specific sqlP we just registered
+		_ = sqlP.Close()
 
 		if originalSQLProvider != nil {
 			gobookmarks.RegisterProvider(originalSQLProvider)
@@ -123,7 +131,7 @@ func setupScenarioBackend() (func(), error) {
 		} else {
 			gobookmarks.UnregisterProvider("gitlab")
 		}
-		gobookmarks.SetProviderOrder(originalProviderOrder)
+		gobookmarks.SetProviderOrder(originalLiveProviderOrder)
 	}
 
 	return cleanup, nil
