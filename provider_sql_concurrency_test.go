@@ -55,63 +55,56 @@ func TestSQLProvider_UpdateBookmarks_Concurrency(t *testing.T) {
 	writer2ReachedCAS := make(chan struct{})
 	writer2Proceed := make(chan struct{})
 
-	ctx1 := context.WithValue(ctx, "testHookUpdateBookmarks", func() {
+	ctx1 := context.WithValue(ctx, testHookUpdateBookmarksKey, func() {
 		close(writer1ReachedCAS)
 		<-writer1Proceed
 	})
 
-	ctx2 := context.WithValue(ctx, "testHookUpdateBookmarks", func() {
+	ctx2 := context.WithValue(ctx, testHookUpdateBookmarksKey, func() {
 		close(writer2ReachedCAS)
 		<-writer2Proceed
 	})
 
+	writer1Done := make(chan struct{})
+	writer2Done := make(chan struct{})
+
 	go func() {
 		defer wg.Done()
 		err1 = p.UpdateBookmarks(ctx1, user, nil, branch, branch, "concurrent update 1", sha)
+		close(writer1Done)
 	}()
 
 	go func() {
 		defer wg.Done()
+		// Wait for writer 1 to reach CAS, then start writer 2
 		<-writer1ReachedCAS
 		err2 = p.UpdateBookmarks(ctx2, user, nil, branch, branch, "concurrent update 2", sha)
+		close(writer2Done)
 	}()
 
+	// Wait for writer 2 to reach the CAS boundary (now both are holding active transactions overlapping)
 	<-writer2ReachedCAS
+
+	// Now release writer 1 only and wait for it to finish successfully
 	close(writer1Proceed)
+	<-writer1Done
+
+	if err1 != nil {
+		t.Fatalf("Expected writer 1 to succeed, got: %v", err1)
+	}
+
+	// Now release writer 2 and wait for it to finish and fail
 	close(writer2Proceed)
+	<-writer2Done
+
+	// Writer 2 MUST fail with exactly sha mismatch now, because the transaction constraint allows it to be evaluated
+	if err2 == nil || err2.Error() != "sha mismatch" {
+		t.Fatalf("Expected exactly 'sha mismatch' error for writer 2, got: %v", err2)
+	}
 
 	wg.Wait()
 
-	successCount := 0
-	failCount := 0
-
-	var successfulText string
-
-	if err1 == nil {
-		successCount++
-		successfulText = "concurrent update 1"
-	} else if strings.Contains(err1.Error(), "sha mismatch") || strings.Contains(err1.Error(), "database is locked") || strings.Contains(err1.Error(), "database table is locked") {
-		failCount++
-	} else {
-		t.Fatalf("Unexpected error for writer 1: %v", err1)
-	}
-
-	if err2 == nil {
-		successCount++
-		successfulText = "concurrent update 2"
-	} else if strings.Contains(err2.Error(), "sha mismatch") || strings.Contains(err2.Error(), "database is locked") || strings.Contains(err2.Error(), "database table is locked") {
-		failCount++
-	} else {
-		t.Fatalf("Unexpected error for writer 2: %v", err2)
-	}
-
-	if successCount != 1 {
-		t.Fatalf("Expected exactly 1 successful update, got %d. (err1: %v, err2: %v)", successCount, err1, err2)
-	}
-
-	if failCount != 1 {
-		t.Fatalf("Expected exactly 1 failed update, got %d. (err1: %v, err2: %v)", failCount, err1, err2)
-	}
+	successfulText := "concurrent update 1"
 
 	finalText, finalSha, err := p.GetBookmarks(ctx, user, branch, nil)
 	if err != nil {

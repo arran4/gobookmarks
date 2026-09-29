@@ -23,6 +23,10 @@ type SQLProvider struct {
 	mu sync.Mutex
 }
 
+type contextKey string
+
+const testHookUpdateBookmarksKey contextKey = "testHookUpdateBookmarks"
+
 const sqlSchemaVersion = 1
 
 //go:embed sql/schema*.sql
@@ -240,7 +244,7 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	newSha := hex.EncodeToString(sum[:])
 
 	// testHookUpdateBookmarks is a deterministic synchronization seam for testing only.
-	if hook := ctx.Value("testHookUpdateBookmarks"); hook != nil {
+	if hook := ctx.Value(testHookUpdateBookmarksKey); hook != nil {
 		if fn, ok := hook.(func()); ok {
 			fn()
 		}
