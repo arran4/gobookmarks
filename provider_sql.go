@@ -239,6 +239,13 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	sum := sha1.Sum([]byte(time.Now().String() + text))
 	newSha := hex.EncodeToString(sum[:])
 
+	// testHookUpdateBookmarks is a deterministic synchronization seam for testing only.
+	if hook := ctx.Value("testHookUpdateBookmarks"); hook != nil {
+		if fn, ok := hook.(func()); ok {
+			fn()
+		}
+	}
+
 	if expectSHA != "" {
 		// Enforce expected version atomically
 		res, err := tx.ExecContext(ctx, "UPDATE branches SET sha=? WHERE user=? AND name=? AND sha=?", newSha, user, branch, expectSHA)

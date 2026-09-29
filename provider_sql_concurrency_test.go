@@ -47,44 +47,62 @@ func TestSQLProvider_UpdateBookmarks_Concurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	// Since they both try to update using the same initial `sha`, exactly one should succeed and one should fail.
 	var err1, err2 error
 
-	// Create a barrier to ensure both goroutines hit the UpdateBookmarks function at the exact same time
-	barrier := make(chan struct{})
+	writer1ReachedCAS := make(chan struct{})
+	writer1Proceed := make(chan struct{})
+
+	writer2ReachedCAS := make(chan struct{})
+	writer2Proceed := make(chan struct{})
+
+	ctx1 := context.WithValue(ctx, "testHookUpdateBookmarks", func() {
+		close(writer1ReachedCAS)
+		<-writer1Proceed
+	})
+
+	ctx2 := context.WithValue(ctx, "testHookUpdateBookmarks", func() {
+		close(writer2ReachedCAS)
+		<-writer2Proceed
+	})
 
 	go func() {
 		defer wg.Done()
-		<-barrier
-		err1 = p.UpdateBookmarks(ctx, user, nil, branch, branch, "concurrent update 1", sha)
+		err1 = p.UpdateBookmarks(ctx1, user, nil, branch, branch, "concurrent update 1", sha)
 	}()
 
 	go func() {
 		defer wg.Done()
-		<-barrier
-		err2 = p.UpdateBookmarks(ctx, user, nil, branch, branch, "concurrent update 2", sha)
+		<-writer1ReachedCAS
+		err2 = p.UpdateBookmarks(ctx2, user, nil, branch, branch, "concurrent update 2", sha)
 	}()
 
-	// Release the barrier so both run concurrently
-	close(barrier)
+	<-writer2ReachedCAS
+	close(writer1Proceed)
+	close(writer2Proceed)
+
 	wg.Wait()
 
-	// Assert exactly one succeeded and exactly one failed with sha mismatch
 	successCount := 0
 	failCount := 0
 
+	var successfulText string
+
 	if err1 == nil {
 		successCount++
-	} else if strings.Contains(err1.Error(), "sha mismatch") || strings.Contains(err1.Error(), "database is locked") {
-		// In a highly concurrent SQLite in-memory scenario without WAL, one might get database is locked.
-		// However, the fundamental atomic requirement is satisfied if only one writes successfully.
+		successfulText = "concurrent update 1"
+	} else if strings.Contains(err1.Error(), "sha mismatch") || strings.Contains(err1.Error(), "database is locked") || strings.Contains(err1.Error(), "database table is locked") {
 		failCount++
+	} else {
+		t.Fatalf("Unexpected error for writer 1: %v", err1)
 	}
 
 	if err2 == nil {
 		successCount++
-	} else if strings.Contains(err2.Error(), "sha mismatch") || strings.Contains(err2.Error(), "database is locked") {
+		successfulText = "concurrent update 2"
+	} else if strings.Contains(err2.Error(), "sha mismatch") || strings.Contains(err2.Error(), "database is locked") || strings.Contains(err2.Error(), "database table is locked") {
 		failCount++
+	} else {
+		t.Fatalf("Unexpected error for writer 2: %v", err2)
 	}
 
 	if successCount != 1 {
@@ -95,14 +113,25 @@ func TestSQLProvider_UpdateBookmarks_Concurrency(t *testing.T) {
 		t.Fatalf("Expected exactly 1 failed update, got %d. (err1: %v, err2: %v)", failCount, err1, err2)
 	}
 
-	// Ensure history has only 1 update, and that the text represents the successful update.
+	finalText, finalSha, err := p.GetBookmarks(ctx, user, branch, nil)
+	if err != nil {
+		t.Fatalf("GetBookmarks failed: %v", err)
+	}
+
+	if finalText != successfulText {
+		t.Fatalf("Expected final text to match the successful writer '%s', got '%s'", successfulText, finalText)
+	}
+
+	if finalSha == sha {
+		t.Fatalf("Expected final SHA to differ from starting SHA, but it was the same: %s", sha)
+	}
+
 	commits, err := p.GetCommits(ctx, user, nil, branch, 1, 100)
 	if err != nil {
 		t.Fatalf("GetCommits failed: %v", err)
 	}
 
 	if len(commits) != 2 {
-		// 1 from create, 1 from the successful update
 		t.Fatalf("Expected 2 commits total, got %d", len(commits))
 	}
 }
