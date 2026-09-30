@@ -23,6 +23,10 @@ type SQLProvider struct {
 	mu sync.Mutex
 }
 
+type contextKey string
+
+const testHookUpdateBookmarksKey contextKey = "testHookUpdateBookmarks"
+
 const sqlSchemaVersion = 1
 
 //go:embed sql/schema*.sql
@@ -236,19 +240,58 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 		return err
 	}
 
-	var curSha sql.NullString
-	err = tx.QueryRowContext(ctx, "SELECT sha FROM branches WHERE user=? AND name=?", user, branch).Scan(&curSha)
-	if err != nil && err != sql.ErrNoRows {
-		_ = tx.Rollback()
-		return err
-	}
-	if expectSHA != "" && curSha.Valid && curSha.String != expectSHA {
-		_ = tx.Rollback()
-		return errors.New("sha mismatch")
-	}
-
 	sum := sha1.Sum([]byte(time.Now().String() + text))
 	newSha := hex.EncodeToString(sum[:])
+
+	// testHookUpdateBookmarks is a deterministic synchronization seam for testing only.
+	if hook := ctx.Value(testHookUpdateBookmarksKey); hook != nil {
+		if fn, ok := hook.(func()); ok {
+			fn()
+		}
+	}
+
+	if expectSHA != "" {
+		// Enforce expected version atomically
+		res, err := tx.ExecContext(ctx, "UPDATE branches SET sha=? WHERE user=? AND name=? AND sha=?", newSha, user, branch, expectSHA)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+		affected, err := res.RowsAffected()
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+		if affected == 0 {
+			_ = tx.Rollback()
+			return errors.New("sha mismatch")
+		}
+	} else {
+		// Empty expectSHA means unconditional update or branch creation
+		switch strings.ToLower(Config.DBConnectionProvider) {
+		case "mysql":
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO branches(user, name, sha)
+				VALUES (?, ?, ?)
+				ON DUPLICATE KEY UPDATE sha = VALUES(sha)
+			`, user, branch, newSha); err != nil {
+				_ = tx.Rollback()
+				return err
+			}
+		case "sqlite3":
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO branches(user, name, sha)
+				VALUES (?, ?, ?)
+				ON CONFLICT(user, name) DO UPDATE SET sha = excluded.sha
+			`, user, branch, newSha); err != nil {
+				_ = tx.Rollback()
+				return err
+			}
+		default:
+			_ = tx.Rollback()
+			return errors.New("unsupported connection provider")
+		}
+	}
 
 	if _, err := tx.ExecContext(ctx,
 		"INSERT INTO history(user, sha, message, text, date) VALUES(?,?,?,?,?)",
@@ -263,31 +306,6 @@ func (p *SQLProvider) UpdateBookmarks(ctx context.Context, user string, token *o
 	); err != nil {
 		_ = tx.Rollback()
 		return err
-	}
-
-	// dialect-specific insert/update for branches
-	switch strings.ToLower(Config.DBConnectionProvider) {
-	case "mysql":
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO branches(user, name, sha)
-			VALUES (?, ?, ?)
-			ON DUPLICATE KEY UPDATE sha = VALUES(sha)
-		`, user, branch, newSha); err != nil {
-			_ = tx.Rollback()
-			return err
-		}
-	case "sqlite3":
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO branches(user, name, sha)
-			VALUES (?, ?, ?)
-			ON CONFLICT(user, name) DO UPDATE SET sha = excluded.sha
-		`, user, branch, newSha); err != nil {
-			_ = tx.Rollback()
-			return err
-		}
-	default:
-		_ = tx.Rollback()
-		return errors.New("unsupported connection provider")
 	}
 
 	return tx.Commit()
