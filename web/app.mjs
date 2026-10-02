@@ -67,7 +67,7 @@ function initApp() {
                     });
 
                     document.body.addEventListener('click', function(e) {
-                        var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit"], a[href*="/editPage"], a[href*="/editTab"]');
+                        var target = e.target.closest('.edit-link, .add-category-link, a[href*="/edit"], a[href*="/editPage"], a[href*="/editTab"], a[href*="/editColumn"]');
                         if (!target || target.id === 'toggle-edit' || !document.body.classList.contains('edit-mode')) return;
 
                         // Do not intercept if Ctrl, Shift, Meta, or Alt is pressed (allow default browser behavior)
@@ -76,7 +76,7 @@ function initApp() {
                         }
 
                         // Only intercept if it's an edit-related link (has edit=1 or goes to an edit page)
-                        if (target.href && (target.href.includes('edit') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.pathname === '/edit')) {
+                        if (target.href && (target.href.includes('edit') || target.href.includes('addCategory') || target.href.includes('editCategory') || target.href.includes('editPage') || target.href.includes('editTab') || target.href.includes('editColumn') || target.pathname === '/edit')) {
                             e.preventDefault();
 
                             var textContent = target.textContent.trim();
