@@ -534,7 +534,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 	var currentTab *BookmarkTab
 	var currentPage *BookmarkPage
 	var currentCategory *BookmarkCategory
-		var firstColClaimed bool
+	var firstColClaimed bool
 	idx := 0
 
 	ensureTab := func() *BookmarkTab {
@@ -552,7 +552,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(p)
 			currentPage = p
-				firstColClaimed = false
+			firstColClaimed = false
 		}
 		return currentPage
 	}
@@ -582,7 +582,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
-				firstColClaimed = false
+			firstColClaimed = false
 			continue
 		}
 		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
@@ -598,7 +598,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 				currentTab.AddPage(currentPage)
 			}
-				firstColClaimed = false
+			firstColClaimed = false
 			continue
 		}
 		if line == "--" {
@@ -702,7 +702,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 	var currentTab *BookmarkTab
 	var currentPage *BookmarkPage
 	var currentCategory *BookmarkCategory
-		var firstColClaimed bool
+	var firstColClaimed bool
 	idx := 0
 
 	ensureTab := func() *BookmarkTab {
@@ -720,7 +720,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(p)
 			currentPage = p
-				firstColClaimed = false
+			firstColClaimed = false
 		}
 		return currentPage
 	}
@@ -755,7 +755,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
-				firstColClaimed = false
+			firstColClaimed = false
 			continue
 		}
 		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
@@ -771,7 +771,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 				currentTab.AddPage(currentPage)
 			}
-				firstColClaimed = false
+			firstColClaimed = false
 			continue
 		}
 		if trimmed == "--" {
@@ -965,21 +965,21 @@ func (b BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destP
 		destColumn = destColObj
 	}
 
-		if len(src.column.Categories) == 0 && src.column != destColumn && strings.TrimSpace(src.column.Name) == "" {
-			if len(src.block.Columns) > 1 {
-				// Find the current index of the source column, as it may have shifted
-				colIdx := -1
-				for i, col := range src.block.Columns {
-					if col == src.column {
-						colIdx = i
-						break
-					}
-				}
-				if colIdx != -1 {
-					src.block.Columns = append(src.block.Columns[:colIdx], src.block.Columns[colIdx+1:]...)
+	if len(src.column.Categories) == 0 && src.column != destColumn && strings.TrimSpace(src.column.Name) == "" {
+		if len(src.block.Columns) > 1 {
+			// Find the current index of the source column, as it may have shifted
+			colIdx := -1
+			for i, col := range src.block.Columns {
+				if col == src.column {
+					colIdx = i
+					break
 				}
 			}
+			if colIdx != -1 {
+				src.block.Columns = append(src.block.Columns[:colIdx], src.block.Columns[colIdx+1:]...)
+			}
 		}
+	}
 
 	// reindex
 	idx = 0
