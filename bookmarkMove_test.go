@@ -65,3 +65,33 @@ func TestMoveCategoryEndLastPage(t *testing.T) {
 		t.Fatalf("expected %q got %q", expected, got)
 	}
 }
+
+func TestMoveCategory_PreservesNamedEmptyColumn(t *testing.T) {
+	input := "Tab: A\nPage: B\nColumn: Old\nCategory: X\n"
+	tabs := ParseBookmarks(input)
+
+	if err := tabs.MoveCategoryNewColumn(0, tabs[0].Pages[0], 0); err != nil {
+		t.Fatalf("MoveCategoryNewColumn: %v", err)
+	}
+
+	got := tabs.String()
+	expected := "Tab: A\nPage: B\nColumn: Old\nColumn\nCategory: X\n"
+	if got != expected {
+		t.Fatalf("expected\n%q\ngot\n%q", expected, got)
+	}
+}
+
+func TestMoveCategory_RemovesUnnamedEmptyColumn(t *testing.T) {
+	input := "Tab: A\nPage: B\nCategory: X\n"
+	tabs := ParseBookmarks(input)
+
+	if err := tabs.MoveCategoryNewColumn(0, tabs[0].Pages[0], 0); err != nil {
+		t.Fatalf("MoveCategoryNewColumn: %v", err)
+	}
+
+	got := tabs.String()
+	expected := "Tab: A\nPage: B\nCategory: X\n"
+	if got != expected {
+		t.Fatalf("expected\n%q\ngot\n%q", expected, got)
+	}
+}
