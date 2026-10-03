@@ -139,6 +139,7 @@ type JSONCategory struct {
 }
 
 type JSONColumn struct {
+	Name       string          `json:"name,omitempty"`
 	Categories []*JSONCategory `json:"categories,omitempty"`
 }
 
@@ -175,7 +176,7 @@ func (b BookmarkList) ToJSON() []*JSONTab {
 					HR: blk.HR,
 				}
 				for _, col := range blk.Columns {
-					jCol := &JSONColumn{}
+					jCol := &JSONColumn{Name: col.Name}
 					for _, cat := range col.Categories {
 						jCat := &JSONCategory{
 							Name: cat.Name,
@@ -290,7 +291,10 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 					if col == nil {
 						return nil, fmt.Errorf("invalid json: null column object")
 					}
-					bc := &BookmarkColumn{}
+					bc := &BookmarkColumn{Name: col.Name}
+					if strings.TrimSpace(col.Name) != "" && strings.TrimSpace(col.Name) != col.Name {
+						return nil, fmt.Errorf("invalid json: explicitly white space name cannot be represented losslessly (lossy shape)")
+					}
 					for _, cat := range col.Categories {
 						if cat == nil {
 							return nil, fmt.Errorf("invalid json: null category object")
