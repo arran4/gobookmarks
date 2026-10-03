@@ -44,6 +44,7 @@ func (c *BookmarkCategory) String() string {
 
 // BookmarkColumn contains a list of categories.
 type BookmarkColumn struct {
+	Name       string
 	Categories []*BookmarkCategory
 }
 
@@ -107,7 +108,19 @@ func (b *BookmarkBlock) String() string {
 	var sb strings.Builder
 	for i, col := range b.Columns {
 		if i > 0 {
-			sb.WriteString("Column\n")
+			if strings.TrimSpace(col.Name) != "" {
+				sb.WriteString("Column: ")
+				sb.WriteString(col.Name)
+				sb.WriteString("\n")
+			} else {
+				sb.WriteString("Column\n")
+			}
+		} else {
+			if strings.TrimSpace(col.Name) != "" {
+				sb.WriteString("Column: ")
+				sb.WriteString(col.Name)
+				sb.WriteString("\n")
+			}
 		}
 		sb.WriteString(col.String())
 	}
@@ -126,6 +139,7 @@ type JSONCategory struct {
 }
 
 type JSONColumn struct {
+	Name       string          `json:"name,omitempty"`
 	Categories []*JSONCategory `json:"categories,omitempty"`
 }
 
@@ -162,7 +176,7 @@ func (b BookmarkList) ToJSON() []*JSONTab {
 					HR: blk.HR,
 				}
 				for _, col := range blk.Columns {
-					jCol := &JSONColumn{}
+					jCol := &JSONColumn{Name: col.Name}
 					for _, cat := range col.Categories {
 						jCat := &JSONCategory{
 							Name: cat.Name,
@@ -277,7 +291,10 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 					if col == nil {
 						return nil, fmt.Errorf("invalid json: null column object")
 					}
-					bc := &BookmarkColumn{}
+					bc := &BookmarkColumn{Name: col.Name}
+					if strings.TrimSpace(col.Name) != "" && strings.TrimSpace(col.Name) != col.Name {
+						return nil, fmt.Errorf("invalid json: explicitly white space name cannot be represented losslessly (lossy shape)")
+					}
 					for _, cat := range col.Categories {
 						if cat == nil {
 							return nil, fmt.Errorf("invalid json: null category object")
@@ -521,6 +538,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 	var currentTab *BookmarkTab
 	var currentPage *BookmarkPage
 	var currentCategory *BookmarkCategory
+	var firstColClaimed bool
 	idx := 0
 
 	ensureTab := func() *BookmarkTab {
@@ -538,6 +556,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(p)
 			currentPage = p
+			firstColClaimed = false
 		}
 		return currentPage
 	}
@@ -567,6 +586,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
+			firstColClaimed = false
 			continue
 		}
 		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
@@ -582,6 +602,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 				currentTab.AddPage(currentPage)
 			}
+			firstColClaimed = false
 			continue
 		}
 		if line == "--" {
@@ -589,13 +610,43 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			page := ensurePage()
 			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
 			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
+			firstColClaimed = false
 			continue
 		}
-		if strings.EqualFold(line, "column") {
+
+		isColonForm := false
+		columnName := ""
+		if strings.HasPrefix(lower, "column:") {
+			isColonForm = true
+			columnName = strings.TrimSpace(line[7:])
+		} else if strings.HasPrefix(lower, "column ") {
+			isColonForm = true
+			columnName = strings.TrimSpace(line[7:])
+			if strings.HasPrefix(columnName, ":") {
+				columnName = strings.TrimSpace(columnName[1:])
+			} else {
+				isColonForm = false
+				columnName = ""
+			}
+		}
+
+		if isColonForm || strings.EqualFold(line, "column") {
 			flushCategory()
 			page := ensurePage()
 			lastBlock := page.Blocks[len(page.Blocks)-1]
-			lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+
+			if isColonForm {
+				if len(lastBlock.Columns) == 1 && len(lastBlock.Columns[0].Categories) == 0 && !firstColClaimed {
+					// Claim the implicit first column
+					lastBlock.Columns[0].Name = columnName
+					firstColClaimed = true
+				} else {
+					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName})
+				}
+			} else {
+				// Bare "Column" retains existing separator semantics and does not claim the first column
+				lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+			}
 			continue
 		}
 		parts := strings.Fields(line)
@@ -655,6 +706,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 	var currentTab *BookmarkTab
 	var currentPage *BookmarkPage
 	var currentCategory *BookmarkCategory
+	var firstColClaimed bool
 	idx := 0
 
 	ensureTab := func() *BookmarkTab {
@@ -672,6 +724,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(p)
 			currentPage = p
+			firstColClaimed = false
 		}
 		return currentPage
 	}
@@ -706,6 +759,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
+			firstColClaimed = false
 			continue
 		}
 		if lower == "page" || strings.HasPrefix(lower, "page ") || strings.HasPrefix(lower, "page:") {
@@ -721,6 +775,7 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
 				currentTab.AddPage(currentPage)
 			}
+			firstColClaimed = false
 			continue
 		}
 		if trimmed == "--" {
@@ -728,13 +783,46 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			page := ensurePage()
 			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
 			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
+			firstColClaimed = false
 			continue
 		}
-		if strings.EqualFold(trimmed, "column") {
+
+		isColonForm := false
+		columnName := ""
+		trimmedColName := strings.TrimSpace(lower)
+		if strings.HasPrefix(trimmedColName, "column") && len(trimmedColName) > 6 && strings.HasPrefix(strings.TrimSpace(trimmedColName[6:]), ":") {
+			return nil, fmt.Errorf("line %d: expected category, tab, page, or separator, got %s", i+1, trimmed)
+		} else if strings.HasPrefix(lower, "column:") {
+			isColonForm = true
+			columnName = strings.TrimSpace(trimmed[7:])
+		} else if strings.HasPrefix(lower, "column ") {
+			isColonForm = true
+			columnName = strings.TrimSpace(trimmed[7:])
+			if strings.HasPrefix(columnName, ":") {
+				columnName = strings.TrimSpace(columnName[1:])
+			} else {
+				isColonForm = false
+				columnName = ""
+			}
+		}
+
+		if isColonForm || strings.EqualFold(trimmed, "column") {
 			flushCategory()
 			page := ensurePage()
 			lastBlock := page.Blocks[len(page.Blocks)-1]
-			lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+
+			if isColonForm {
+				if len(lastBlock.Columns) == 1 && len(lastBlock.Columns[0].Categories) == 0 && !firstColClaimed {
+					// Claim the implicit first column
+					lastBlock.Columns[0].Name = columnName
+					firstColClaimed = true
+				} else {
+					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName})
+				}
+			} else {
+				// Bare "Column" retains existing separator semantics and does not claim the first column
+				lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+			}
 			continue
 		}
 
@@ -884,17 +972,19 @@ func (b BookmarkList) MoveCategory(fromIndex, toIndex int, newColumn bool, destP
 		destColumn = destColObj
 	}
 
-	if len(src.column.Categories) == 0 && src.column != destColumn {
-		// Find the current index of the source column, as it may have shifted
-		colIdx := -1
-		for i, col := range src.block.Columns {
-			if col == src.column {
-				colIdx = i
-				break
+	if len(src.column.Categories) == 0 && src.column != destColumn && strings.TrimSpace(src.column.Name) == "" {
+		if len(src.block.Columns) > 1 {
+			// Find the current index of the source column, as it may have shifted
+			colIdx := -1
+			for i, col := range src.block.Columns {
+				if col == src.column {
+					colIdx = i
+					break
+				}
 			}
-		}
-		if colIdx != -1 {
-			src.block.Columns = append(src.block.Columns[:colIdx], src.block.Columns[colIdx+1:]...)
+			if colIdx != -1 {
+				src.block.Columns = append(src.block.Columns[:colIdx], src.block.Columns[colIdx+1:]...)
+			}
 		}
 	}
 
