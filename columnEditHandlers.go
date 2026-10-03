@@ -43,7 +43,7 @@ func EditColumnGetAction(w http.ResponseWriter, r *http.Request) error {
 		login = githubUser.Login
 	}
 
-	bookmarks, _, err := GetBookmarks(ctx, login, r.FormValue("ref"), token)
+	bookmarks, actualSha, err := GetBookmarks(ctx, login, r.FormValue("ref"), token)
 	if err != nil {
 		return err
 	}
@@ -68,6 +68,9 @@ func EditColumnGetAction(w http.ResponseWriter, r *http.Request) error {
 	col := block.Columns[colIdx]
 
 	expectedSha := r.FormValue("sha")
+	if expectedSha == "" {
+		expectedSha = actualSha
+	}
 
 	data := struct {
 		*CoreData
@@ -114,7 +117,7 @@ func EditColumnPostAction(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		colIdx = -1
 	}
-	newName := r.FormValue("name")
+	newName := strings.TrimSpace(r.FormValue("name"))
 
 	ctx := r.Context()
 

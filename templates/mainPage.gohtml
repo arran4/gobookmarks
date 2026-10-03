@@ -27,7 +27,8 @@
                             {{- if $c.Name }}
                                 <h2>{{ $c.Name }} <a class="edit-link" href="/editColumn?tab={{$tabIdx}}&page={{$i}}&block={{$bi}}&col={{$ci}}&ref={{ref}}" title="Rename column">&#9998;</a></h2>
                             {{- else }}
-                                <h2 class="unnamed-column-heading" style="display: none;"><a class="edit-link" href="/editColumn?tab={{$tabIdx}}&page={{$i}}&block={{$bi}}&col={{$ci}}&ref={{ref}}" title="Rename column">&#9998;</a></h2>
+                                <h2 class="unnamed-column-heading" style="display: none;"></h2>
+                                <span class="edit-mode-only" style="display: none; padding-top: 1em;"><a class="edit-link" style="display: inline-block; padding: 2px;" href="/editColumn?tab={{$tabIdx}}&page={{$i}}&block={{$bi}}&col={{$ci}}&ref={{ref}}" title="Name this column">&#9998; Name Column</a></span>
                             {{- end }}
                             {{- range $c.Categories }}
                                 <div class="categoryBlock" id="cat{{ .Index }}">
