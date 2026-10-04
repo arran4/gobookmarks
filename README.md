@@ -115,7 +115,7 @@ Every command must be on its own line; empty lines are ignored.
 | `Category[: <category>]` | Create a category title. If unnamed it displays as `Category`.                           |
 | `<Link>`                 | Create a link to `<Link>` with the display name `<Link>`.                                 |
 | `<Link> <Name>`          | Create a link to `<Link>` with the display name `<Name>`.                                 |
-| `Column[: <name>]`       | Start a new column and optionally name it.                                               |
+| `Column[: <name>]`       | Start a new column and optionally name it. A blank or whitespace-only name acts as an unnamed column. |
 | `Page[: <name>]`         | Create a new page and optionally name it.                                                |
 | `Tab[: <name>]`          | Start a new tab. Without a name it reverts to the main tab (switch using `/tab/<index>`).|
 | `--`                     | Insert a horizontal rule and reset columns.                                              |
