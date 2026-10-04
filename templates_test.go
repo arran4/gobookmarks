@@ -67,6 +67,9 @@ func TestMainPage_RenderingColumns(t *testing.T) {
 	if !strings.Contains(out, "<h2>&lt;script&gt;&amp;Name&lt;/script&gt;") {
 		t.Errorf("Expected escaped named column heading.")
 	}
+	if strings.Contains(out, "<h2><script>&Name</script>") {
+		t.Fatal("column name rendered without HTML escaping")
+	}
 	if !strings.Contains(out, `<h2 class="unnamed-column-heading" style="display: none;"></h2>`) {
 		t.Errorf("Expected unnamed heading container to be hidden.")
 	}

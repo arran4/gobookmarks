@@ -69,3 +69,30 @@ func TestJSONRoundTrip_EmptyNamedColumnPreserved(t *testing.T) {
 		t.Fatalf("Expected:\n%s\nGot:\n%s", input, out)
 	}
 }
+
+func TestJSONRoundTrip_LegacyUnnamedCompatibility(t *testing.T) {
+	inputJSON := `[{"pages":[{"blocks":[{"hr":false,"columns":[{"categories":[{"name":"C","entries":[{"url":"http://example.com","name":"Example"}]}]}]}]}]}]`
+
+	var data []*JSONTab
+	if err := json.Unmarshal([]byte(inputJSON), &data); err != nil {
+		t.Fatalf("Unmarshal failed: %v", err)
+	}
+
+	list, err := BookmarkListFromJSON(data)
+	if err != nil {
+		t.Fatalf("BookmarkListFromJSON failed: %v", err)
+	}
+
+	const expected = "Category: C\nhttp://example.com Example\n"
+	if got := list.String(); got != expected {
+		t.Fatalf("legacy unnamed JSON changed:\nexpected %q\ngot      %q", expected, got)
+	}
+
+	encoded, err := json.Marshal(list.ToJSON())
+	if err != nil {
+		t.Fatalf("Marshal failed: %v", err)
+	}
+	if strings.Contains(string(encoded), `"name":""`) {
+		t.Fatalf("legacy unnamed column should continue to omit the name field: %s", encoded)
+	}
+}
