@@ -712,6 +712,7 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/editTab/modal", runHandlerChain(gobookmarks.EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/tab/{tab}/edit/modal", runHandlerChain(gobookmarks.EditTabPage)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/editPage/modal", runHandlerChain(gobookmarks.EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editColumn/modal", runHandlerChain(gobookmarks.EditColumnGetAction)).Methods("GET").MatcherFunc(RequiresAnAccount())
 	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
 	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
 	r.HandleFunc("/edit", runHandlerChain(gobookmarks.BookmarksEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
@@ -746,6 +747,13 @@ func registerRoutes(r *mux.Router) {
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TabEditSaveAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
 	r.HandleFunc("/tab/{tab}/edit", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
+
+	r.HandleFunc("/editColumn", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
+	r.HandleFunc("/editColumn", runHandlerChain(gobookmarks.EditColumnGetAction)).Methods("GET").MatcherFunc(RequiresAnAccount())
+	r.HandleFunc("/editColumn", runHandlerChain(gobookmarks.EditColumnPostAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSave))
+	r.HandleFunc("/editColumn", runHandlerChain(gobookmarks.EditColumnPostAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndDone))
+	r.HandleFunc("/editColumn", runHandlerChain(gobookmarks.EditColumnPostAction, redirectToHandlerBranchToRef("/"))).Methods("POST").MatcherFunc(RequiresAnAccount()).MatcherFunc(TaskMatcher(gobookmarks.TaskSaveAndStopEditing))
+	r.HandleFunc("/editColumn", runHandlerChain(gobookmarks.TaskDoneAutoRefreshPage)).Methods("POST")
 
 	r.HandleFunc("/editPage", runTemplate("loginPage.gohtml")).Methods("GET").MatcherFunc(gorillamuxlogic.Not(RequiresAnAccount()))
 	r.HandleFunc("/editPage", runHandlerChain(gobookmarks.EditPagePage)).Methods("GET").MatcherFunc(RequiresAnAccount())

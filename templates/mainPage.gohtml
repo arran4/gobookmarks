@@ -17,13 +17,19 @@
                     <h1>{{ $tabName }} <a class="edit-link" href="{{tabEditHref $tabIdx (ref) $t.Name}}" title="Edit">&#9998;</a></h1>
                     {{- end }}
                     {{- if $p.Name }}<h2>{{ $p.Name }}</h2>{{ end }}
-                    {{- range .Blocks }}
+                    {{- range $bi, $block := .Blocks }}
                     {{- if .HR }}
                     <hr class="bookmarkHr" />
                     {{- else }}
                     <div class="bookmarkColumns">
                         {{- range $ci, $c := .Columns }}
-                            <div class="bookmarkColumn">
+                            <div class="bookmarkColumn" data-named="{{ if $c.Name }}true{{ else }}false{{ end }}">
+                            {{- if $c.Name }}
+                                <h2>{{ $c.Name }} <a class="edit-link" href="/editColumn?tab={{$tabIdx}}&page={{$i}}&block={{$bi}}&col={{$ci}}&ref={{ref}}" title="Rename column">&#9998;</a></h2>
+                            {{- else }}
+                                <h2 class="unnamed-column-heading" style="display: none;"></h2>
+                                <span class="edit-mode-only" style="padding-top: 1em;"><a class="edit-link" style="display: inline-block; padding: 2px;" href="/editColumn?tab={{$tabIdx}}&page={{$i}}&block={{$bi}}&col={{$ci}}&ref={{ref}}" title="Name this column">&#9998; Name Column</a></span>
+                            {{- end }}
                             {{- range $c.Categories }}
                                 <div class="categoryBlock" id="cat{{ .Index }}">
                                     <h2><span class="moveIcon" title="Move">⯎</span>{{ .DisplayName }} <a class="edit-link" href="/editCategory?index={{ .Index }}&ref={{ref}}&tab={{$tabIdx}}&page={{$i}}" title="Edit">&#9998;</a></h2>
@@ -90,7 +96,8 @@
                     }
                 } else {
                     var col = zone.closest('.bookmarkColumn');
-                    if (col && !col.querySelector('.categoryBlock')) {
+                    var hasName = col && col.dataset.named === "true";
+                    if (col && !col.querySelector('.categoryBlock') && !hasName) {
                         var nextZone = col.nextElementSibling;
                         if (nextZone && nextZone.classList.contains('newColumnDropZone')) {
                             nextZone.remove();

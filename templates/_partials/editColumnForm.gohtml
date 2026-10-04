@@ -1,0 +1,24 @@
+<div>
+    <h1>Rename Column</h1>
+    {{- if .Error }}
+    <div style="color: red; margin-bottom: 1rem;">{{ .Error }}</div>
+    {{- end }}
+    <form action="/editColumn" method="POST">
+        <input type="hidden" name="tab" value="{{ .Tab }}" />
+        <input type="hidden" name="page" value="{{ .Page }}" />
+        <input type="hidden" name="block" value="{{ .Block }}" />
+        <input type="hidden" name="col" value="{{ .Col }}" />
+        <input type="hidden" name="sha" value="{{ .Sha }}" />
+        <input type="hidden" name="branch" value="{{ branchOrEditBranch }}" />
+        <input type="hidden" name="ref" value="{{ ref }}" />
+
+        <div style="margin-bottom: 1rem;">
+            <label for="name" style="display: block; margin-bottom: 0.5rem;">Column Name:</label>
+            <input type="text" id="name" name="name" value="{{ .Name }}" style="width: 100%; padding: 0.5rem;" />
+        </div>
+
+        <button type="submit" name="task" value="save" style="padding: 0.5rem 1rem;">Save</button>
+        <button type="submit" name="task" value="save_and_done" style="padding: 0.5rem 1rem;">Save and close</button>
+        <a href="/" class="modal-close" style="margin-left: 1rem; text-decoration: none; color: inherit;">Cancel</a>
+    </form>
+</div>
