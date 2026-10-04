@@ -1,0 +1,8 @@
+-- input.txt --
+Category: One
+Column:
+Category: Two
+-- expected.txt --
+Category: One
+Column
+Category: Two

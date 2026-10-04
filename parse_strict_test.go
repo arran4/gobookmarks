@@ -12,6 +12,8 @@ func TestStrictParseBookmarks(t *testing.T) {
 		"Tab: A\nPage: B\nCategory: C\nsearch:foo foo",
 		"Category: X\n/local/path Local Path",
 		"Tab\nPage\n--\nColumn\nCategory: Cat\nhttp://link",
+		"Column: Named Column\nCategory: Alpha",
+		"Tab: A\nPage: B\nColumn: Alpha\nCategory: A\nColumn: Beta\nCategory: B\nColumn\nCategory: C",
 		"Category: Unnamed\nhttp://link",
 		"Category: Test\nexample.com",       // Single token should be parsed as a link (even without scheme)
 		"Category: Test\nftp://test",        // Other schemes
@@ -41,13 +43,16 @@ func TestStrictParseBookmarks(t *testing.T) {
 		"Category: Valid\nPagge: Missing", // Misspelled directive inside a category
 		"Category: Valid\nCategor: Missing",
 		"Category: Valid\nColum:",
+		"Category: Valid\nColumn\t: Bad Name",
+		"Category: Valid\nColumn : Bad Name",
+		"Category: Valid\nColumn   : Bad Name",
 	}
 
 	for _, input := range invalidInputs {
 		_, err := StrictParseBookmarks(input)
 		if err == nil {
 			t.Errorf("Expected invalid input to fail parsing, got success\nInput: %q", input)
-		} else if !strings.Contains(err.Error(), "unrecognized directive") && !strings.Contains(err.Error(), "malformed link") && !strings.Contains(err.Error(), "outside of category") && !strings.Contains(err.Error(), "malformed") && !strings.Contains(err.Error(), "misspelled") {
+		} else if !strings.Contains(err.Error(), "unrecognized directive") && !strings.Contains(err.Error(), "malformed link") && !strings.Contains(err.Error(), "outside of category") && !strings.Contains(err.Error(), "malformed") && !strings.Contains(err.Error(), "misspelled") && !strings.Contains(err.Error(), "expected category, tab, page, or separator") {
 			t.Errorf("Expected specific error message, got: %v", err)
 		}
 	}

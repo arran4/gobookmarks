@@ -1,0 +1,14 @@
+-- input.txt --
+Tab: A
+Page: B
+Category: One
+--
+Column: Second Block First Column
+Category: Two
+-- expected.txt --
+Tab: A
+Page: B
+Category: One
+--
+Column: Second Block First Column
+Category: Two

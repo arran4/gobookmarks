@@ -1,0 +1,30 @@
+-- input.txt --
+Tab: Main
+Page: Bookmarks
+Column: Alpha
+Category: A
+https://a.com A Link
+Column: Beta
+Category: B
+https://b.com B Link
+Column
+Category: C
+https://c.com C Link
+Column:
+Category: D
+https://d.com D Link
+-- expected.txt --
+Tab: Main
+Page: Bookmarks
+Column: Alpha
+Category: A
+https://a.com A Link
+Column: Beta
+Category: B
+https://b.com B Link
+Column
+Category: C
+https://c.com C Link
+Column
+Category: D
+https://d.com D Link

@@ -790,11 +790,11 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		isColonForm := false
 		columnName := ""
 		trimmedColName := strings.TrimSpace(lower)
-		if strings.HasPrefix(trimmedColName, "column") && len(trimmedColName) > 6 && strings.HasPrefix(strings.TrimSpace(trimmedColName[6:]), ":") {
-			return nil, fmt.Errorf("line %d: expected category, tab, page, or separator, got %s", i+1, trimmed)
-		} else if strings.HasPrefix(lower, "column:") {
+		if strings.HasPrefix(lower, "column:") {
 			isColonForm = true
 			columnName = strings.TrimSpace(trimmed[7:])
+		} else if strings.HasPrefix(trimmedColName, "column") && len(trimmedColName) > 6 && strings.HasPrefix(strings.TrimSpace(trimmedColName[6:]), ":") {
+			return nil, fmt.Errorf("line %d: expected category, tab, page, or separator, got %s", i+1, trimmed)
 		} else if strings.HasPrefix(lower, "column ") {
 			isColonForm = true
 			columnName = strings.TrimSpace(trimmed[7:])
