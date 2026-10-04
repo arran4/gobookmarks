@@ -2,12 +2,12 @@ package gobookmarks
 
 import (
 	"context"
+	"golang.org/x/oauth2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-	"golang.org/x/oauth2"
 )
 
 func TestEditColumnPostAction(t *testing.T) {
@@ -19,7 +19,7 @@ func TestEditColumnPostAction(t *testing.T) {
 		"col":    {"0"},
 		"name":   {"Beta"},
 		"sha":    {"test-sha"},
-		"ref":    {"main"},
+		"ref":    {"refs/heads/source"},
 		"branch": {"test-branch"},
 	}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -33,23 +33,24 @@ func TestEditColumnPostAction(t *testing.T) {
 	session.Values["GithubUser"] = &User{Login: "testuser"}
 	ctx = context.WithValue(ctx, ContextValues("session"), session)
 
+	var gotGetRef, gotSourceRef, gotBranch string
 	mockProvider := &mockAccessProvider{nameFunc: func() string { return "mock" },
 		getBookmarksFunc: func(ctx context.Context, user, ref string, token *oauth2.Token) (string, string, error) {
+			gotGetRef = ref
 			return bookmarksStr, "test-sha", nil
 		},
 	}
-	var savedData, savedRef string
+	var savedData string
 	mockProvider.updateBookmarksFunc = func(ctx context.Context, user string, token *oauth2.Token, sourceRef, branch, text, expectSHA string) error {
 		savedData = text
-		savedRef = branch
+		gotSourceRef = sourceRef
+		gotBranch = branch
 		return nil
 	}
 
 	ctx = context.WithValue(ctx, ContextValues("provider"), "mock")
 
 	RegisterProvider(mockProvider)
-
-
 
 	cd.requestCache = &requestCache{data: make(map[string]*bookmarkCacheEntry)}
 
@@ -75,8 +76,14 @@ func TestEditColumnPostAction(t *testing.T) {
 		t.Errorf("Expected 'Column: Beta' in saved data, got:\n%s", savedData)
 	}
 
-	if savedRef != "test-branch" {
-		t.Errorf("Expected branch 'test-branch', got %q", savedRef)
+	if gotGetRef != "refs/heads/source" {
+		t.Errorf("Expected get ref refs/heads/source, got %s", gotGetRef)
+	}
+	if gotSourceRef != "refs/heads/source" {
+		t.Errorf("Expected source ref refs/heads/source, got %s", gotSourceRef)
+	}
+	if gotBranch != "test-branch" {
+		t.Errorf("Expected branch 'test-branch', got %q", gotBranch)
 	}
 }
 
@@ -157,8 +164,6 @@ func TestEditColumnPostAction_UnnamedToNamed(t *testing.T) {
 
 	RegisterProvider(mockProvider)
 
-
-
 	cd.requestCache = &requestCache{data: make(map[string]*bookmarkCacheEntry)}
 
 	req = req.WithContext(ctx)
@@ -212,8 +217,6 @@ func TestEditColumnPostAction_NamedToUnnamed(t *testing.T) {
 	ctx = context.WithValue(ctx, ContextValues("provider"), "mock")
 
 	RegisterProvider(mockProvider)
-
-
 
 	cd.requestCache = &requestCache{data: make(map[string]*bookmarkCacheEntry)}
 
