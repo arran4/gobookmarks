@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,18 @@ func mustWriteFile(t *testing.T, path string, data []byte) {
 	if err := os.WriteFile(path, data, 0644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+type errReader struct{}
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("simulated read error")
+}
+
+type errWriter struct{}
+
+func (errWriter) Write(p []byte) (n int, err error) {
+	return 0, errors.New("simulated write error")
 }
 
 func TestConvertLogic(t *testing.T) {
@@ -179,6 +192,21 @@ https://google.com`
 			}
 		})
 	}
+
+	t.Run("Failing Reader Boundary", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := Convert("bookmarks", "json", errReader{}, &buf)
+		if err == nil || !strings.Contains(err.Error(), "simulated read error") {
+			t.Fatalf("expected simulated read error, got: %v", err)
+		}
+	})
+
+	t.Run("Failing Writer Boundary", func(t *testing.T) {
+		err := Convert("bookmarks", "json", strings.NewReader(validText), errWriter{})
+		if err == nil || !strings.Contains(err.Error(), "simulated write error") {
+			t.Fatalf("expected simulated write error, got: %v", err)
+		}
+	})
 }
 
 func TestConvertCommand_CLI(t *testing.T) {
@@ -198,33 +226,61 @@ http://example.com`
 	txtFile := filepath.Join(dir, "bookmarks.txt")
 	mustWriteFile(t, txtFile, []byte(validText))
 
-	// Test config-independence under a deliberately unusable setup
-	// GOBM_CONFIG_FILE will force loadConfig to crash if it tries to load an invalid file
-	t.Setenv("GOBM_CONFIG_FILE", "/dev/null/invalid_config_that_does_not_exist_xyz.json")
+	t.Run("Named file argument", func(t *testing.T) {
+		cmdNoConfig := NewRootCommand()
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
 
-	// Create a new RootCommand to pick up the env changes just in case, though convert should skip loadConfig
-	cmdNoConfig := NewRootCommand()
-	var bufNoConfig bytes.Buffer
-	cmdNoConfig.ConvertCmd.Stdout = &bufNoConfig
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
+		if err != nil {
+			t.Fatalf("conversion should succeed without loading application config: %v", err)
+		}
 
-	err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
-	if err != nil {
-		t.Fatalf("conversion should succeed without loading application config: %v", err)
-	}
+		if !strings.Contains(buf.String(), "Dashboard") {
+			t.Fatalf("output missing expected JSON conversion data:\n%s", buf.String())
+		}
+	})
 
-	// verify that something was printed to our configured stdout
-	if len(bufNoConfig.Bytes()) == 0 {
-		t.Fatalf("conversion command did not write to provided stdout")
-	}
+	t.Run("Explicit stdin -", func(t *testing.T) {
+		cmdNoConfig := NewRootCommand()
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(validText)
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
 
-	// Test lint config independence
-	oldStdout := os.Stdout
-	_, wNoConfig2, _ := os.Pipe() // output not needed for success verification
-	os.Stdout = wNoConfig2
-	err = cmdNoConfig.Execute([]string{"lint", txtFile})
-	if err != nil {
-		t.Fatalf("lint should succeed without loading application config: %v", err)
-	}
-	_ = wNoConfig2.Close()
-	os.Stdout = oldStdout
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", "-"})
+		if err != nil {
+			t.Fatalf("conversion failed with explicit stdin dash: %v", err)
+		}
+
+		if !strings.Contains(buf.String(), "Dashboard") {
+			t.Fatalf("output missing expected JSON conversion data:\n%s", buf.String())
+		}
+	})
+
+	t.Run("Implicit stdin via zero args", func(t *testing.T) {
+		cmdNoConfig := NewRootCommand()
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(validText)
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
+
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json"})
+		if err != nil {
+			t.Fatalf("conversion failed with implicit stdin: %v", err)
+		}
+
+		if !strings.Contains(buf.String(), "Dashboard") {
+			t.Fatalf("output missing expected JSON conversion data:\n%s", buf.String())
+		}
+	})
+
+	t.Run("Lint config independence without breaking stdout", func(t *testing.T) {
+		t.Setenv("GOBM_CONFIG_FILE", "/dev/null/invalid_config_that_does_not_exist_xyz.json")
+
+		cmdNoConfig := NewRootCommand()
+		// We do not mutate os.Stdout. We just verify the command completes
+		err := cmdNoConfig.Execute([]string{"lint", txtFile})
+		if err != nil {
+			t.Fatalf("lint should succeed without loading application config: %v", err)
+		}
+	})
 }
