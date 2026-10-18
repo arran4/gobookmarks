@@ -222,12 +222,18 @@ https://github.com GitHub
 Category: Other
 http://example.com`
 
+	altText := `Tab: NotDashboard
+Page: Main
+Category: Search
+https://google.com Google`
+
 	dir := t.TempDir()
 	txtFile := filepath.Join(dir, "bookmarks.txt")
 	mustWriteFile(t, txtFile, []byte(validText))
 
 	t.Run("Named file argument", func(t *testing.T) {
 		cmdNoConfig := NewRootCommand()
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(altText) // Stdin should be ignored in favor of the named file
 		var buf bytes.Buffer
 		cmdNoConfig.ConvertCmd.Stdout = &buf
 
@@ -236,14 +242,18 @@ http://example.com`
 			t.Fatalf("conversion should succeed without loading application config: %v", err)
 		}
 
-		if !strings.Contains(buf.String(), "Dashboard") {
-			t.Fatalf("output missing expected JSON conversion data:\n%s", buf.String())
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(buf.Bytes(), &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "Dashboard" {
+			t.Fatalf("expected named file data ('Dashboard'), got: %s", buf.String())
 		}
 	})
 
 	t.Run("Explicit stdin -", func(t *testing.T) {
 		cmdNoConfig := NewRootCommand()
-		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(validText)
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(altText)
 		var buf bytes.Buffer
 		cmdNoConfig.ConvertCmd.Stdout = &buf
 
@@ -252,14 +262,18 @@ http://example.com`
 			t.Fatalf("conversion failed with explicit stdin dash: %v", err)
 		}
 
-		if !strings.Contains(buf.String(), "Dashboard") {
-			t.Fatalf("output missing expected JSON conversion data:\n%s", buf.String())
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(buf.Bytes(), &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "NotDashboard" {
+			t.Fatalf("expected explicit stdin data ('NotDashboard'), got: %s", buf.String())
 		}
 	})
 
 	t.Run("Implicit stdin via zero args", func(t *testing.T) {
 		cmdNoConfig := NewRootCommand()
-		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(validText)
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(altText)
 		var buf bytes.Buffer
 		cmdNoConfig.ConvertCmd.Stdout = &buf
 
@@ -268,17 +282,30 @@ http://example.com`
 			t.Fatalf("conversion failed with implicit stdin: %v", err)
 		}
 
-		if !strings.Contains(buf.String(), "Dashboard") {
-			t.Fatalf("output missing expected JSON conversion data:\n%s", buf.String())
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(buf.Bytes(), &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "NotDashboard" {
+			t.Fatalf("expected implicit stdin data ('NotDashboard'), got: %s", buf.String())
 		}
 	})
 
 	t.Run("Lint config independence without breaking stdout", func(t *testing.T) {
+		// Verify convert config independence too
 		t.Setenv("GOBM_CONFIG_FILE", "/dev/null/invalid_config_that_does_not_exist_xyz.json")
 
 		cmdNoConfig := NewRootCommand()
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
+		if err != nil {
+			t.Fatalf("conversion should succeed without loading application config: %v", err)
+		}
+
+		cmdNoConfig2 := NewRootCommand()
 		// We do not mutate os.Stdout. We just verify the command completes
-		err := cmdNoConfig.Execute([]string{"lint", txtFile})
+		err = cmdNoConfig2.Execute([]string{"lint", txtFile})
 		if err != nil {
 			t.Fatalf("lint should succeed without loading application config: %v", err)
 		}
