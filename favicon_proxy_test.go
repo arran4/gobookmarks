@@ -30,28 +30,32 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 	srv, hits := newFaviconServer(t, icon)
 	defer srv.Close()
 
-	Config.FaviconCacheDir = t.TempDir()
-	Config.FaviconCacheSize = 1024 * 1024
-	FaviconCache.cache = make(map[string]*FavIcon)
+	cfg := &Configuration{
+		FaviconCacheDir:  t.TempDir(),
+		FaviconCacheSize: 1024 * 1024,
+	}
+	proxy := NewFaviconProxy(cfg)
+	currTime := time.Now()
+	proxy.now = func() time.Time { return currTime }
 
 	req := httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
 	w := httptest.NewRecorder()
-	FaviconProxyHandler(w, req)
+	proxy.ServeHTTP(w, req)
 	if *hits != 1 {
 		t.Fatalf("expected 1 hit, got %d", *hits)
 	}
 
 	req = httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
 	w = httptest.NewRecorder()
-	FaviconProxyHandler(w, req)
+	proxy.ServeHTTP(w, req)
 	if *hits != 1 {
 		t.Fatalf("expected cache hit, hits %d", *hits)
 	}
 
-	time.Sleep(1500 * time.Millisecond)
+	currTime = currTime.Add(1500 * time.Millisecond)
 	req = httptest.NewRequest("GET", "/proxy/favicon?url="+srv.URL, nil)
 	w = httptest.NewRecorder()
-	FaviconProxyHandler(w, req)
+	proxy.ServeHTTP(w, req)
 	if *hits != 2 {
 		t.Fatalf("expected refetch after expiry, hits %d", *hits)
 	}
@@ -59,18 +63,20 @@ func TestFaviconDiskCacheExpiry(t *testing.T) {
 
 func TestFaviconMaxCacheCount(t *testing.T) {
 	icon := []byte{0x89, 'P', 'N', 'G'}
-	FaviconCache.cache = make(map[string]*FavIcon)
-	Config.FaviconMaxCacheCount = 2
+	cfg := &Configuration{
+		FaviconMaxCacheCount: 2,
+	}
+	proxy := NewFaviconProxy(cfg)
 
 	// Add 3 items
-	cacheFavicon("url1", icon, "image/png")
-	cacheFavicon("url2", icon, "image/png")
-	cacheFavicon("url3", icon, "image/png")
+	proxy.cacheFavicon("url1", icon, "image/png")
+	proxy.cacheFavicon("url2", icon, "image/png")
+	proxy.cacheFavicon("url3", icon, "image/png")
 
-	FaviconCache.RLock()
-	defer FaviconCache.RUnlock()
+	proxy.mu.RLock()
+	defer proxy.mu.RUnlock()
 
-	if len(FaviconCache.cache) > 2 {
-		t.Fatalf("expected cache size <= 2, got %d", len(FaviconCache.cache))
+	if len(proxy.cache) > 2 {
+		t.Fatalf("expected cache size <= 2, got %d", len(proxy.cache))
 	}
 }

@@ -42,23 +42,33 @@ type diskMeta struct {
 	Expiry      time.Time `json:"expiry"`
 }
 
-var (
-	FaviconCache = struct {
-		sync.RWMutex
-		cache map[string]*FavIcon
-	}{cache: make(map[string]*FavIcon)}
-)
+var defaultFaviconProxy = NewFaviconProxy(&Config)
 
-func cacheFileBase(u string) string {
-	h := sha1.Sum([]byte(strings.ToLower(u)))
-	return filepath.Join(Config.FaviconCacheDir, hex.EncodeToString(h[:]))
+func NewFaviconProxy(cfg *Configuration) *FaviconProxy {
+	return &FaviconProxy{
+		Config: cfg,
+		cache:  make(map[string]*FavIcon),
+		now:    time.Now,
+	}
 }
 
-func readDiskFavicon(u string) *FavIcon {
-	if Config.FaviconCacheDir == "" {
+type FaviconProxy struct {
+	Config *Configuration
+	mu     sync.RWMutex
+	cache  map[string]*FavIcon
+	now    func() time.Time
+}
+
+func (fp *FaviconProxy) cacheFileBase(u string) string {
+	h := sha1.Sum([]byte(strings.ToLower(u)))
+	return filepath.Join(fp.Config.FaviconCacheDir, hex.EncodeToString(h[:]))
+}
+
+func (fp *FaviconProxy) readDiskFavicon(u string) *FavIcon {
+	if fp.Config.FaviconCacheDir == "" {
 		return nil
 	}
-	base := cacheFileBase(u)
+	base := fp.cacheFileBase(u)
 	dataPath := base + ".dat"
 	metaPath := base + ".json"
 
@@ -70,7 +80,7 @@ func readDiskFavicon(u string) *FavIcon {
 	if json.Unmarshal(metaBytes, &m) != nil {
 		return nil
 	}
-	if time.Now().After(m.Expiry) {
+	if fp.now().After(m.Expiry) {
 		_ = os.Remove(dataPath)
 		_ = os.Remove(metaPath)
 		return nil
@@ -82,28 +92,28 @@ func readDiskFavicon(u string) *FavIcon {
 	return &FavIcon{Data: b, ContentType: m.ContentType}
 }
 
-func writeDiskFavicon(u string, f *FavIcon, expiry time.Time) {
-	if Config.FaviconCacheDir == "" {
+func (fp *FaviconProxy) writeDiskFavicon(u string, f *FavIcon, expiry time.Time) {
+	if fp.Config.FaviconCacheDir == "" {
 		return
 	}
-	if err := os.MkdirAll(Config.FaviconCacheDir, 0o755); err != nil {
+	if err := os.MkdirAll(fp.Config.FaviconCacheDir, 0o755); err != nil {
 		return
 	}
-	base := cacheFileBase(u)
+	base := fp.cacheFileBase(u)
 	dataPath := base + ".dat"
 	metaPath := base + ".json"
 	_ = os.WriteFile(dataPath, f.Data, 0o644)
 	m := diskMeta{ContentType: f.ContentType, Expiry: expiry}
 	mb, _ := json.Marshal(m)
 	_ = os.WriteFile(metaPath, mb, 0o644)
-	enforceCacheLimit()
+	fp.enforceCacheLimit()
 }
 
-func enforceCacheLimit() {
-	if Config.FaviconCacheDir == "" || Config.FaviconCacheSize <= 0 {
+func (fp *FaviconProxy) enforceCacheLimit() {
+	if fp.Config.FaviconCacheDir == "" || fp.Config.FaviconCacheSize <= 0 {
 		return
 	}
-	entries, err := filepath.Glob(filepath.Join(Config.FaviconCacheDir, "*.dat"))
+	entries, err := filepath.Glob(filepath.Join(fp.Config.FaviconCacheDir, "*.dat"))
 	if err != nil {
 		return
 	}
@@ -123,7 +133,7 @@ func enforceCacheLimit() {
 		total += fi.Size()
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].mod.Before(list[j].mod) })
-	for total > Config.FaviconCacheSize && len(list) > 0 {
+	for total > fp.Config.FaviconCacheSize && len(list) > 0 {
 		fi := list[0]
 		list = list[1:]
 		total -= fi.size
@@ -133,6 +143,10 @@ func enforceCacheLimit() {
 }
 
 func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
+	defaultFaviconProxy.ServeHTTP(w, r)
+}
+
+func (fp *FaviconProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Parse the URL parameter
 	urlParam := r.URL.Query().Get("url")
 	if urlParam == "" {
@@ -170,17 +184,17 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	getFromCache := func(key string) *FavIcon {
-		val := getCacheFavicon(key)
-		if Config.FaviconCacheDir != "" && val != nil {
-			if readDiskFavicon(key) == nil {
-				removeCacheFavicon(key)
+		val := fp.getCacheFavicon(key)
+		if fp.Config.FaviconCacheDir != "" && val != nil {
+			if fp.readDiskFavicon(key) == nil {
+				fp.removeCacheFavicon(key)
 				val = nil
 			}
 		}
-		if val == nil && Config.FaviconCacheDir != "" {
-			if diskVal := readDiskFavicon(key); diskVal != nil {
+		if val == nil && fp.Config.FaviconCacheDir != "" {
+			if diskVal := fp.readDiskFavicon(key); diskVal != nil {
 				val = diskVal
-				cacheFavicon(key, diskVal.Data, diskVal.ContentType)
+				fp.cacheFavicon(key, diskVal.Data, diskVal.ContentType)
 			}
 		}
 		return val
@@ -202,10 +216,10 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 		if size > 0 {
 			if data, ct, err := resizeImage(cacheValue.Data, size); err == nil {
 				icon = &FavIcon{Data: data, ContentType: ct}
-				cacheFavicon(targetKey, data, ct)
-				if Config.FaviconCacheDir != "" {
+				fp.cacheFavicon(targetKey, data, ct)
+				if fp.Config.FaviconCacheDir != "" {
 					// We use DefaultFaviconCacheMaxAge for resized items derived from cache
-					writeDiskFavicon(targetKey, icon, time.Now().Add(DefaultFaviconCacheMaxAge))
+					fp.writeDiskFavicon(targetKey, icon, fp.now().Add(DefaultFaviconCacheMaxAge))
 				}
 			}
 		}
@@ -244,20 +258,20 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Cache the favicon content
-	expiry := time.Now().Add(DefaultFaviconCacheMaxAge)
+	expiry := fp.now().Add(DefaultFaviconCacheMaxAge)
 	if cc := hdr.Get("Cache-Control"); cc != "" {
 		if strings.Contains(cc, "max-age=") {
 			parts := strings.Split(cc, "=")
 			if len(parts) == 2 {
 				if sec, err := strconv.Atoi(parts[1]); err == nil {
-					expiry = time.Now().Add(time.Duration(sec) * time.Second)
+					expiry = fp.now().Add(time.Duration(sec) * time.Second)
 				}
 			}
 		}
 	}
-	cacheFavicon(urlParam, faviconContent, fileType)
-	if Config.FaviconCacheDir != "" {
-		writeDiskFavicon(urlParam, &FavIcon{Data: faviconContent, ContentType: fileType}, expiry)
+	fp.cacheFavicon(urlParam, faviconContent, fileType)
+	if fp.Config.FaviconCacheDir != "" {
+		fp.writeDiskFavicon(urlParam, &FavIcon{Data: faviconContent, ContentType: fileType}, expiry)
 	}
 
 	// Serve the favicon content
@@ -265,9 +279,9 @@ func FaviconProxyHandler(w http.ResponseWriter, r *http.Request) {
 	if size > 0 {
 		if data, ct, err := resizeImage(icon.Data, size); err == nil {
 			icon = &FavIcon{Data: data, ContentType: ct}
-			cacheFavicon(targetKey, data, ct)
-			if Config.FaviconCacheDir != "" {
-				writeDiskFavicon(targetKey, icon, expiry)
+			fp.cacheFavicon(targetKey, data, ct)
+			if fp.Config.FaviconCacheDir != "" {
+				fp.writeDiskFavicon(targetKey, icon, expiry)
 			}
 		}
 	}
@@ -350,35 +364,35 @@ func httpClientFromContext(ctx context.Context) *http.Client {
 	return http.DefaultClient
 }
 
-func cacheFavicon(urlParam string, content []byte, contentType string) {
-	FaviconCache.Lock()
-	defer FaviconCache.Unlock()
+func (fp *FaviconProxy) cacheFavicon(urlParam string, content []byte, contentType string) {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
 
 	// Delete random keys until the cache is small enough
-	for len(FaviconCache.cache) > 0 && len(FaviconCache.cache) >= Config.FaviconMaxCacheCount {
-		for key := range FaviconCache.cache {
-			delete(FaviconCache.cache, key)
+	for len(fp.cache) > 0 && len(fp.cache) >= fp.Config.FaviconMaxCacheCount {
+		for key := range fp.cache {
+			delete(fp.cache, key)
 			break
 		}
 	}
 
-	FaviconCache.cache[urlParam] = &FavIcon{
+	fp.cache[urlParam] = &FavIcon{
 		Data:        content,
 		ContentType: contentType,
 	}
 }
 
-func getCacheFavicon(urlParam string) *FavIcon {
-	FaviconCache.Lock()
-	defer FaviconCache.Unlock()
+func (fp *FaviconProxy) getCacheFavicon(urlParam string) *FavIcon {
+	fp.mu.RLock()
+	defer fp.mu.RUnlock()
 
-	return FaviconCache.cache[urlParam]
+	return fp.cache[urlParam]
 }
 
-func removeCacheFavicon(urlParam string) {
-	FaviconCache.Lock()
-	defer FaviconCache.Unlock()
-	delete(FaviconCache.cache, urlParam)
+func (fp *FaviconProxy) removeCacheFavicon(urlParam string) {
+	fp.mu.Lock()
+	defer fp.mu.Unlock()
+	delete(fp.cache, urlParam)
 }
 
 func resizeImage(data []byte, size int) ([]byte, string, error) {
