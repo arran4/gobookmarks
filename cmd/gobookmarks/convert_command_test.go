@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +12,26 @@ import (
 	gobookmarks "github.com/arran4/gobookmarks"
 )
 
-func TestConvertCommand(t *testing.T) {
+func mustWriteFile(t *testing.T, path string, data []byte) {
+	t.Helper()
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+type errReader struct{}
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("simulated read error")
+}
+
+type errWriter struct{}
+
+func (errWriter) Write(p []byte) (n int, err error) {
+	return 0, errors.New("simulated write error")
+}
+
+func TestConvertLogic(t *testing.T) {
 	validText := `Tab: Dashboard
 Page: Main
 Category: Search Engines
@@ -25,255 +44,119 @@ https://github.com GitHub
 Category: Other
 http://example.com`
 
-	// This tests explicit unnamed tab vs implicit unnamed tab
 	explicitUnnamedTabText := `Tab
 Page: Main
 Category: Search Engines
 https://www.google.com Google Search`
 
-	dir := t.TempDir()
-	txtFile := filepath.Join(dir, "bookmarks.txt")
-	explicitUnnamedTxtFile := filepath.Join(dir, "explicit_unnamed.txt")
-	jsonFile := filepath.Join(dir, "bookmarks.json")
-	explicitUnnamedJsonFile := filepath.Join(dir, "explicit_unnamed.json")
-	invalidJsonFile := filepath.Join(dir, "invalid.json")
-
-	if err := os.WriteFile(invalidJsonFile, []byte(`[{"pages": [{"blocks": [null]}]}]`), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.WriteFile(txtFile, []byte(validText), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(explicitUnnamedTxtFile, []byte(explicitUnnamedTabText), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// 1. Text to JSON conversion
-	cmd := NewRootCommand()
-
-	// capture stdout
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := cmd.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
-	if err != nil {
-		t.Fatalf("conversion from txt to json failed: %v", err)
-	}
-
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
-	jsonOutput := buf.Bytes()
-
-	if err := os.WriteFile(jsonFile, jsonOutput, 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify valid JSON
-	var parsedTabs []*gobookmarks.JSONTab
-	if err := json.Unmarshal(jsonOutput, &parsedTabs); err != nil {
-		t.Fatalf("output is not valid json: %v", err)
-	}
-	if len(parsedTabs) != 1 || parsedTabs[0].Name != "Dashboard" {
-		t.Errorf("expected tab 'Dashboard', got %+v", parsedTabs)
-	}
-
-	// 2. JSON to Text conversion (round trip)
-	oldStdout = os.Stdout
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-
-	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", jsonFile})
-	if err != nil {
-		t.Fatalf("conversion from json to txt failed: %v", err)
-	}
-
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	buf.Reset()
-	_, _ = io.Copy(&buf, r)
-	txtOutput := buf.String()
-
-	if !strings.Contains(txtOutput, "Tab: Dashboard") || !strings.Contains(txtOutput, "https://github.com GitHub") {
-		t.Errorf("round trip text output missing expected content:\n%s", txtOutput)
-	}
-
-	// Verify the round trip text parses without error and gives same structure
-	// since we enforce semantic equality.
-	list, err := gobookmarks.StrictParseBookmarks(txtOutput)
-	if err != nil {
-		t.Fatalf("round-tripped text failed strict parse: %v", err)
-	}
-	if len(list) != 1 || len(list[0].Pages) != 1 || list[0].Name != "Dashboard" {
-		t.Errorf("semantic mismatch in round trip")
-	}
-
-	// 3. Test explicit unnamed tab round trip
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", explicitUnnamedTxtFile})
-	if err != nil {
-		t.Fatalf("conversion of explicit unnamed txt to json failed: %v", err)
-	}
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	var explicitUnnamedJsonBuf bytes.Buffer
-	_, _ = io.Copy(&explicitUnnamedJsonBuf, r)
-	if err := os.WriteFile(explicitUnnamedJsonFile, explicitUnnamedJsonBuf.Bytes(), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", explicitUnnamedJsonFile})
-	if err != nil {
-		t.Fatalf("conversion of explicit unnamed json to txt failed: %v", err)
-	}
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	explicitUnnamedTxtOutputBuf := new(bytes.Buffer)
-	_, _ = io.Copy(explicitUnnamedTxtOutputBuf, r)
-	explicitUnnamedTxtOutput := explicitUnnamedTxtOutputBuf.String()
-
-	if !strings.HasPrefix(strings.TrimSpace(explicitUnnamedTxtOutput), "Tab") {
-		t.Fatalf("round-tripped text lost explicit unnamed Tab directive:\n%s", explicitUnnamedTxtOutput)
-	}
-
-	// 4. Test implicit unnamed tab
 	implicitUnnamedText := `Page: Main
 Category: Search Engines
 https://www.google.com Google Search`
-	implicitUnnamedTxtFile := filepath.Join(dir, "implicit_unnamed.txt")
-	if err := os.WriteFile(implicitUnnamedTxtFile, []byte(implicitUnnamedText), 0644); err != nil {
-		t.Fatal(err)
-	}
 
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", implicitUnnamedTxtFile})
-	if err != nil {
-		t.Fatalf("conversion of implicit unnamed txt to json failed: %v", err)
-	}
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	var implicitUnnamedJsonBuf bytes.Buffer
-	_, _ = io.Copy(&implicitUnnamedJsonBuf, r)
-	implicitUnnamedJsonFile := filepath.Join(dir, "implicit_unnamed.json")
-	if err := os.WriteFile(implicitUnnamedJsonFile, implicitUnnamedJsonBuf.Bytes(), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", implicitUnnamedJsonFile})
-	if err != nil {
-		t.Fatalf("conversion of implicit unnamed json to txt failed: %v", err)
-	}
-	_ = w.Close()
-	os.Stdout = oldStdout
-
-	implicitUnnamedTxtOutputBuf := new(bytes.Buffer)
-	_, _ = io.Copy(implicitUnnamedTxtOutputBuf, r)
-	implicitUnnamedTxtOutput := implicitUnnamedTxtOutputBuf.String()
-
-	if strings.Contains(implicitUnnamedTxtOutput, "Tab") {
-		t.Fatalf("round-tripped text incorrectly gained explicit Tab directive:\n%s", implicitUnnamedTxtOutput)
-	}
-
-	// 5. Test Invalid Semantic JSON
-	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", invalidJsonFile})
-	if err == nil {
-		t.Fatal("expected invalid semantic json to fail conversion")
-	}
-
-	// 6. Test config-independence under a deliberately unusable setup
-	// GOBM_CONFIG_FILE will force loadConfig to crash if it tries to load an invalid file
-	t.Setenv("GOBM_CONFIG_FILE", "/dev/null/invalid_config_that_does_not_exist_xyz.json")
-
-	// Create a new RootCommand to pick up the env changes just in case, though convert should skip loadConfig
-	cmdNoConfig := NewRootCommand()
-	_, wNoConfig, _ := os.Pipe() // output not needed for success verification
-	os.Stdout = wNoConfig
-	err = cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
-	if err != nil {
-		t.Fatalf("conversion should succeed without loading application config: %v", err)
-	}
-	_ = wNoConfig.Close()
-	os.Stdout = oldStdout
-
-	// Test lint config independence
-	_, wNoConfig2, _ := os.Pipe() // output not needed for success verification
-	os.Stdout = wNoConfig2
-	err = cmdNoConfig.Execute([]string{"lint", txtFile})
-	if err != nil {
-		t.Fatalf("lint should succeed without loading application config: %v", err)
-	}
-	_ = wNoConfig2.Close()
-	os.Stdout = oldStdout
-
-	// 7. Test Unnamed pages vs named pages round trip (in explicitUnnamedTxtOutput test)
-	// explicitUnnamedText has "Page: Main" which is named.
-	// let's test unnamed page through JSON interchange
 	unnamedPageText := `Tab: Dashboard
 Page
 Category: Search
 https://google.com`
-	unnamedPageTxtFile := filepath.Join(dir, "unnamed_page.txt")
-	unnamedPageJsonFile := filepath.Join(dir, "unnamed_page.json")
-	if err := os.WriteFile(unnamedPageTxtFile, []byte(unnamedPageText), 0644); err != nil {
-		t.Fatal(err)
-	}
 
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", unnamedPageTxtFile})
-	if err != nil {
-		t.Fatalf("conversion of unnamed page txt to json failed: %v", err)
-	}
-	_ = w.Close()
-	os.Stdout = oldStdout
+	t.Run("Text to JSON to Text", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := Convert("bookmarks", "json", strings.NewReader(validText), &buf)
+		if err != nil {
+			t.Fatalf("text to json failed: %v", err)
+		}
 
-	var unnamedJsonBuf bytes.Buffer
-	_, _ = io.Copy(&unnamedJsonBuf, r)
-	if err := os.WriteFile(unnamedPageJsonFile, unnamedJsonBuf.Bytes(), 0644); err != nil {
-		t.Fatal(err)
-	}
+		jsonOutput := buf.Bytes()
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(jsonOutput, &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "Dashboard" {
+			t.Errorf("expected tab 'Dashboard', got %+v", parsedTabs)
+		}
 
-	r, w, _ = os.Pipe()
-	os.Stdout = w
-	err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", unnamedPageJsonFile})
-	if err != nil {
-		t.Fatalf("conversion of unnamed page json to bookmarks failed: %v", err)
-	}
-	_ = w.Close()
-	os.Stdout = oldStdout
+		var buf2 bytes.Buffer
+		err = Convert("json", "bookmarks", bytes.NewReader(jsonOutput), &buf2)
+		if err != nil {
+			t.Fatalf("json to text failed: %v", err)
+		}
 
-	unnamedPageTxtOutputBuf := new(bytes.Buffer)
-	_, _ = io.Copy(unnamedPageTxtOutputBuf, r)
-	unnamedPageTxtOutput := unnamedPageTxtOutputBuf.String()
+		txtOutput := buf2.String()
+		if !strings.Contains(txtOutput, "Tab: Dashboard") || !strings.Contains(txtOutput, "https://github.com GitHub") {
+			t.Errorf("round trip text output missing expected content:\n%s", txtOutput)
+		}
+	})
 
-	// Strict parse the result and assert page semantics
-	// Since Tab implicitly creates an empty page, `Page` creates a second one. Both should be unnamed.
-	list, err = gobookmarks.StrictParseBookmarks(unnamedPageTxtOutput)
-	if err != nil {
-		t.Fatalf("round-tripped unnamed page text failed strict parse: %v", err)
-	}
-	if len(list) != 1 || len(list[0].Pages) != 2 {
-		t.Fatalf("semantic mismatch in unnamed page round trip length: got %d pages", len(list[0].Pages))
-	}
-	if list[0].Pages[0].Name != "" || list[0].Pages[1].Name != "" {
-		t.Fatalf("unnamed page became named: %q", list[0].Pages[1].Name)
-	}
+	t.Run("Explicit Unnamed Tab", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := Convert("bookmarks", "json", strings.NewReader(explicitUnnamedTabText), &buf)
+		if err != nil {
+			t.Fatalf("text to json failed: %v", err)
+		}
 
-	// 8. Test lossy invalid JSON
+		var buf2 bytes.Buffer
+		err = Convert("json", "bookmarks", &buf, &buf2)
+		if err != nil {
+			t.Fatalf("json to text failed: %v", err)
+		}
+
+		if !strings.HasPrefix(strings.TrimSpace(buf2.String()), "Tab") {
+			t.Fatalf("round-tripped text lost explicit unnamed Tab directive:\n%s", buf2.String())
+		}
+	})
+
+	t.Run("Implicit Unnamed Tab", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := Convert("bookmarks", "json", strings.NewReader(implicitUnnamedText), &buf)
+		if err != nil {
+			t.Fatalf("text to json failed: %v", err)
+		}
+
+		var buf2 bytes.Buffer
+		err = Convert("json", "bookmarks", &buf, &buf2)
+		if err != nil {
+			t.Fatalf("json to text failed: %v", err)
+		}
+
+		if strings.Contains(buf2.String(), "Tab") {
+			t.Fatalf("round-tripped text incorrectly gained explicit Tab directive:\n%s", buf2.String())
+		}
+	})
+
+	t.Run("Invalid Semantic JSON", func(t *testing.T) {
+		invalidJson := `[{"pages": [{"blocks": [null]}]}]`
+		var buf bytes.Buffer
+		err := Convert("json", "bookmarks", strings.NewReader(invalidJson), &buf)
+		if err == nil {
+			t.Fatal("expected invalid semantic json to fail conversion")
+		}
+	})
+
+	t.Run("Unnamed Pages vs Named Pages Round Trip", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := Convert("bookmarks", "json", strings.NewReader(unnamedPageText), &buf)
+		if err != nil {
+			t.Fatalf("text to json failed: %v", err)
+		}
+
+		var buf2 bytes.Buffer
+		err = Convert("json", "bookmarks", &buf, &buf2)
+		if err != nil {
+			t.Fatalf("json to text failed: %v", err)
+		}
+
+		txtOutput := buf2.String()
+		list, err := gobookmarks.StrictParseBookmarks(txtOutput)
+		if err != nil {
+			t.Fatalf("round-tripped unnamed page text failed strict parse: %v", err)
+		}
+		if len(list) != 1 || len(list[0].Pages) != 2 {
+			t.Fatalf("semantic mismatch in unnamed page round trip length: got %d pages", len(list[0].Pages))
+		}
+		if list[0].Pages[0].Name != "" || list[0].Pages[1].Name != "" {
+			t.Fatalf("unnamed page became named: %q", list[0].Pages[1].Name)
+		}
+	})
+
 	invalidLossyJsonFiles := []struct {
 		Name string
 		JSON string
@@ -301,13 +184,130 @@ https://google.com`
 	}
 
 	for _, tc := range invalidLossyJsonFiles {
-		f := filepath.Join(dir, "lossy_"+strings.ReplaceAll(tc.Name, " ", "_")+".json")
-		if err := os.WriteFile(f, []byte(tc.JSON), 0644); err != nil {
-			t.Fatal(err)
-		}
-		err = cmd.Execute([]string{"convert", "--from", "json", "--to", "bookmarks", f})
-		if err == nil {
-			t.Fatalf("expected lossy semantic json (%s) to fail conversion", tc.Name)
-		}
+		t.Run("Lossy Invalid JSON: "+tc.Name, func(t *testing.T) {
+			var buf bytes.Buffer
+			err := Convert("json", "bookmarks", strings.NewReader(tc.JSON), &buf)
+			if err == nil {
+				t.Fatalf("expected lossy semantic json (%s) to fail conversion", tc.Name)
+			}
+		})
 	}
+
+	t.Run("Failing Reader Boundary", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := Convert("bookmarks", "json", errReader{}, &buf)
+		if err == nil || !strings.Contains(err.Error(), "simulated read error") {
+			t.Fatalf("expected simulated read error, got: %v", err)
+		}
+	})
+
+	t.Run("Failing Writer Boundary", func(t *testing.T) {
+		err := Convert("bookmarks", "json", strings.NewReader(validText), errWriter{})
+		if err == nil || !strings.Contains(err.Error(), "simulated write error") {
+			t.Fatalf("expected simulated write error, got: %v", err)
+		}
+	})
+}
+
+func TestConvertCommand_CLI(t *testing.T) {
+	validText := `Tab: Dashboard
+Page: Main
+Category: Search Engines
+https://www.google.com Google Search
+https://duckduckgo.com DuckDuckGo
+Column
+Category: Version Control
+https://github.com GitHub
+--
+Category: Other
+http://example.com`
+
+	altText := `Tab: NotDashboard
+Page: Main
+Category: Search
+https://google.com Google`
+
+	dir := t.TempDir()
+	txtFile := filepath.Join(dir, "bookmarks.txt")
+	mustWriteFile(t, txtFile, []byte(validText))
+
+	t.Run("Named file argument", func(t *testing.T) {
+		cmdNoConfig := NewRootCommand()
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(altText) // Stdin should be ignored in favor of the named file
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
+
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
+		if err != nil {
+			t.Fatalf("conversion should succeed without loading application config: %v", err)
+		}
+
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(buf.Bytes(), &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "Dashboard" {
+			t.Fatalf("expected named file data ('Dashboard'), got: %s", buf.String())
+		}
+	})
+
+	t.Run("Explicit stdin -", func(t *testing.T) {
+		cmdNoConfig := NewRootCommand()
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(altText)
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
+
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", "-"})
+		if err != nil {
+			t.Fatalf("conversion failed with explicit stdin dash: %v", err)
+		}
+
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(buf.Bytes(), &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "NotDashboard" {
+			t.Fatalf("expected explicit stdin data ('NotDashboard'), got: %s", buf.String())
+		}
+	})
+
+	t.Run("Implicit stdin via zero args", func(t *testing.T) {
+		cmdNoConfig := NewRootCommand()
+		cmdNoConfig.ConvertCmd.Stdin = strings.NewReader(altText)
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
+
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json"})
+		if err != nil {
+			t.Fatalf("conversion failed with implicit stdin: %v", err)
+		}
+
+		var parsedTabs []*gobookmarks.JSONTab
+		if err := json.Unmarshal(buf.Bytes(), &parsedTabs); err != nil {
+			t.Fatalf("output is not valid json: %v", err)
+		}
+		if len(parsedTabs) != 1 || parsedTabs[0].Name != "NotDashboard" {
+			t.Fatalf("expected implicit stdin data ('NotDashboard'), got: %s", buf.String())
+		}
+	})
+
+	t.Run("Lint config independence without breaking stdout", func(t *testing.T) {
+		// Verify convert config independence too
+		t.Setenv("GOBM_CONFIG_FILE", "/dev/null/invalid_config_that_does_not_exist_xyz.json")
+
+		cmdNoConfig := NewRootCommand()
+		var buf bytes.Buffer
+		cmdNoConfig.ConvertCmd.Stdout = &buf
+		err := cmdNoConfig.Execute([]string{"convert", "--from", "bookmarks", "--to", "json", txtFile})
+		if err != nil {
+			t.Fatalf("conversion should succeed without loading application config: %v", err)
+		}
+
+		cmdNoConfig2 := NewRootCommand()
+		// We do not mutate os.Stdout. We just verify the command completes
+		err = cmdNoConfig2.Execute([]string{"lint", txtFile})
+		if err != nil {
+			t.Fatalf("lint should succeed without loading application config: %v", err)
+		}
+	})
 }
