@@ -17,12 +17,16 @@ type ConvertCommand struct {
 	From     string
 	To       string
 	FromFile string
+	Stdin    io.Reader
+	Stdout   io.Writer
 }
 
 func (rc *RootCommand) NewConvertCommand() (*ConvertCommand, error) {
 	c := &ConvertCommand{
 		parent: rc,
 		Flags:  flag.NewFlagSet("convert", flag.ContinueOnError),
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
 	}
 	c.Flags.StringVar(&c.From, "from", "bookmarks", "source format: bookmarks or json")
 	c.Flags.StringVar(&c.To, "to", "json", "destination format: bookmarks or json")
@@ -72,19 +76,29 @@ func (c *ConvertCommand) Execute(args []string) error {
 		filePath = c.FlagSet().Arg(0)
 	}
 
-	var data []byte
-	var err error
+	var r io.Reader
 	if filePath == "" || filePath == "-" {
-		data, err = io.ReadAll(os.Stdin)
+		r = c.Stdin
 	} else {
-		data, err = os.ReadFile(filePath)
+		f, err := os.Open(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to open input file: %w", err)
+		}
+		defer f.Close()
+		r = f
 	}
+
+	return Convert(c.From, c.To, r, c.Stdout)
+}
+
+func Convert(fromFormat, toFormat string, r io.Reader, w io.Writer) error {
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("failed to read input: %w", err)
 	}
 
 	var list gobookmarks.BookmarkList
-	if c.From == "bookmarks" {
+	if fromFormat == "bookmarks" {
 		list, err = gobookmarks.StrictParseBookmarks(string(data))
 		if err != nil {
 			return fmt.Errorf("failed to parse bookmarks strictly: %w", err)
@@ -109,14 +123,18 @@ func (c *ConvertCommand) Execute(args []string) error {
 		}
 	}
 
-	if c.To == "json" {
+	if toFormat == "json" {
 		out, err := json.MarshalIndent(list.ToJSON(), "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to format json: %w", err)
 		}
-		fmt.Println(string(out))
+		if _, err := fmt.Fprintln(w, string(out)); err != nil {
+			return fmt.Errorf("failed to write output: %w", err)
+		}
 	} else {
-		fmt.Print(list.String())
+		if _, err := fmt.Fprint(w, list.String()); err != nil {
+			return fmt.Errorf("failed to write output: %w", err)
+		}
 	}
 
 	return nil
