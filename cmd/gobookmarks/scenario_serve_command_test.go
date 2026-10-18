@@ -91,7 +91,9 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 			t.Cleanup(func() {
 				if !cleanedUp {
 					cancel()
-					<-errCh
+					if err := <-errCh; err != nil && !tt.expectErr {
+						t.Errorf("scenario serve cleanup failed: %v", err)
+					}
 				}
 			})
 
@@ -148,8 +150,11 @@ func TestScenarioServeAddressParsing(t *testing.T) {
 
 			cancel()
 			if !cleanedUp {
-				<-errCh
+				shutdownErr := <-errCh
 				cleanedUp = true
+				if shutdownErr != nil {
+					t.Fatalf("scenario serve shutdown failed: %v", shutdownErr)
+				}
 			}
 		})
 	}

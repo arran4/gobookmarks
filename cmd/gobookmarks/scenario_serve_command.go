@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -168,8 +169,12 @@ func (c *ScenarioServeCommand) ExecuteContext(ctx context.Context, args []string
 		}
 	}
 
-	// Important: Wait for the goroutine to actually exit before we return and tear down globals.
-	<-errCh
+	// Wait for the goroutine to exit before tearing down globals. If
+	// cancellation or a signal won the select above, preserve any serve error
+	// that arrived in the meantime alongside a possible shutdown error.
+	if err := <-errCh; err != nil {
+		serveErr = errors.Join(serveErr, fmt.Errorf("HTTP server error: %w", err))
+	}
 
 	return serveErr
 }

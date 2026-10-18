@@ -80,7 +80,9 @@ func TestScenarioServeStartupShutdownAndAuthentication(t *testing.T) {
 	t.Cleanup(func() {
 		if !cleanedUp {
 			cancel()
-			<-errCh
+			if err := <-errCh; err != nil {
+				t.Errorf("scenario serve cleanup failed: %v", err)
+			}
 		}
 	})
 
@@ -131,8 +133,11 @@ func TestScenarioServeStartupShutdownAndAuthentication(t *testing.T) {
 	}
 
 	cancel()
-	<-errCh
+	shutdownErr := <-errCh
 	cleanedUp = true
+	if shutdownErr != nil {
+		t.Fatalf("scenario serve shutdown failed: %v", shutdownErr)
+	}
 }
 
 func TestScenarioServeConsecutiveRuns(t *testing.T) {
@@ -157,7 +162,9 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 			t.Cleanup(func() {
 				if !cleanedUp {
 					cancel()
-					<-errCh
+					if err := <-errCh; err != nil {
+						t.Errorf("run %d: scenario serve cleanup failed: %v", i, err)
+					}
 				}
 			})
 
@@ -252,8 +259,11 @@ func TestScenarioServeConsecutiveRuns(t *testing.T) {
 			}
 
 			cancel()
-			<-errCh
+			shutdownErr := <-errCh
 			cleanedUp = true
+			if shutdownErr != nil {
+				t.Fatalf("run %d: scenario serve shutdown failed: %v", i, shutdownErr)
+			}
 
 			// 4. Verify the listener is released explicitly by rebinding
 			ln, err := net.Listen("tcp", boundPort)
