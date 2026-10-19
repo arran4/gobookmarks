@@ -92,10 +92,11 @@ func parseLineForComments(line string) (bool, string, string) {
 
 // BookmarkEntry represents a single link.
 type BookmarkEntry struct {
-	Url             string
-	Name            string
-	LeadingComments []string
-	InlineComment   string
+	Url              string
+	Name             string
+	LeadingComments  []string
+	InlineComment    string
+	HasInlineComment bool
 }
 
 // String serializes the entry.
@@ -120,11 +121,12 @@ func (e *BookmarkEntry) String() string {
 
 // BookmarkCategory groups entries together.
 type BookmarkCategory struct {
-	Name            string
-	Entries         []*BookmarkEntry
-	Index           int
-	LeadingComments []string
-	InlineComment   string
+	Name             string
+	Entries          []*BookmarkEntry
+	Index            int
+	LeadingComments  []string
+	InlineComment    string
+	HasInlineComment bool
 }
 
 // String serializes the category.
@@ -141,10 +143,11 @@ func (c *BookmarkCategory) String() string {
 
 // BookmarkColumn contains a list of categories.
 type BookmarkColumn struct {
-	Name            string
-	LeadingComments []string
-	InlineComment   string
-	Categories      []*BookmarkCategory
+	Name             string
+	LeadingComments  []string
+	InlineComment    string
+	HasInlineComment bool
+	Categories       []*BookmarkCategory
 }
 
 // String serializes the column.
@@ -195,10 +198,11 @@ func (c *BookmarkCategory) MoveEntry(i, j int) {
 
 // BookmarkBlock groups columns and optional horizontal rule.
 type BookmarkBlock struct {
-	Columns         []*BookmarkColumn
-	HR              bool
-	LeadingComments []string
-	InlineComment   string
+	Columns          []*BookmarkColumn
+	HR               bool
+	LeadingComments  []string
+	InlineComment    string
+	HasInlineComment bool
 }
 
 // String serializes the block.
@@ -230,34 +234,53 @@ func (b *BookmarkBlock) String() string {
 
 // Interchange formats for conversion
 type JSONEntry struct {
-	URL  string `json:"url"`
-	Name string `json:"name"`
+	Url              string   `json:"url,omitempty"`
+	Name             string   `json:"name,omitempty"`
+	LeadingComments  []string `json:"leading_comments,omitempty"`
+	InlineComment    string   `json:"inline_comment,omitempty"`
+	HasInlineComment bool     `json:"has_inline_comment,omitempty"`
 }
 
 type JSONCategory struct {
-	Name    string       `json:"name"`
-	Entries []*JSONEntry `json:"entries,omitempty"`
+	Name             string       `json:"name,omitempty"`
+	LeadingComments  []string     `json:"leading_comments,omitempty"`
+	InlineComment    string       `json:"inline_comment,omitempty"`
+	HasInlineComment bool         `json:"has_inline_comment,omitempty"`
+	Entries          []*JSONEntry `json:"entries,omitempty"`
 }
 
 type JSONColumn struct {
-	Name       string          `json:"name,omitempty"`
-	Categories []*JSONCategory `json:"categories,omitempty"`
+	Name             string          `json:"name,omitempty"`
+	LeadingComments  []string        `json:"leading_comments,omitempty"`
+	InlineComment    string          `json:"inline_comment,omitempty"`
+	HasInlineComment bool            `json:"has_inline_comment,omitempty"`
+	Categories       []*JSONCategory `json:"categories,omitempty"`
 }
 
 type JSONBlock struct {
-	HR      bool          `json:"hr"`
-	Columns []*JSONColumn `json:"columns,omitempty"`
+	HR               bool          `json:"hr,omitempty"`
+	LeadingComments  []string      `json:"leading_comments,omitempty"`
+	InlineComment    string        `json:"inline_comment,omitempty"`
+	HasInlineComment bool          `json:"has_inline_comment,omitempty"`
+	Columns          []*JSONColumn `json:"columns,omitempty"`
 }
 
 type JSONPage struct {
-	Name   string       `json:"name,omitempty"`
-	Blocks []*JSONBlock `json:"blocks,omitempty"`
+	Name             string       `json:"name,omitempty"`
+	LeadingComments  []string     `json:"leading_comments,omitempty"`
+	InlineComment    string       `json:"inline_comment,omitempty"`
+	HasInlineComment bool         `json:"has_inline_comment,omitempty"`
+	Blocks           []*JSONBlock `json:"blocks,omitempty"`
 }
 
 type JSONTab struct {
-	Name        string      `json:"name,omitempty"`
-	ExplicitTab bool        `json:"explicit,omitempty"`
-	Pages       []*JSONPage `json:"pages,omitempty"`
+	Name             string      `json:"name,omitempty"`
+	ExplicitTab      bool        `json:"explicit,omitempty"`
+	LeadingComments  []string    `json:"leading_comments,omitempty"`
+	InlineComment    string      `json:"inline_comment,omitempty"`
+	HasInlineComment bool        `json:"has_inline_comment,omitempty"`
+	TrailingComments []string    `json:"trailing_comments,omitempty"`
+	Pages            []*JSONPage `json:"pages,omitempty"`
 }
 
 // ToJSON transforms a BookmarkList into a stable JSON struct format.
@@ -265,27 +288,48 @@ func (b BookmarkList) ToJSON() []*JSONTab {
 	var tabs []*JSONTab
 	for _, t := range b {
 		jTab := &JSONTab{
-			Name:        t.Name,
-			ExplicitTab: t.ExplicitTab,
+			Name:             t.Name,
+			ExplicitTab:      t.ExplicitTab,
+			LeadingComments:  t.LeadingComments,
+			InlineComment:    t.InlineComment,
+			HasInlineComment: t.HasInlineComment,
+			TrailingComments: t.TrailingComments,
 		}
 		for _, p := range t.Pages {
 			jPage := &JSONPage{
-				Name: p.Name,
+				Name:             p.Name,
+				LeadingComments:  p.LeadingComments,
+				InlineComment:    p.InlineComment,
+				HasInlineComment: p.HasInlineComment,
 			}
 			for _, blk := range p.Blocks {
 				jBlk := &JSONBlock{
-					HR: blk.HR,
+					HR:               blk.HR,
+					LeadingComments:  blk.LeadingComments,
+					InlineComment:    blk.InlineComment,
+					HasInlineComment: blk.HasInlineComment,
 				}
 				for _, col := range blk.Columns {
-					jCol := &JSONColumn{Name: col.Name}
+					jCol := &JSONColumn{
+						Name:             col.Name,
+						LeadingComments:  col.LeadingComments,
+						InlineComment:    col.InlineComment,
+						HasInlineComment: col.HasInlineComment,
+					}
 					for _, cat := range col.Categories {
 						jCat := &JSONCategory{
-							Name: cat.Name,
+							Name:             cat.Name,
+							LeadingComments:  cat.LeadingComments,
+							InlineComment:    cat.InlineComment,
+							HasInlineComment: cat.HasInlineComment,
 						}
 						for _, ent := range cat.Entries {
 							jCat.Entries = append(jCat.Entries, &JSONEntry{
-								URL:  ent.Url,
-								Name: ent.Name,
+								Url:              ent.Url,
+								Name:             ent.Name,
+								LeadingComments:  ent.LeadingComments,
+								InlineComment:    ent.InlineComment,
+								HasInlineComment: ent.HasInlineComment,
 							})
 						}
 						jCol.Categories = append(jCol.Categories, jCat)
@@ -411,11 +455,11 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 							if ent == nil {
 								return nil, fmt.Errorf("invalid json: null entry object in category %q", cat.Name)
 							}
-							if ent.URL == "" || strings.TrimSpace(ent.URL) == "" {
+							if ent.Url == "" || strings.TrimSpace(ent.Url) == "" {
 								return nil, fmt.Errorf("invalid json: entry url cannot be explicitly empty or only whitespace (lossy shape)")
 							}
 							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
-								Url:  ent.URL,
+								Url:  ent.Url,
 								Name: ent.Name,
 							})
 						}
@@ -475,10 +519,11 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 
 // BookmarkPage contains a number of blocks.
 type BookmarkPage struct {
-	Blocks          []*BookmarkBlock
-	Name            string
-	LeadingComments []string
-	InlineComment   string
+	Blocks           []*BookmarkBlock
+	Name             string
+	LeadingComments  []string
+	InlineComment    string
+	HasInlineComment bool
 }
 
 // IsEmpty returns true if the page contains no categories.
@@ -546,6 +591,7 @@ type BookmarkTab struct {
 	Name             string
 	LeadingComments  []string
 	InlineComment    string
+	HasInlineComment bool
 	TrailingComments []string
 	Pages            []*BookmarkPage
 }
