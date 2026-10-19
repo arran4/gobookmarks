@@ -1,0 +1,90 @@
+-- in.txt --
+## File preamble
+Tab: Work ## Tab comment
+Page: Main ## Page comment
+Column: Daily ## Column comment
+Category: Development ## Category comment
+https://example.com/path\##literal Example \## literal ## Entry comment
+## Between entries
+https://github.com GitHub
+## Before next category
+Category: Reference
+https://example.org Reference
+-- ## Separator comment
+## After separator
+Column: Archive
+Category: Old
+https://old.example Old
+## EOF comment
+-- test.go --
+package main
+
+import (
+	"testing"
+	"strings"
+	"github.com/arran4/gobookmarks"
+)
+
+func TestParseEditingComments(t *testing.T) {
+	input := `## File preamble
+Tab: Work ## Tab comment
+Page: Main ## Page comment
+Column: Daily ## Column comment
+Category: Development ## Category comment
+https://example.com/path\##literal Example \## literal ## Entry comment
+## Between entries
+https://github.com GitHub
+## Before next category
+Category: Reference
+https://example.org Reference
+-- ## Separator comment
+## After separator
+Column: Archive
+Category: Old
+https://old.example Old
+## EOF comment`
+
+	bl := gobookmarks.ParseBookmarks(input)
+
+	// Extracting a page and saving it unchanged
+	pageText, pageName, err := gobookmarks.ExtractPage(input, 0, 0)
+	if err != nil {
+		t.Fatalf("ExtractPage: %v", err)
+	}
+	if strings.Contains(pageText, "## File preamble") {
+		t.Errorf("ExtractPage should not include page leading comments: %v", pageText)
+	}
+
+	pageParsed := gobookmarks.ParseBookmarks("Tab\nPage: " + pageName + "\n" + pageText)
+	p := pageParsed[0].Pages[0]
+	// Emulate PageEditSaveAction logic manually:
+	origPage := bl[0].Pages[0]
+	p.LeadingComments = origPage.LeadingComments
+	p.InlineComment = origPage.InlineComment
+	bl[0].Pages[0] = p
+
+	if bl.String() != input {
+		t.Errorf("Extract+Save unchanged failed:\nExpected:\n%v\nGot:\n%v", input, bl.String())
+	}
+
+	// Replace a category without altering adjacent comments
+	catText, err := gobookmarks.ExtractCategoryByIndex(input, 1) // Reference
+	if err != nil {
+		t.Fatalf("ExtractCategoryByIndex: %v", err)
+	}
+	newCatText := strings.Replace(catText, "Reference", "Replaced", -1)
+	newInput, err := gobookmarks.ReplaceCategoryByIndex(input, 1, newCatText)
+	if err != nil {
+		t.Fatalf("ReplaceCategoryByIndex: %v", err)
+	}
+
+	if !strings.Contains(newInput, "Category: Replaced") {
+		t.Errorf("Replace failed: %v", newInput)
+	}
+	if !strings.Contains(newInput, "## Before next category") {
+		t.Errorf("Replace dropped leading comment: %v", newInput)
+	}
+	if !strings.Contains(newInput, "-- ## Separator comment") {
+		t.Errorf("Replace damaged following separator: %v", newInput)
+	}
+}

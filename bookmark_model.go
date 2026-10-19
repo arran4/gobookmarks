@@ -6,10 +6,100 @@ import (
 	"strings"
 )
 
+func escapeForComment(val string) string {
+	var sb strings.Builder
+	for i := 0; i < len(val); i++ {
+		if i+1 < len(val) && val[i] == '#' && val[i+1] == '#' {
+			if i == 0 || val[i-1] == ' ' || val[i-1] == '\t' {
+				sb.WriteString("\\##")
+				i++
+				continue
+			}
+		}
+		sb.WriteByte(val[i])
+	}
+	return sb.String()
+}
+
+func unescapeComment(val string) string {
+	return strings.ReplaceAll(val, "\\##", "##")
+}
+
+func parseLineForComments(line string) (bool, string, string) {
+	trimmed := strings.TrimSpace(line)
+	if strings.HasPrefix(trimmed, "##") {
+		return true, "", strings.TrimPrefix(trimmed, "##")
+	}
+
+	runStart := -1
+	for {
+		idx := strings.Index(line[runStart+1:], "##")
+		if idx == -1 {
+			break
+		}
+		absoluteIdx := runStart + 1 + idx
+
+		backslashCount := 0
+		for i := absoluteIdx - 1; i >= 0; i-- {
+			if line[i] == '\\' {
+				backslashCount++
+			} else {
+				break
+			}
+		}
+
+		if backslashCount%2 == 1 {
+			runStart = absoluteIdx + 1
+			continue
+		}
+
+		if absoluteIdx == 0 || line[absoluteIdx-1] == ' ' || line[absoluteIdx-1] == '\t' {
+			content := line[:absoluteIdx]
+			comment := line[absoluteIdx+2:]
+
+			var unescaped strings.Builder
+			i := 0
+			for i < len(content) {
+				if i+2 < len(content) && content[i] == '\\' && content[i+1] == '#' && content[i+2] == '#' {
+					// Only unescape if it occurs at a valid comment boundary
+					// The boundary is: index 0 OR the character before the backslash is whitespace
+					if i == 0 || content[i-1] == ' ' || content[i-1] == '\t' {
+						unescaped.WriteString("##")
+						i += 3
+						continue
+					}
+				}
+				unescaped.WriteByte(content[i])
+				i++
+			}
+
+			return false, unescaped.String(), comment
+		}
+		runStart = absoluteIdx + 1
+	}
+
+	var unescaped strings.Builder
+	i := 0
+	for i < len(line) {
+		if i+2 < len(line) && line[i] == '\\' && line[i+1] == '#' && line[i+2] == '#' {
+			if i == 0 || line[i-1] == ' ' || line[i-1] == '\t' {
+				unescaped.WriteString("##")
+				i += 3
+				continue
+			}
+		}
+		unescaped.WriteByte(line[i])
+		i++
+	}
+	return false, unescaped.String(), ""
+}
+
 // BookmarkEntry represents a single link.
 type BookmarkEntry struct {
-	Url  string
-	Name string
+	Url             string
+	Name            string
+	LeadingComments []string
+	InlineComment   string
 }
 
 // String serializes the entry.
@@ -17,17 +107,28 @@ func (e *BookmarkEntry) String() string {
 	if e == nil {
 		return ""
 	}
-	if e.Name != "" && e.Name != e.Url {
-		return e.Url + " " + e.Name + "\n"
+	var sb strings.Builder
+	for _, c := range e.LeadingComments {
+		sb.WriteString("##" + escapeForComment(c) + "\n")
 	}
-	return e.Url + "\n"
+	sb.WriteString(escapeForComment(e.Url))
+	if e.Name != "" && e.Name != e.Url {
+		sb.WriteString(" " + escapeForComment(e.Name))
+	}
+	if e.InlineComment != "" {
+		sb.WriteString(" ##" + escapeForComment(e.InlineComment))
+	}
+	sb.WriteString("\n")
+	return sb.String()
 }
 
 // BookmarkCategory groups entries together.
 type BookmarkCategory struct {
-	Name    string
-	Entries []*BookmarkEntry
-	Index   int
+	Name            string
+	Entries         []*BookmarkEntry
+	Index           int
+	LeadingComments []string
+	InlineComment   string
 }
 
 // String serializes the category.
@@ -44,8 +145,10 @@ func (c *BookmarkCategory) String() string {
 
 // BookmarkColumn contains a list of categories.
 type BookmarkColumn struct {
-	Name       string
-	Categories []*BookmarkCategory
+	Name            string
+	LeadingComments []string
+	InlineComment   string
+	Categories      []*BookmarkCategory
 }
 
 // String serializes the column.
@@ -96,8 +199,10 @@ func (c *BookmarkCategory) MoveEntry(i, j int) {
 
 // BookmarkBlock groups columns and optional horizontal rule.
 type BookmarkBlock struct {
-	Columns []*BookmarkColumn
-	HR      bool
+	Columns         []*BookmarkColumn
+	HR              bool
+	LeadingComments []string
+	InlineComment   string
 }
 
 // String serializes the block.
@@ -374,8 +479,10 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 
 // BookmarkPage contains a number of blocks.
 type BookmarkPage struct {
-	Blocks []*BookmarkBlock
-	Name   string
+	Blocks          []*BookmarkBlock
+	Name            string
+	LeadingComments []string
+	InlineComment   string
 }
 
 // IsEmpty returns true if the page contains no categories.
@@ -440,8 +547,11 @@ func (t *BookmarkTab) MovePage(i, j int) {
 type BookmarkTab struct {
 	ExplicitTab bool
 
-	Name  string
-	Pages []*BookmarkPage
+	Name             string
+	LeadingComments  []string
+	InlineComment    string
+	TrailingComments []string
+	Pages            []*BookmarkPage
 }
 
 func (t *BookmarkTab) stringWithContext(first bool) string {
@@ -541,9 +651,19 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 	var firstColClaimed bool
 	idx := 0
 
+	var pendingComments []string
+	var comment string
 	ensureTab := func() *BookmarkTab {
 		if currentTab == nil {
 			t := &BookmarkTab{ExplicitTab: false}
+			if len(pendingComments) > 0 {
+				t.LeadingComments = pendingComments
+				pendingComments = nil
+			}
+			if len(pendingComments) > 0 {
+				t.LeadingComments = pendingComments
+				pendingComments = nil
+			}
 			result.AddTab(t)
 			currentTab = t
 		}
@@ -554,6 +674,14 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 		ensureTab()
 		if currentPage == nil {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			if len(pendingComments) > 0 {
+				p.LeadingComments = pendingComments
+				pendingComments = nil
+			}
+			if len(pendingComments) > 0 {
+				p.LeadingComments = pendingComments
+				pendingComments = nil
+			}
 			currentTab.AddPage(p)
 			currentPage = p
 			firstColClaimed = false
@@ -582,8 +710,17 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				rest = strings.TrimSpace(rest[1:])
 			}
 			flushCategory()
-			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true}
+			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true, LeadingComments: pendingComments, InlineComment: comment}
+			pendingComments = nil
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			if len(pendingComments) > 0 {
+				currentPage.LeadingComments = pendingComments
+				pendingComments = nil
+			}
+			if len(pendingComments) > 0 {
+				currentPage.LeadingComments = pendingComments
+				pendingComments = nil
+			}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
 			firstColClaimed = false
@@ -598,8 +735,23 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			ensureTab()
 			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 && currentPage.Name == "" && rest != "" {
 				currentPage.Name = rest
+				if len(pendingComments) > 0 {
+					currentPage.LeadingComments = append(currentPage.LeadingComments, pendingComments...)
+					pendingComments = nil
+				}
+				if comment != "" {
+					currentPage.InlineComment = comment
+				}
+				if len(pendingComments) > 0 {
+					currentPage.LeadingComments = append(currentPage.LeadingComments, pendingComments...)
+					pendingComments = nil
+				}
+				if comment != "" {
+					currentPage.InlineComment = comment
+				}
 			} else {
-				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}, LeadingComments: pendingComments, InlineComment: comment}
+				pendingComments = nil
 				currentTab.AddPage(currentPage)
 			}
 			firstColClaimed = false
@@ -608,7 +760,8 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 		if line == "--" {
 			flushCategory()
 			page := ensurePage()
-			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
+			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true, LeadingComments: pendingComments, InlineComment: comment})
+			pendingComments = nil
 			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
 			firstColClaimed = false
 			continue
@@ -639,13 +792,29 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				if len(lastBlock.Columns) == 1 && len(lastBlock.Columns[0].Categories) == 0 && !firstColClaimed {
 					// Claim the implicit first column
 					lastBlock.Columns[0].Name = columnName
+					if len(pendingComments) > 0 {
+						lastBlock.Columns[0].LeadingComments = append(lastBlock.Columns[0].LeadingComments, pendingComments...)
+						pendingComments = nil
+					}
+					if comment != "" {
+						lastBlock.Columns[0].InlineComment = comment
+					}
+					if len(pendingComments) > 0 {
+						lastBlock.Columns[0].LeadingComments = append(lastBlock.Columns[0].LeadingComments, pendingComments...)
+						pendingComments = nil
+					}
+					if comment != "" {
+						lastBlock.Columns[0].InlineComment = comment
+					}
 					firstColClaimed = true
 				} else {
-					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName})
+					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName, LeadingComments: pendingComments, InlineComment: comment})
+					pendingComments = nil
 				}
 			} else {
 				// Bare "Column" retains existing separator semantics and does not claim the first column
-				lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+				lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{LeadingComments: pendingComments, InlineComment: comment})
+				pendingComments = nil
 			}
 			continue
 		}
@@ -664,9 +833,11 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			}
 			flushCategory()
 			ensurePage()
-			currentCategory = &BookmarkCategory{Name: rest}
+			currentCategory = &BookmarkCategory{Name: rest, LeadingComments: pendingComments, InlineComment: comment}
+			pendingComments = nil
 		} else if currentCategory != nil {
-			entry := BookmarkEntry{Url: parts[0], Name: parts[0]}
+			entry := BookmarkEntry{Url: parts[0], Name: parts[0], LeadingComments: pendingComments, InlineComment: comment}
+			pendingComments = nil
 			if len(parts) > 1 {
 				entry.Name = strings.Join(parts[1:], " ")
 			}
@@ -678,9 +849,28 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 
 	if len(result) == 0 {
 		t := &BookmarkTab{ExplicitTab: false}
+		if len(pendingComments) > 0 {
+			t.LeadingComments = pendingComments
+			pendingComments = nil
+		}
+		if len(pendingComments) > 0 {
+			t.LeadingComments = pendingComments
+			pendingComments = nil
+		}
 		p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+		if len(pendingComments) > 0 {
+			p.LeadingComments = pendingComments
+			pendingComments = nil
+		}
+		if len(pendingComments) > 0 {
+			p.LeadingComments = pendingComments
+			pendingComments = nil
+		}
 		t.AddPage(p)
 		result.AddTab(t)
+	} else if len(pendingComments) > 0 {
+		lastTab := result[len(result)-1]
+		lastTab.TrailingComments = pendingComments
 	}
 
 	return result
@@ -709,9 +899,19 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 	var firstColClaimed bool
 	idx := 0
 
+	var pendingComments []string
+	var comment string
 	ensureTab := func() *BookmarkTab {
 		if currentTab == nil {
 			t := &BookmarkTab{ExplicitTab: false}
+			if len(pendingComments) > 0 {
+				t.LeadingComments = pendingComments
+				pendingComments = nil
+			}
+			if len(pendingComments) > 0 {
+				t.LeadingComments = pendingComments
+				pendingComments = nil
+			}
 			result.AddTab(t)
 			currentTab = t
 		}
@@ -722,6 +922,14 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		ensureTab()
 		if currentPage == nil {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			if len(pendingComments) > 0 {
+				p.LeadingComments = pendingComments
+				pendingComments = nil
+			}
+			if len(pendingComments) > 0 {
+				p.LeadingComments = pendingComments
+				pendingComments = nil
+			}
 			currentTab.AddPage(p)
 			currentPage = p
 			firstColClaimed = false
@@ -741,7 +949,18 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		}
 	}
 
-	for i, line := range lines {
+	for i, rawLine := range lines {
+		if len(strings.TrimSpace(rawLine)) == 0 {
+			continue
+		}
+		var isStandalone bool
+		var line string
+		isStandalone, line, comment = parseLineForComments(rawLine)
+		if isStandalone {
+			pendingComments = append(pendingComments, comment)
+			continue
+		}
+
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			continue // empty lines are ignored by format definition
@@ -755,8 +974,17 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 				rest = strings.TrimSpace(rest[1:])
 			}
 			flushCategory()
-			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true}
+			currentTab = &BookmarkTab{Name: rest, ExplicitTab: true, LeadingComments: pendingComments, InlineComment: comment}
+			pendingComments = nil
 			currentPage = &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+			if len(pendingComments) > 0 {
+				currentPage.LeadingComments = pendingComments
+				pendingComments = nil
+			}
+			if len(pendingComments) > 0 {
+				currentPage.LeadingComments = pendingComments
+				pendingComments = nil
+			}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
 			firstColClaimed = false
@@ -771,8 +999,23 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			ensureTab()
 			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 && currentPage.Name == "" && rest != "" {
 				currentPage.Name = rest
+				if len(pendingComments) > 0 {
+					currentPage.LeadingComments = append(currentPage.LeadingComments, pendingComments...)
+					pendingComments = nil
+				}
+				if comment != "" {
+					currentPage.InlineComment = comment
+				}
+				if len(pendingComments) > 0 {
+					currentPage.LeadingComments = append(currentPage.LeadingComments, pendingComments...)
+					pendingComments = nil
+				}
+				if comment != "" {
+					currentPage.InlineComment = comment
+				}
 			} else {
-				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+				currentPage = &BookmarkPage{Name: rest, Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}, LeadingComments: pendingComments, InlineComment: comment}
+				pendingComments = nil
 				currentTab.AddPage(currentPage)
 			}
 			firstColClaimed = false
@@ -781,7 +1024,8 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		if trimmed == "--" {
 			flushCategory()
 			page := ensurePage()
-			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true})
+			page.Blocks = append(page.Blocks, &BookmarkBlock{HR: true, LeadingComments: pendingComments, InlineComment: comment})
+			pendingComments = nil
 			page.Blocks = append(page.Blocks, &BookmarkBlock{Columns: []*BookmarkColumn{{}}})
 			firstColClaimed = false
 			continue
@@ -815,13 +1059,29 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 				if len(lastBlock.Columns) == 1 && len(lastBlock.Columns[0].Categories) == 0 && !firstColClaimed {
 					// Claim the implicit first column
 					lastBlock.Columns[0].Name = columnName
+					if len(pendingComments) > 0 {
+						lastBlock.Columns[0].LeadingComments = append(lastBlock.Columns[0].LeadingComments, pendingComments...)
+						pendingComments = nil
+					}
+					if comment != "" {
+						lastBlock.Columns[0].InlineComment = comment
+					}
+					if len(pendingComments) > 0 {
+						lastBlock.Columns[0].LeadingComments = append(lastBlock.Columns[0].LeadingComments, pendingComments...)
+						pendingComments = nil
+					}
+					if comment != "" {
+						lastBlock.Columns[0].InlineComment = comment
+					}
 					firstColClaimed = true
 				} else {
-					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName})
+					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName, LeadingComments: pendingComments, InlineComment: comment})
+					pendingComments = nil
 				}
 			} else {
 				// Bare "Column" retains existing separator semantics and does not claim the first column
-				lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{})
+				lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{LeadingComments: pendingComments, InlineComment: comment})
+				pendingComments = nil
 			}
 			continue
 		}
@@ -840,7 +1100,8 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 			}
 			flushCategory()
 			ensurePage()
-			currentCategory = &BookmarkCategory{Name: rest}
+			currentCategory = &BookmarkCategory{Name: rest, LeadingComments: pendingComments, InlineComment: comment}
+			pendingComments = nil
 			continue
 		}
 
@@ -872,7 +1133,8 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		// Since the permissive parser accepts any string inside a category as a valid URL,
 		// we must not invent a narrower URL grammar here that rejects single-token entries or unlisted schemes.
 		// Strict lint only catches strings outside of categories (handled above) or malformed directives.
-		entry := BookmarkEntry{Url: parts[0], Name: parts[0]}
+		entry := BookmarkEntry{Url: parts[0], Name: parts[0], LeadingComments: pendingComments, InlineComment: comment}
+		pendingComments = nil
 		if len(parts) > 1 {
 			entry.Name = strings.Join(parts[1:], " ")
 		}
@@ -881,8 +1143,21 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 
 	flushCategory()
 
+	if len(result) == 0 && len(pendingComments) > 0 {
+		t := &BookmarkTab{ExplicitTab: false, LeadingComments: pendingComments}
+		p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
+		t.AddPage(p)
+		result.AddTab(t)
+		return result, nil
+	}
+
 	if len(result) == 0 {
 		return nil, fmt.Errorf("no bookmarks found")
+	}
+
+	if len(pendingComments) > 0 {
+		lastTab := result[len(result)-1]
+		lastTab.TrailingComments = pendingComments
 	}
 
 	return result, nil
