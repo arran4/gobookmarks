@@ -21,10 +21,6 @@ func escapeForComment(val string) string {
 	return sb.String()
 }
 
-func unescapeComment(val string) string {
-	return strings.ReplaceAll(val, "\\##", "##")
-}
-
 func parseLineForComments(line string) (bool, string, string) {
 	trimmed := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmed, "##") {
