@@ -53,11 +53,19 @@ https://old.example Old
 	if bl1.String() != bl2.String() {
 		t.Fatalf("parsers are not equivalent:\nParse:\n%v\n\nStrictParse:\n%v", bl1.String(), bl2.String())
 	}
+<<<<<<< HEAD
 
 	// Verify JSON mapping
 	j1 := bl1.ToJSON()
 	j2 := bl2.ToJSON()
 
+=======
+
+	// Verify JSON mapping
+	j1 := bl1.ToJSON()
+	j2 := bl2.ToJSON()
+
+>>>>>>> origin/jules-14317903578846155655-94aa4845
 	bl3 := gobookmarks.BookmarkListFromJSON(j1)
 	if bl3.String() != bl1.String() {
 		t.Fatalf("JSON roundtrip failed:\nOriginal:\n%v\n\nRoundtrip:\n%v", bl1.String(), bl3.String())

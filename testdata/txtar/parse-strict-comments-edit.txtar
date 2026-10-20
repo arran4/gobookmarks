@@ -66,7 +66,11 @@ https://old.example Old
 	if bl.String() != input {
 		t.Errorf("Extract+Save unchanged failed:\nExpected:\n%v\nGot:\n%v", input, bl.String())
 	}
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> origin/jules-14317903578846155655-94aa4845
 	// Replace a category without altering adjacent comments
 	catText, err := gobookmarks.ExtractCategoryByIndex(input, 1) // Reference
 	if err != nil {
@@ -77,7 +81,11 @@ https://old.example Old
 	if err != nil {
 		t.Fatalf("ReplaceCategoryByIndex: %v", err)
 	}
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> origin/jules-14317903578846155655-94aa4845
 	if !strings.Contains(newInput, "Category: Replaced") {
 		t.Errorf("Replace failed: %v", newInput)
 	}
