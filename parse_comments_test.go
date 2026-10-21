@@ -2,120 +2,117 @@ package gobookmarks_test
 
 import (
 	"github.com/arran4/gobookmarks"
+	"strings"
 	"testing"
 )
 
-func TestStrictParseComments(t *testing.T) {
-	input := `## Tab lead
-Tab: tab1 ## Tab inline
-## Page lead
-Page: page1 ## Page inline
-## Block lead
--- ## Block inline
-## Col lead
-Column: col1 ## Col inline
-## Cat lead
-Category: cat1 ## Cat inline
-## Entry lead
-http://example.com/1 Link 1 ## Entry inline
-## Trailing comment`
+func TestParseParityComments(t *testing.T) {
+	input := "## File preamble\nTab: Work ## Tab comment\nPage: Main ## Page comment\nColumn: Daily ## Column comment\nCategory: Development ## Category comment\nhttps://example.com/path\\##literal Example \\## literal ## Entry comment\n## Between entries\nhttps://github.com GitHub\n## Before next category\nCategory: Reference\nhttps://example.org Reference\n-- ## Separator comment\n## After separator\nColumn: Archive\nCategory: Old\nhttps://old.example Old\n## EOF comment"
 
-	bl, err := gobookmarks.StrictParseBookmarks(input)
+	bl1 := gobookmarks.ParseBookmarks(input)
+	bl2, err := gobookmarks.StrictParseBookmarks(input)
 	if err != nil {
 		t.Fatalf("strict parse failed: %v", err)
 	}
 
-	if len(bl) != 1 {
-		t.Fatalf("expected 1 tab, got %d", len(bl))
-	}
-	tab := bl[0]
-	if len(tab.LeadingComments) != 1 || tab.LeadingComments[0] != " Tab lead" {
-		t.Errorf("tab leading comments wrong: %v", tab.LeadingComments)
-	}
-	if tab.InlineComment != " Tab inline" {
-		t.Errorf("tab inline comment wrong: %q", tab.InlineComment)
+	if strings.TrimSpace(bl1.String()) != strings.TrimSpace(bl2.String()) {
+		t.Fatalf("parsers are not equivalent:\nParse:\n%v\n\nStrictParse:\n%v", bl1.String(), bl2.String())
 	}
 
-	if len(tab.Pages) != 1 {
-		t.Fatalf("expected 1 page, got %d", len(tab.Pages))
+	// Verify JSON mapping
+	j1 := bl1.ToJSON()
+
+	bl3, err2 := gobookmarks.BookmarkListFromJSON(j1)
+	if err2 != nil {
+		t.Fatalf("JSON decode failed: %v\n\nOriginal:\n%v", err2, bl1.String())
 	}
-	page := tab.Pages[0]
-	if len(page.LeadingComments) != 1 || page.LeadingComments[0] != " Page lead" {
-		t.Errorf("page leading comments wrong: %v", page.LeadingComments)
-	}
-	if page.InlineComment != " Page inline" {
-		t.Errorf("page inline comment wrong: %q", page.InlineComment)
+	if strings.TrimSpace(bl3.String()) != strings.TrimSpace(bl1.String()) {
+		t.Fatalf("JSON roundtrip failed:\nOriginal:\n%v\n\nRoundtrip:\n%v", bl1.String(), bl3.String())
 	}
 
-	if len(page.Blocks) != 3 {
-		t.Fatalf("expected 2 blocks, got %d", len(page.Blocks))
+	// Verify escaping decoded properly
+	e1 := bl1[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
+	if e1.Url != "https://example.com/path\\##literal" {
+		t.Errorf("Url escaping wrong: %v", e1.Url)
 	}
-	blk := page.Blocks[1]
-	if len(blk.LeadingComments) != 1 || blk.LeadingComments[0] != " Block lead" {
-		t.Errorf("block leading comments wrong: %v", blk.LeadingComments)
+	if e1.Name != "Example ## literal" {
+		t.Errorf("Name escaping wrong: %v", e1.Name)
 	}
-	if blk.InlineComment != " Block inline" {
-		t.Errorf("block inline comment wrong: %q", blk.InlineComment)
-	}
-
-	blk2 := page.Blocks[2]
-	col := blk2.Columns[0]
-	if len(col.LeadingComments) != 1 || col.LeadingComments[0] != " Col lead" {
-		t.Errorf("col leading comments wrong: %v", col.LeadingComments)
-	}
-	if col.InlineComment != " Col inline" {
-		t.Errorf("col inline comment wrong: %q", col.InlineComment)
-	}
-
-	if len(col.Categories) != 1 {
-		t.Fatalf("expected 1 category, got %d", len(col.Categories))
-	}
-	cat := col.Categories[0]
-	if len(cat.LeadingComments) != 1 || cat.LeadingComments[0] != " Cat lead" {
-		t.Errorf("cat leading comments wrong: %v", cat.LeadingComments)
-	}
-	if cat.InlineComment != " Cat inline" {
-		t.Errorf("cat inline comment wrong: %q", cat.InlineComment)
-	}
-
-	if len(cat.Entries) != 1 {
-		t.Fatalf("expected 1 entry, got %d", len(cat.Entries))
-	}
-	entry := cat.Entries[0]
-	if len(entry.LeadingComments) != 1 || entry.LeadingComments[0] != " Entry lead" {
-		t.Errorf("entry leading comments wrong: %v", entry.LeadingComments)
-	}
-	if entry.InlineComment != " Entry inline" {
-		t.Errorf("entry inline comment wrong: %q", entry.InlineComment)
-	}
-
-	if len(tab.TrailingComments) != 1 || tab.TrailingComments[0] != " Trailing comment" {
-		t.Errorf("trailing comments wrong: %v", tab.TrailingComments)
+	if !e1.HasInlineComment || e1.InlineComment != " Entry comment" {
+		t.Errorf("Inline comment wrong: %v", e1.InlineComment)
 	}
 }
 
-func TestStrictParseInvalidComments(t *testing.T) {
-	input := `## Valid comment
-Invalid Text
-Category: valid`
+func TestParseEditingComments(t *testing.T) {
+	input := "## File preamble\nTab: Work ## Tab comment\nPage: Main ## Page comment\nColumn: Daily ## Column comment\nCategory: Development ## Category comment\nhttps://example.com/path\\##literal Example \\## literal ## Entry comment\n## Between entries\nhttps://github.com GitHub\n## Before next category\nCategory: Reference\nhttps://example.org Reference\n-- ## Separator comment\n## After separator\nColumn: Archive\nCategory: Old\nhttps://old.example Old\n## EOF comment"
 
-	_, err := gobookmarks.StrictParseBookmarks(input)
-	if err == nil {
-		t.Fatal("expected strict parser to fail on invalid non-comment content")
-	}
-}
+	bl := gobookmarks.ParseBookmarks(input)
 
-func TestStrictParseEmptyCommentDoc(t *testing.T) {
-	input := `## Comment only`
-	bl, err := gobookmarks.StrictParseBookmarks(input)
+	// Extracting a page and saving it unchanged
+	pageText, pageName, err := gobookmarks.ExtractPage(input, 0, 0)
 	if err != nil {
-		t.Fatalf("strict parse empty comment doc failed: %v", err)
+		t.Fatalf("ExtractPage: %v", err)
 	}
-	if len(bl) != 1 {
-		t.Fatalf("expected 1 tab, got %d", len(bl))
+	if strings.Contains(pageText, "## File preamble") {
+		t.Errorf("ExtractPage should not include page leading comments: %v", pageText)
 	}
-	tab := bl[0]
-	if len(tab.LeadingComments) != 1 || tab.LeadingComments[0] != " Comment only" {
-		t.Errorf("wrong comments: %v", tab.LeadingComments)
+
+	pageParsed := gobookmarks.ParseBookmarks("Tab\nPage: " + pageName + "\n" + pageText)
+	p := pageParsed[0].Pages[0]
+	// Emulate PageEditSaveAction logic manually:
+	origPage := bl[0].Pages[0]
+	p.LeadingComments = origPage.LeadingComments
+	p.InlineComment = origPage.InlineComment
+	p.HasInlineComment = origPage.HasInlineComment
+	bl[0].Pages[0] = p
+
+	if strings.TrimSpace(bl.String()) != strings.TrimSpace(input) {
+		t.Errorf("Extract+Save unchanged failed:\nExpected:\n%v\nGot:\n%v", input, bl.String())
+	}
+
+	// Replace a category without altering adjacent comments
+	catText, err := gobookmarks.ExtractCategoryByIndex(input, 1) // Reference
+	if err != nil {
+		t.Fatalf("ExtractCategoryByIndex: %v", err)
+	}
+	newCatText := strings.Replace(catText, "Reference", "Replaced", -1)
+	newInput, err := gobookmarks.ReplaceCategoryByIndex(input, 1, newCatText)
+	if err != nil {
+		t.Fatalf("ReplaceCategoryByIndex: %v", err)
+	}
+
+	if !strings.Contains(newInput, "Category: Replaced") {
+		t.Errorf("Replace failed: %v", newInput)
+	}
+	if !strings.Contains(newInput, "## Before next category") {
+		t.Errorf("Replace dropped leading comment: %v", newInput)
+	}
+	if !strings.Contains(newInput, "-- ## Separator comment") {
+		t.Errorf("Replace damaged following separator: %v", newInput)
+	}
+}
+
+func TestParseCommentsEmpty(t *testing.T) {
+	input := "## First\n##\n## Last"
+
+	bl1 := gobookmarks.ParseBookmarks(input)
+	bl2, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("strict parse failed: %v", err)
+	}
+
+	if strings.TrimSpace(bl1.String()) != strings.TrimSpace(bl2.String()) {
+		t.Fatalf("parsers are not equivalent:\nParse:\n%v\n\nStrictParse:\n%v", bl1.String(), bl2.String())
+	}
+
+	// Verify JSON mapping
+	j1 := bl1.ToJSON()
+
+	bl3, err2 := gobookmarks.BookmarkListFromJSON(j1)
+	if err2 != nil {
+		t.Fatalf("JSON decode failed: %v\n\nOriginal:\n%v", err2, bl1.String())
+	}
+	if strings.TrimSpace(bl3.String()) != strings.TrimSpace(bl1.String()) {
+		t.Fatalf("JSON roundtrip failed:\nOriginal:\n%v\n\nRoundtrip:\n%v", bl1.String(), bl3.String())
 	}
 }

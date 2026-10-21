@@ -97,6 +97,10 @@ func PageEditSaveAction(w http.ResponseWriter, r *http.Request) error {
 	parsed := ParseBookmarks("Tab\nPage: " + name + "\n" + text)
 	p := parsed[0].Pages[0]
 	if pageErr == nil && pageIdx >= 0 && pageIdx < len(list[tabIdx].Pages) {
+		origPage := list[tabIdx].Pages[pageIdx]
+		p.LeadingComments = origPage.LeadingComments
+		p.InlineComment = origPage.InlineComment
+		p.HasInlineComment = origPage.HasInlineComment
 		list[tabIdx].Pages[pageIdx] = p
 	} else {
 		newIndex := len(list[tabIdx].Pages)
