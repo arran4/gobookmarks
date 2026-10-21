@@ -75,7 +75,7 @@ func TestParseEditingComments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExtractCategoryByIndex: %v", err)
 	}
-	newCatText := strings.Replace(catText, "Reference", "Replaced", -1)
+	newCatText := strings.ReplaceAll(catText, "Reference", "Replaced")
 	newInput, err := gobookmarks.ReplaceCategoryByIndex(input, 1, newCatText)
 	if err != nil {
 		t.Fatalf("ReplaceCategoryByIndex: %v", err)

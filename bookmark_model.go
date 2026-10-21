@@ -634,10 +634,6 @@ func (t *BookmarkTab) stringWithContext(first bool) string {
 			sb.WriteString(" ##" + escapeForComment(t.InlineComment))
 		}
 		sb.WriteString("\n")
-	} else if t.HasInlineComment {
-		// Output only the inline comment if the tab itself is implicit?
-		// Wait, if it's implicit, it can't have an inline comment, because there's no tab directive to have the comment on!
-		// It would just be a standalone comment parsed into LeadingComments.
 	}
 	for i, p := range t.Pages {
 		for _, comment := range p.LeadingComments {

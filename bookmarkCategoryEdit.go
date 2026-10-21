@@ -54,8 +54,6 @@ func getCategoryBounds(bookmarks string, index int) (start int, end int, err err
 				if strings.HasPrefix(lowerFirst, "category") {
 					isDirective = true
 					isCategory = true
-				} else {
-					// In permissive mode, any other word is treated as a URL (part of the current category)
 				}
 			}
 		}
