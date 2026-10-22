@@ -122,6 +122,28 @@ Every command must be on its own line; empty lines are ignored.
 
 Tabs contain one or more pages. The first tab is implicit and does not need a `Tab` directive unless you want to name it. Each `Page` line begins a new page within the current tab.
 
+### Comments
+
+Use `##` for comments in `bookmarks.txt`:
+
+- **Standalone:** A line whose first non-whitespace characters are `##` is a comment. `##` by itself is an empty comment.
+- **Inline:** On an entry or directive (including `Tab`, `Page`, `Column`, `Category`, and `--`), the first `##` preceded by a space or tab starts a comment. `##` at the end of the line is valid and records an explicitly empty inline comment.
+- **Embedded URL markers:** A `##` without a preceding whitespace boundary, such as `https://example.com/##fragment` or `https://example.com/?tag=##test`, remains literal bookmark data.
+- **Literal markers in names or other non-comment text:** To retain `##` after whitespace rather than start an inline comment, prefix the marker with `\`. If literal backslashes precede that marker, add one more backslash before `##`; parsing removes the added escape backslash.
+- **Within comment text:** Everything after a recognised `##` marker is literal text. Neither `##` nor `\##` needs escaping within the comment, and existing backslashes remain intact.
+- **Placement:** Standalone comments normally attach to the next entry or directive; comments at the end of the file remain trailing comments. Line-based category edits preserve the surrounding source spans.
+- **Whitespace:** Blank lines are ignored by the native parser. Saving through the model canonicalises some whitespace; a full-document or page save may therefore change formatting independently of comment preservation.
+
+```text
+## Links to revisit
+Tab: Work ## Projects
+Page: References ##
+Category: Examples
+https://example.com/##fragment Documentation ## literal ## inside comment
+https://example.org Literal \## in a display name
+## Comment with a literal \## backslash sequence
+```
+
 Example with two named columns:
 
 ```text
