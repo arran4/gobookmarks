@@ -382,10 +382,18 @@ func TestBackslashEscaping(t *testing.T) {
 			}
 
 			// JSON round trip
-			jsonBytes, _ := json.Marshal(list.ToJSON())
+			jsonBytes, err := json.Marshal(list.ToJSON())
+			if err != nil {
+				t.Fatalf("Marshal failed: %v", err)
+			}
 			var jsonList []*gobookmarks.JSONTab
-			_ = json.Unmarshal(jsonBytes, &jsonList)
-			nativeList, _ := gobookmarks.BookmarkListFromJSON(jsonList)
+			if err := json.Unmarshal(jsonBytes, &jsonList); err != nil {
+				t.Fatalf("Unmarshal failed: %v", err)
+			}
+			nativeList, err := gobookmarks.BookmarkListFromJSON(jsonList)
+			if err != nil {
+				t.Fatalf("BookmarkListFromJSON failed: %v", err)
+			}
 
 			entry3 := nativeList[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
 			val3 := entry3.Name
@@ -399,7 +407,7 @@ func TestBackslashEscaping(t *testing.T) {
 	}
 }
 
-func TestPageEmptyInlineComments(t *testing.T) {
+func TestPageNonEmptyInlineComments(t *testing.T) {
 	input := `tab: Tab1
 page: Page 1 ## page comment
 `
