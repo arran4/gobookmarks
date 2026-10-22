@@ -122,6 +122,28 @@ Every command must be on its own line; empty lines are ignored.
 
 Tabs contain one or more pages. The first tab is implicit and does not need a `Tab` directive unless you want to name it. Each `Page` line begins a new page within the current tab.
 
+### Comments
+
+Use `##` for comments in `bookmarks.txt`:
+
+- **Standalone:** A line whose first non-whitespace characters are `##` is a comment. `##` by itself is an empty comment.
+- **Inline:** On an entry or directive (including `Tab`, `Page`, `Column`, `Category`, and `--`), the first `##` preceded by a space or tab starts a comment. `##` at the end of the line is valid and records an explicitly empty inline comment.
+- **Embedded URL markers:** A `##` without a preceding whitespace boundary, such as `https://example.com/##fragment` or `https://example.com/?tag=##test`, remains literal bookmark data.
+- **Literal markers in names or other non-comment text:** To retain `##` after whitespace rather than start an inline comment, prefix the marker with `\`. If literal backslashes precede that marker, add one more backslash before `##`; parsing removes the added escape backslash.
+- **Within comment text:** Everything after a recognised `##` marker is literal text. Neither `##` nor `\##` needs escaping within the comment, and existing backslashes remain intact.
+- **Placement:** Standalone comments normally attach to the next entry or directive; comments at the end of the file remain trailing comments. Line-based category edits preserve the surrounding source spans.
+- **Whitespace:** Blank lines are ignored by the native parser. Saving through the model canonicalises some whitespace; a full-document or page save may therefore change formatting independently of comment preservation.
+
+```text
+## Links to revisit
+Tab: Work ## Projects
+Page: References ##
+Category: Examples
+https://example.com/##fragment Documentation ## literal ## inside comment
+https://example.org Literal \## in a display name
+## Comment with a literal \## backslash sequence
+```
+
 Example with two named columns:
 
 ```text
@@ -398,43 +420,3 @@ An example `config.json` looks like:
 ## Legacy migration
 
 The `sql/legacy_migrate.sql` file contains SQL statements that convert the original `goa4web-bookmarks` tables into the schema used here. Execute the script manually on your database before enabling the SQL provider.
-
-### Bookmark file format
-
-The bookmark file format is a line-based plain text format.
-
-- Blank lines are ignored.
-- Lines starting with `##` are considered **standalone comments**.
-- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
-- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
-- A literal whitespace-boundary `##` within a non-comment field (like a bookmark name) must be escaped as `\##`. Any existing preceding backslashes are also preserved when escaped (e.g. `\\##` produces a semantic `\##`).
-- Once a comment has started, everything until the end of the line is comment text. Therefore, `##` or `\##` inside an existing comment is treated as literal data and requires no escaping.
-- Trailing whitespace immediately before an inline comment marker (` ## `) or at the end of a line is not preserved, to maintain canonical formatting.
-- Leading standalone comments belong to the next structural element (e.g., a tab, category, or entry).
-- Lines starting with `##` are considered **standalone comments**.
-- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
-- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
-- A literal whitespace-boundary `##` within a non-comment field (like a bookmark name) must be escaped as `\##`. Any existing preceding backslashes are also preserved when escaped (e.g. `\\##` produces a semantic `\##`).
-- Once a comment has started, everything until the end of the line is comment text. Therefore, `##` or `\##` inside an existing comment is treated as literal data and requires no escaping.
-- Trailing whitespace immediately before an inline comment marker (` ## `) or at the end of a line is not preserved, to maintain canonical formatting.
-- Leading standalone comments belong to the next structural element (e.g., a tab, category, or entry).
-- Lines starting with `##` are considered **standalone comments**.
-- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
-- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
-- A literal whitespace-boundary `##` within a non-comment field (like a bookmark name) must be escaped as `\##`. Any existing preceding backslashes are also preserved when escaped (e.g. `\\##` produces a semantic `\##`).
-- Once a comment has started, everything until the end of the line is comment text. Therefore, `##` or `\##` inside an existing comment is treated as literal data and requires no escaping.
-- Trailing whitespace immediately before an inline comment marker (` ## `) or at the end of a line is not preserved, to maintain canonical formatting.
-- Leading standalone comments belong to the next structural element (e.g., a tab, category, or entry).
-- Lines starting with `##` are considered **standalone comments**.
-- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
-- A literal `##` can be written within an inline or standalone comment by typing `\##`.
-- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
-
-Example:
-```text
-## This is a standalone comment
-tab: Work ## this is an inline comment
-Category: Links
-
-https://example.com/##literal Literal hash inside URL ## inline comment with \## inside
-```
