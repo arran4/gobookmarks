@@ -384,7 +384,7 @@ func TestBackslashEscaping(t *testing.T) {
 			// JSON round trip
 			jsonBytes, _ := json.Marshal(list.ToJSON())
 			var jsonList []*gobookmarks.JSONTab
-			json.Unmarshal(jsonBytes, &jsonList)
+			_ = json.Unmarshal(jsonBytes, &jsonList)
 			nativeList, _ := gobookmarks.BookmarkListFromJSON(jsonList)
 
 			entry3 := nativeList[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
