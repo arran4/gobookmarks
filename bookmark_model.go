@@ -86,8 +86,8 @@ func (e *BookmarkEntry) String() string {
 	if e.Name != "" && e.Name != e.Url {
 		sb.WriteString(" " + escapeForComment(e.Name))
 	}
-	if e.InlineComment != "" {
-		sb.WriteString(" ##" + escapeForComment(e.InlineComment))
+	if e.HasInlineComment {
+		sb.WriteString(" ##" + e.InlineComment)
 	}
 	sb.WriteString("\n")
 	return sb.String()
@@ -107,12 +107,12 @@ type BookmarkCategory struct {
 func (c *BookmarkCategory) String() string {
 	var sb strings.Builder
 	for _, comment := range c.LeadingComments {
-		sb.WriteString("##" + escapeForComment(comment) + "\n")
+		sb.WriteString("##" + comment + "\n")
 	}
 	sb.WriteString("Category: ")
 	sb.WriteString(escapeForComment(c.Name))
 	if c.HasInlineComment {
-		sb.WriteString(" ##" + escapeForComment(c.InlineComment))
+		sb.WriteString(" ##" + c.InlineComment)
 	}
 	sb.WriteString("\n")
 	for _, e := range c.Entries {
@@ -189,19 +189,19 @@ type BookmarkBlock struct {
 func (b *BookmarkBlock) String() string {
 	var sb strings.Builder
 	for _, comment := range b.LeadingComments {
-		sb.WriteString("##" + escapeForComment(comment) + "\n")
+		sb.WriteString("##" + comment + "\n")
 	}
 	if b.HR {
 		sb.WriteString("--")
 		if b.HasInlineComment {
-			sb.WriteString(" ##" + escapeForComment(b.InlineComment))
+			sb.WriteString(" ##" + b.InlineComment)
 		}
 		sb.WriteString("\n")
 		return sb.String()
 	}
 	for i, col := range b.Columns {
 		for _, comment := range col.LeadingComments {
-			sb.WriteString("##" + escapeForComment(comment) + "\n")
+			sb.WriteString("##" + comment + "\n")
 		}
 		if i > 0 || strings.TrimSpace(col.Name) != "" || len(col.LeadingComments) > 0 || col.HasInlineComment {
 			if strings.TrimSpace(col.Name) != "" {
@@ -211,7 +211,7 @@ func (b *BookmarkBlock) String() string {
 				sb.WriteString("Column")
 			}
 			if col.HasInlineComment {
-				sb.WriteString(" ##" + escapeForComment(col.InlineComment))
+				sb.WriteString(" ##" + col.InlineComment)
 			}
 			sb.WriteString("\n")
 		}
@@ -222,7 +222,7 @@ func (b *BookmarkBlock) String() string {
 
 // Interchange formats for conversion
 type JSONEntry struct {
-	Url              string   `json:"url,omitempty"`
+	URL              string   `json:"url,omitempty"`
 	Name             string   `json:"name,omitempty"`
 	LeadingComments  []string `json:"leading_comments,omitempty"`
 	InlineComment    string   `json:"inline_comment,omitempty"`
@@ -313,7 +313,7 @@ func (b BookmarkList) ToJSON() []*JSONTab {
 						}
 						for _, ent := range cat.Entries {
 							jCat.Entries = append(jCat.Entries, &JSONEntry{
-								Url:              ent.Url,
+								URL:              ent.Url,
 								Name:             ent.Name,
 								LeadingComments:  ent.LeadingComments,
 								InlineComment:    ent.InlineComment,
@@ -474,11 +474,11 @@ func BookmarkListFromJSON(tabs []*JSONTab) (BookmarkList, error) {
 							if ent == nil {
 								return nil, fmt.Errorf("invalid json: null entry object in category %q", cat.Name)
 							}
-							if ent.Url == "" || strings.TrimSpace(ent.Url) == "" {
+							if ent.URL == "" || strings.TrimSpace(ent.URL) == "" {
 								return nil, fmt.Errorf("invalid json: entry url cannot be explicitly empty or only whitespace (lossy shape)")
 							}
 							bcat.Entries = append(bcat.Entries, &BookmarkEntry{
-								Url:              ent.Url,
+								Url:              ent.URL,
 								Name:             ent.Name,
 								LeadingComments:  ent.LeadingComments,
 								InlineComment:    ent.InlineComment,
@@ -621,7 +621,7 @@ type BookmarkTab struct {
 func (t *BookmarkTab) stringWithContext(first bool) string {
 	var sb strings.Builder
 	for _, comment := range t.LeadingComments {
-		sb.WriteString("##" + escapeForComment(comment) + "\n")
+		sb.WriteString("##" + comment + "\n")
 	}
 	if !first || t.Name != "" || t.ExplicitTab {
 		if t.Name != "" {
@@ -631,13 +631,13 @@ func (t *BookmarkTab) stringWithContext(first bool) string {
 			sb.WriteString("Tab")
 		}
 		if t.HasInlineComment {
-			sb.WriteString(" ##" + escapeForComment(t.InlineComment))
+			sb.WriteString(" ##" + t.InlineComment)
 		}
 		sb.WriteString("\n")
 	}
 	for i, p := range t.Pages {
 		for _, comment := range p.LeadingComments {
-			sb.WriteString("##" + escapeForComment(comment) + "\n")
+			sb.WriteString("##" + comment + "\n")
 		}
 		if i == 0 {
 			if p.Name != "" || (len(t.Pages) > 1 && p.Name != "") {
@@ -648,7 +648,7 @@ func (t *BookmarkTab) stringWithContext(first bool) string {
 					sb.WriteString("Page")
 				}
 				if p.HasInlineComment {
-					sb.WriteString(" ##" + escapeForComment(p.InlineComment))
+					sb.WriteString(" ##" + p.InlineComment)
 				}
 				sb.WriteString("\n")
 			}
@@ -660,14 +660,14 @@ func (t *BookmarkTab) stringWithContext(first bool) string {
 				sb.WriteString("Page")
 			}
 			if p.HasInlineComment {
-				sb.WriteString(" ##" + escapeForComment(p.InlineComment))
+				sb.WriteString(" ##" + p.InlineComment)
 			}
 			sb.WriteString("\n")
 		}
 		sb.WriteString(p.String())
 	}
 	for _, comment := range t.TrailingComments {
-		sb.WriteString("##" + escapeForComment(comment) + "\n")
+		sb.WriteString("##" + comment + "\n")
 	}
 	return sb.String()
 }
@@ -1454,6 +1454,3 @@ func FindPageBySha(tabs BookmarkList, sha string) *BookmarkPage {
 	}
 	return nil
 }
-
-// force push trigger
-// force push trigger
