@@ -24,7 +24,9 @@ func escapeForComment(val string) string {
 func parseLineForComments(line string) (bool, string, string, bool) {
 	trimmed := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmed, "##") {
-		return true, "", strings.TrimPrefix(trimmed, "##"), true
+		comment := strings.TrimPrefix(trimmed, "##")
+		// unescape the standalone comment text if it contains \##
+		return true, "", strings.ReplaceAll(comment, "\\##", "##"), true
 	}
 
 	var unescaped strings.Builder
@@ -80,7 +82,7 @@ func (e *BookmarkEntry) String() string {
 	}
 	var sb strings.Builder
 	for _, c := range e.LeadingComments {
-		sb.WriteString("##" + escapeForComment(c) + "\n")
+		sb.WriteString("##" + c + "\n")
 	}
 	sb.WriteString(escapeForComment(e.Url))
 	if e.Name != "" && e.Name != e.Url {
@@ -222,15 +224,15 @@ func (b *BookmarkBlock) String() string {
 
 // Interchange formats for conversion
 type JSONEntry struct {
-	URL              string   `json:"url,omitempty"`
-	Name             string   `json:"name,omitempty"`
+	URL              string   `json:"url"`
+	Name             string   `json:"name"`
 	LeadingComments  []string `json:"leading_comments,omitempty"`
 	InlineComment    string   `json:"inline_comment,omitempty"`
 	HasInlineComment bool     `json:"has_inline_comment,omitempty"`
 }
 
 type JSONCategory struct {
-	Name             string       `json:"name,omitempty"`
+	Name             string       `json:"name"`
 	LeadingComments  []string     `json:"leading_comments,omitempty"`
 	InlineComment    string       `json:"inline_comment,omitempty"`
 	HasInlineComment bool         `json:"has_inline_comment,omitempty"`
@@ -246,7 +248,7 @@ type JSONColumn struct {
 }
 
 type JSONBlock struct {
-	HR               bool          `json:"hr,omitempty"`
+	HR               bool          `json:"hr"`
 	LeadingComments  []string      `json:"leading_comments,omitempty"`
 	InlineComment    string        `json:"inline_comment,omitempty"`
 	HasInlineComment bool          `json:"has_inline_comment,omitempty"`
@@ -749,10 +751,6 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				t.LeadingComments = pendingComments
 				pendingComments = nil
 			}
-			if len(pendingComments) > 0 {
-				t.LeadingComments = pendingComments
-				pendingComments = nil
-			}
 			result.AddTab(t)
 			currentTab = t
 		}
@@ -763,14 +761,6 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 		ensureTab()
 		if currentPage == nil {
 			p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
-			if len(pendingComments) > 0 {
-				p.LeadingComments = pendingComments
-				pendingComments = nil
-			}
-			if len(pendingComments) > 0 {
-				p.LeadingComments = pendingComments
-				pendingComments = nil
-			}
 			currentTab.AddPage(p)
 			currentPage = p
 			firstColClaimed = false
@@ -822,10 +812,6 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 				currentPage.LeadingComments = pendingComments
 				pendingComments = nil
 			}
-			if len(pendingComments) > 0 {
-				currentPage.LeadingComments = pendingComments
-				pendingComments = nil
-			}
 			currentTab.AddPage(currentPage)
 			result.AddTab(currentTab)
 			firstColClaimed = false
@@ -840,14 +826,6 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			ensureTab()
 			if currentPage != nil && currentPage.IsEmpty() && len(currentTab.Pages) == 1 && currentPage.Name == "" && rest != "" {
 				currentPage.Name = rest
-				if len(pendingComments) > 0 {
-					currentPage.LeadingComments = append(currentPage.LeadingComments, pendingComments...)
-					pendingComments = nil
-				}
-				if hasComment {
-					currentPage.InlineComment = comment
-					currentPage.HasInlineComment = true
-				}
 				if len(pendingComments) > 0 {
 					currentPage.LeadingComments = append(currentPage.LeadingComments, pendingComments...)
 					pendingComments = nil
@@ -907,14 +885,6 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 						lastBlock.Columns[0].InlineComment = comment
 						lastBlock.Columns[0].HasInlineComment = true
 					}
-					if len(pendingComments) > 0 {
-						lastBlock.Columns[0].LeadingComments = append(lastBlock.Columns[0].LeadingComments, pendingComments...)
-						pendingComments = nil
-					}
-					if hasComment {
-						lastBlock.Columns[0].InlineComment = comment
-						lastBlock.Columns[0].HasInlineComment = true
-					}
 					firstColClaimed = true
 				} else {
 					lastBlock.Columns = append(lastBlock.Columns, &BookmarkColumn{Name: columnName, LeadingComments: pendingComments, InlineComment: comment, HasInlineComment: hasComment})
@@ -962,19 +932,7 @@ func ParseBookmarks(bookmarks string) BookmarkList {
 			t.LeadingComments = pendingComments
 			pendingComments = nil
 		}
-		if len(pendingComments) > 0 {
-			t.LeadingComments = pendingComments
-			pendingComments = nil
-		}
 		p := &BookmarkPage{Blocks: []*BookmarkBlock{{Columns: []*BookmarkColumn{{}}}}}
-		if len(pendingComments) > 0 {
-			p.LeadingComments = pendingComments
-			pendingComments = nil
-		}
-		if len(pendingComments) > 0 {
-			p.LeadingComments = pendingComments
-			pendingComments = nil
-		}
 		t.AddPage(p)
 		result.AddTab(t)
 	} else if len(pendingComments) > 0 {
@@ -1068,7 +1026,6 @@ func StrictParseBookmarks(bookmarks string) (BookmarkList, error) {
 		var isStandalone bool
 		var line string
 		var hasComment bool
-		_ = hasComment
 		isStandalone, line, comment, hasComment = parseLineForComments(rawLine)
 		if isStandalone {
 			pendingComments = append(pendingComments, comment)

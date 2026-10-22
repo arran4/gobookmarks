@@ -1,6 +1,7 @@
 package gobookmarks_test
 
 import (
+	"encoding/json"
 	"github.com/arran4/gobookmarks"
 	"strings"
 	"testing"
@@ -114,5 +115,117 @@ func TestParseCommentsEmpty(t *testing.T) {
 	}
 	if strings.TrimSpace(bl3.String()) != strings.TrimSpace(bl1.String()) {
 		t.Fatalf("JSON roundtrip failed:\nOriginal:\n%v\n\nRoundtrip:\n%v", bl1.String(), bl3.String())
+	}
+}
+
+func TestStringEscaping(t *testing.T) {
+	// P0: native -> String -> native equality for specific case
+	entry := &gobookmarks.BookmarkEntry{
+		Url:             "https://example.com",
+		Name:            "Example",
+		LeadingComments: []string{"first ## second"},
+	}
+
+	serialized := entry.String()
+	expectedString := "##first ## second\nhttps://example.com Example\n"
+	if serialized != expectedString {
+		t.Fatalf("Expected %q, got %q", expectedString, serialized)
+	}
+
+	fullString := "tab:\nCategory\n" + serialized
+	parsed, err := gobookmarks.StrictParseBookmarks(fullString)
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	if len(parsed) != 1 || len(parsed[0].Pages) != 1 || len(parsed[0].Pages[0].Blocks) != 1 || len(parsed[0].Pages[0].Blocks[0].Columns) != 1 || len(parsed[0].Pages[0].Blocks[0].Columns[0].Categories) != 1 || len(parsed[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries) != 1 {
+		t.Fatalf("Unexpected parsed structure")
+	}
+
+	parsedEntry := parsed[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
+	if len(parsedEntry.LeadingComments) != 1 || parsedEntry.LeadingComments[0] != "first ## second" {
+		t.Fatalf("Expected leading comment 'first ## second', got %v", parsedEntry.LeadingComments)
+	}
+}
+
+func TestJSONCompatibility(t *testing.T) {
+	// P1: JSON wire compatibility - old fields should be present without omitempty
+	entry := &gobookmarks.JSONEntry{
+		URL:  "http://example.com",
+		Name: "Example",
+	}
+
+	b, err := json.Marshal(entry)
+	if err != nil {
+		t.Fatalf("Failed to marshal: %v", err)
+	}
+
+	s := string(b)
+	if !strings.Contains(s, "\"url\":\"http://example.com\"") {
+		t.Fatalf("Missing required field 'url' in JSON: %s", s)
+	}
+	if !strings.Contains(s, "\"name\":\"Example\"") {
+		t.Fatalf("Missing required field 'name' in JSON: %s", s)
+	}
+}
+
+func TestLiteralHashHash(t *testing.T) {
+	input := `tab:
+Category
+## comment with \## inside
+https://example.com/##hash ## inline comment with \## inside
+`
+	parsed, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	entry := parsed[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
+	if entry.Url != "https://example.com/##hash" {
+		t.Fatalf("URL was corrupted: %q", entry.Url)
+	}
+	if entry.LeadingComments[0] != ` comment with ## inside` {
+		t.Fatalf("Leading comment was corrupted: %q", entry.LeadingComments[0])
+	}
+	if entry.InlineComment != ` inline comment with \## inside` {
+		t.Fatalf("Inline comment was corrupted: %q", entry.InlineComment)
+	}
+}
+
+func TestNativeJSONRoundtrip(t *testing.T) {
+	input := `## leading tab
+Tab: Tab1 ## inline tab
+## leading hr
+-- ## inline hr
+## leading col
+Column: Column 1 ## inline col
+## leading cat
+Category: Category 1 ## inline cat
+## leading entry
+https://example.com Example 1 ## inline entry
+`
+	parsed, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	jsonBytes, err := json.Marshal(parsed.ToJSON())
+	if err != nil {
+		t.Fatalf("Failed to marshal JSON: %v", err)
+	}
+
+	var jsonList []*gobookmarks.JSONTab
+	if err := json.Unmarshal(jsonBytes, &jsonList); err != nil {
+		t.Fatalf("Failed to unmarshal JSON: %v", err)
+	}
+
+	nativeList, err := gobookmarks.BookmarkListFromJSON(jsonList)
+	if err != nil {
+		t.Fatalf("Failed to convert JSON to Native: %v", err)
+	}
+
+	outString := nativeList.String()
+	if strings.TrimSpace(outString) != strings.TrimSpace(input) {
+		t.Fatalf("JSON roundtrip lost formatting. Expected:\n%s\nGot:\n%s", input, outString)
 	}
 }
