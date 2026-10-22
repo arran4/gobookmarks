@@ -178,9 +178,6 @@ func TestJSONCompatibility(t *testing.T) {
 		t.Fatalf("Missing zero-value required field 'hr' in JSONBlock: %s", s)
 	}
 
-	// JSONPage, JSONTab, JSONColumn all had omitempty for name.
-    // Wait, the PR requested to test legacy fields.
-    // JSONEntry had URL, Name. JSONCategory had Name. JSONBlock had HR.
 }
 
 func TestLiteralHashHash(t *testing.T) {
@@ -324,7 +321,6 @@ https://example.com/2
 
 `
 
-
 	catStr, _ := gobookmarks.ExtractCategoryByIndex(input, 0)
 
 	// Ensure that string replacement logic correctly preserves everything
@@ -335,5 +331,100 @@ https://example.com/2
 
 	if replaced != input {
 		t.Fatalf("Category replacement modified original formatting.\nExpected:\n%q\nGot:\n%q", input, replaced)
+	}
+}
+
+func TestBackslashEscaping(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    string
+		expected string // the semantic value we want after parsing
+	}{
+		{"0 slashes", "tab: tab\nCategory\nhttps://example.com \\##", `##`},
+		{"1 slash", "tab: tab\nCategory\nhttps://example.com \\\\##", `\##`},
+		{"2 slashes", "tab: tab\nCategory\nhttps://example.com \\\\\\##", `\\##`},
+		{"3 slashes", "tab: tab\nCategory\nhttps://example.com \\\\\\\\##", `\\\##`},
+		{"embedded url", "tab: tab\nCategory\nhttps://example.com/##hash ## comment", `https://example.com/##hash`},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			list, err := gobookmarks.StrictParseBookmarks(tc.input)
+			if err != nil {
+				t.Fatalf("Parse failed: %v", err)
+			}
+			entry := list[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
+
+			val := entry.Name
+			if tc.name == "embedded url" {
+				val = entry.Url
+			}
+
+			if val != tc.expected {
+				t.Fatalf("Expected semantic value %q, got %q", tc.expected, val)
+			}
+
+			// Test round trip
+			roundtripStr := list.String()
+			list2, err := gobookmarks.StrictParseBookmarks(roundtripStr)
+			if err != nil {
+				t.Fatalf("Roundtrip parse failed: %v", err)
+			}
+
+			entry2 := list2[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
+			val2 := entry2.Name
+			if tc.name == "embedded url" {
+				val2 = entry2.Url
+			}
+
+			if val2 != tc.expected {
+				t.Fatalf("Roundtrip failed. Expected semantic value %q, got %q", tc.expected, val2)
+			}
+
+			// JSON round trip
+			jsonBytes, _ := json.Marshal(list.ToJSON())
+			var jsonList []*gobookmarks.JSONTab
+			json.Unmarshal(jsonBytes, &jsonList)
+			nativeList, _ := gobookmarks.BookmarkListFromJSON(jsonList)
+
+			entry3 := nativeList[0].Pages[0].Blocks[0].Columns[0].Categories[0].Entries[0]
+			val3 := entry3.Name
+			if tc.name == "embedded url" {
+				val3 = entry3.Url
+			}
+			if val3 != tc.expected {
+				t.Fatalf("JSON roundtrip failed. Expected semantic value %q, got %q", tc.expected, val3)
+			}
+		})
+	}
+}
+
+func TestPageEmptyInlineComments(t *testing.T) {
+	input := `tab: Tab1
+page: Page 1 ## page comment
+`
+	list, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	page := list[0].Pages[0]
+	if !page.HasInlineComment || strings.TrimSpace(page.InlineComment) != "page comment" {
+		t.Fatalf("Page empty inline comment failed")
+	}
+}
+
+func TestPageEmptyInlineCommentsMatrix(t *testing.T) {
+	input := `tab: Tab1
+page: Page 1 ##
+`
+	list, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	page := list[0].Pages[0]
+	if !page.HasInlineComment || strings.TrimSpace(page.InlineComment) != "" {
+		t.Fatalf("Page empty inline comment failed")
 	}
 }

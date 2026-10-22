@@ -406,6 +406,27 @@ The bookmark file format is a line-based plain text format.
 - Blank lines are ignored.
 - Lines starting with `##` are considered **standalone comments**.
 - Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
+- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
+- A literal whitespace-boundary `##` within a non-comment field (like a bookmark name) must be escaped as `\##`. Any existing preceding backslashes are also preserved when escaped (e.g. `\\##` produces a semantic `\##`).
+- Once a comment has started, everything until the end of the line is comment text. Therefore, `##` or `\##` inside an existing comment is treated as literal data and requires no escaping.
+- Trailing whitespace immediately before an inline comment marker (` ## `) or at the end of a line is not preserved, to maintain canonical formatting.
+- Leading standalone comments belong to the next structural element (e.g., a tab, category, or entry).
+- Lines starting with `##` are considered **standalone comments**.
+- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
+- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
+- A literal whitespace-boundary `##` within a non-comment field (like a bookmark name) must be escaped as `\##`. Any existing preceding backslashes are also preserved when escaped (e.g. `\\##` produces a semantic `\##`).
+- Once a comment has started, everything until the end of the line is comment text. Therefore, `##` or `\##` inside an existing comment is treated as literal data and requires no escaping.
+- Trailing whitespace immediately before an inline comment marker (` ## `) or at the end of a line is not preserved, to maintain canonical formatting.
+- Leading standalone comments belong to the next structural element (e.g., a tab, category, or entry).
+- Lines starting with `##` are considered **standalone comments**.
+- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
+- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
+- A literal whitespace-boundary `##` within a non-comment field (like a bookmark name) must be escaped as `\##`. Any existing preceding backslashes are also preserved when escaped (e.g. `\\##` produces a semantic `\##`).
+- Once a comment has started, everything until the end of the line is comment text. Therefore, `##` or `\##` inside an existing comment is treated as literal data and requires no escaping.
+- Trailing whitespace immediately before an inline comment marker (` ## `) or at the end of a line is not preserved, to maintain canonical formatting.
+- Leading standalone comments belong to the next structural element (e.g., a tab, category, or entry).
+- Lines starting with `##` are considered **standalone comments**.
+- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
 - A literal `##` can be written within an inline or standalone comment by typing `\##`.
 - If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
 
@@ -417,5 +438,3 @@ Category: Links
 
 https://example.com/##literal Literal hash inside URL ## inline comment with \## inside
 ```
-
-When bookmarks are edited (e.g., moving a category or column), the parser preserves all leading comments (standalone comments immediately preceding the object) and inline comments exactly as they were written.

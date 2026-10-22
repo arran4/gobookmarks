@@ -8,14 +8,35 @@ import (
 
 func escapeForComment(val string) string {
 	var sb strings.Builder
+	var bsCount int
+	var runStart int
 	for i := 0; i < len(val); i++ {
+		if val[i] == '\\' {
+			if bsCount == 0 {
+				runStart = i
+			}
+			bsCount++
+			sb.WriteByte(val[i])
+			continue
+		}
+
 		if i+1 < len(val) && val[i] == '#' && val[i+1] == '#' {
-			if i == 0 || val[i-1] == ' ' || val[i-1] == '\t' {
+			isBoundary := runStart == 0 || (runStart > 0 && (val[runStart-1] == ' ' || val[runStart-1] == '\t'))
+			if bsCount == 0 && (i == 0 || val[i-1] == ' ' || val[i-1] == '\t') {
+				// 0 backslashes before a boundary ##
 				sb.WriteString("\\##")
 				i++
 				continue
+			} else if bsCount > 0 && isBoundary {
+				// >0 backslashes before a boundary ##
+				sb.WriteString("\\##")
+				i++
+				bsCount = 0
+				continue
 			}
 		}
+
+		bsCount = 0
 		sb.WriteByte(val[i])
 	}
 	return sb.String()
