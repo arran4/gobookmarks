@@ -398,3 +398,24 @@ An example `config.json` looks like:
 ## Legacy migration
 
 The `sql/legacy_migrate.sql` file contains SQL statements that convert the original `goa4web-bookmarks` tables into the schema used here. Execute the script manually on your database before enabling the SQL provider.
+
+### Bookmark file format
+
+The bookmark file format is a line-based plain text format.
+
+- Blank lines are ignored.
+- Lines starting with `##` are considered **standalone comments**.
+- Inline comments can be added at the end of most directives or entries by separating them with ` ## `.
+- A literal `##` can be written within an inline or standalone comment by typing `\##`.
+- If a URL natively contains `##` (e.g. `https://example.com/##hash`), it is left exactly as-is; it is not treated as a comment boundary because comments require a preceding space (e.g., ` ## `) or must start at index 0.
+
+Example:
+```text
+## This is a standalone comment
+tab: Work ## this is an inline comment
+Category: Links
+
+https://example.com/##literal Literal hash inside URL ## inline comment with \## inside
+```
+
+When bookmarks are edited (e.g., moving a category or column), the parser preserves all leading comments (standalone comments immediately preceding the object) and inline comments exactly as they were written.

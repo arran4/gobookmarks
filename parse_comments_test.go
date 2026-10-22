@@ -150,23 +150,37 @@ func TestStringEscaping(t *testing.T) {
 
 func TestJSONCompatibility(t *testing.T) {
 	// P1: JSON wire compatibility - old fields should be present without omitempty
-	entry := &gobookmarks.JSONEntry{
-		URL:  "http://example.com",
-		Name: "Example",
-	}
+	entry := &gobookmarks.JSONEntry{} // zero values
+	cat := &gobookmarks.JSONCategory{}
+	blk := &gobookmarks.JSONBlock{}
 
 	b, err := json.Marshal(entry)
 	if err != nil {
 		t.Fatalf("Failed to marshal: %v", err)
 	}
-
 	s := string(b)
-	if !strings.Contains(s, "\"url\":\"http://example.com\"") {
-		t.Fatalf("Missing required field 'url' in JSON: %s", s)
+	if !strings.Contains(s, "\"url\":\"\"") {
+		t.Fatalf("Missing zero-value required field 'url' in JSONEntry: %s", s)
 	}
-	if !strings.Contains(s, "\"name\":\"Example\"") {
-		t.Fatalf("Missing required field 'name' in JSON: %s", s)
+	if !strings.Contains(s, "\"name\":\"\"") {
+		t.Fatalf("Missing zero-value required field 'name' in JSONEntry: %s", s)
 	}
+
+	b, _ = json.Marshal(cat)
+	s = string(b)
+	if !strings.Contains(s, "\"name\":\"\"") {
+		t.Fatalf("Missing zero-value required field 'name' in JSONCategory: %s", s)
+	}
+
+	b, _ = json.Marshal(blk)
+	s = string(b)
+	if !strings.Contains(s, "\"hr\":false") {
+		t.Fatalf("Missing zero-value required field 'hr' in JSONBlock: %s", s)
+	}
+
+	// JSONPage, JSONTab, JSONColumn all had omitempty for name.
+    // Wait, the PR requested to test legacy fields.
+    // JSONEntry had URL, Name. JSONCategory had Name. JSONBlock had HR.
 }
 
 func TestLiteralHashHash(t *testing.T) {
@@ -184,7 +198,7 @@ https://example.com/##hash ## inline comment with \## inside
 	if entry.Url != "https://example.com/##hash" {
 		t.Fatalf("URL was corrupted: %q", entry.Url)
 	}
-	if entry.LeadingComments[0] != ` comment with ## inside` {
+	if entry.LeadingComments[0] != ` comment with \## inside` {
 		t.Fatalf("Leading comment was corrupted: %q", entry.LeadingComments[0])
 	}
 	if entry.InlineComment != ` inline comment with \## inside` {
@@ -227,5 +241,99 @@ https://example.com Example 1 ## inline entry
 	outString := nativeList.String()
 	if strings.TrimSpace(outString) != strings.TrimSpace(input) {
 		t.Fatalf("JSON roundtrip lost formatting. Expected:\n%s\nGot:\n%s", input, outString)
+	}
+}
+
+func TestPermissiveStrictParity(t *testing.T) {
+	input := `## leading tab
+tab: Tab1 ## inline tab
+## leading hr
+-- ## inline hr
+## leading col
+Column: Column 1 ## inline col
+## leading cat
+Category: Category 1 ## inline cat
+## leading entry
+https://example.com Example 1 ## inline entry
+`
+	strictList, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("Strict parse failed: %v", err)
+	}
+
+	permissiveList := gobookmarks.ParseBookmarks(input)
+
+	strictJSON, _ := json.MarshalIndent(strictList.ToJSON(), "", "  ")
+	permissiveJSON, _ := json.MarshalIndent(permissiveList.ToJSON(), "", "  ")
+
+	if string(strictJSON) != string(permissiveJSON) {
+		t.Fatalf("JSON parity failed.\nStrict:\n%s\nPermissive:\n%s", strictJSON, permissiveJSON)
+	}
+}
+
+func TestEmptyInlineComments(t *testing.T) {
+	input := `tab: Tab1 ##
+-- ##
+Column: Column 1 ##
+Category: Category 1 ##
+https://example.com Example 1 ##
+`
+
+	list, err := gobookmarks.StrictParseBookmarks(input)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	tab := list[0]
+	if !tab.HasInlineComment || strings.TrimSpace(tab.InlineComment) != "" {
+		t.Fatalf("Tab empty inline comment failed")
+	}
+
+	page := tab.Pages[0]
+	hrBlock := page.Blocks[1]
+	if !hrBlock.HasInlineComment || strings.TrimSpace(hrBlock.InlineComment) != "" {
+		t.Fatalf("HR empty inline comment failed")
+	}
+
+	col := page.Blocks[2].Columns[0]
+	if !col.HasInlineComment || strings.TrimSpace(col.InlineComment) != "" {
+		t.Fatalf("Column empty inline comment failed")
+	}
+
+	cat := col.Categories[0]
+	if !cat.HasInlineComment || strings.TrimSpace(cat.InlineComment) != "" {
+		t.Fatalf("Category empty inline comment failed")
+	}
+
+	entry := cat.Entries[0]
+	if !entry.HasInlineComment || strings.TrimSpace(entry.InlineComment) != "" {
+		t.Fatalf("Entry empty inline comment failed")
+	}
+}
+
+func TestCategoryEditPreservation(t *testing.T) {
+	// A no-op ExtractCategoryByIndex -> ReplaceCategoryByIndex should reproduce the exact original bytes
+	input := `tab: Tab1
+
+## leading cat
+Category: Category 1
+
+https://example.com/1
+https://example.com/2
+
+
+`
+
+
+	catStr, _ := gobookmarks.ExtractCategoryByIndex(input, 0)
+
+	// Ensure that string replacement logic correctly preserves everything
+	replaced, err := gobookmarks.ReplaceCategoryByIndex(input, 0, catStr)
+	if err != nil {
+		t.Fatalf("Replace failed: %v", err)
+	}
+
+	if replaced != input {
+		t.Fatalf("Category replacement modified original formatting.\nExpected:\n%q\nGot:\n%q", input, replaced)
 	}
 }

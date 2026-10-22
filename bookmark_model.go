@@ -25,8 +25,7 @@ func parseLineForComments(line string) (bool, string, string, bool) {
 	trimmed := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmed, "##") {
 		comment := strings.TrimPrefix(trimmed, "##")
-		// unescape the standalone comment text if it contains \##
-		return true, "", strings.ReplaceAll(comment, "\\##", "##"), true
+		return true, "", comment, true
 	}
 
 	var unescaped strings.Builder
